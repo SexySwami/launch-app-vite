@@ -1,0 +1,18 @@
+export const T = {
+  bg: '#05070C',
+  bgSoft: '#0B1018',
+  surface: 'rgba(255,255,255,0.04)',
+  surface2: 'rgba(255,255,255,0.07)',
+  hairline: 'rgba(140,200,255,0.14)',
+  hairlineSoft: 'rgba(140,200,255,0.08)',
+  text: 'rgba(255,255,255,0.96)',
+  text2: 'rgba(255,255,255,0.62)',
+  text3: 'rgba(255,255,255,0.38)',
+  cyan: '#00E5FF',
+  blue: '#3D7FFF',
+  purple: '#A876FF',
+  teal: '#4FE3C1',
+  warn: '#FFB347',
+  display: '"Space Grotesk", -apple-system, system-ui, sans-serif',
+  mono: '"JetBrains Mono", ui-monospace, "SF Mono", monospace',
+};
