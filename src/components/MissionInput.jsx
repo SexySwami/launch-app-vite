@@ -1561,7 +1561,6 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           const isChildDragging = drag?.id === child.id && drag?.dragSource?.type === 'folder-child';
                           const childSelected = selectedItemId === child.id;
                           const childEditing = editingItemId === child.id;
-                          const childPriority = priorityMapRef.current.get(child.id);
                           return (
                           <div
                             key={child.id}
@@ -1579,17 +1578,17 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                                 ? 'linear-gradient(180deg, rgba(0,229,255,0.14), rgba(0,229,255,0.04))'
                                 : childEditing
                                   ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
-                                  : 'rgba(255,255,255,0.025)',
+                                  : 'rgba(255,255,255,0.02)',
                               border: `1px solid ${
                                 childSelected ? 'rgba(0,229,255,0.6)'
                                 : childEditing ? 'rgba(168,118,255,0.55)'
                                 : T.hairlineSoft
                               }`,
-                              borderRadius: 14, padding: '4px 4px 4px 4px',
-                              fontFamily: T.display, fontSize: 14, color: T.text,
+                              borderRadius: 12, padding: '8px 10px',
+                              fontFamily: T.display, fontSize: 13, color: T.text2,
                               cursor: isChildDragging ? 'grabbing' : 'pointer', textAlign: 'left',
                               WebkitTapHighlightColor: 'transparent',
-                              flexShrink: 0, minHeight: 48,
+                              flexShrink: 0,
                               position: 'relative',
                               transform: isChildDragging ? `translateY(${drag.deltaY}px) scale(1.03)` : 'none',
                               zIndex: isChildDragging ? 10 : 1,
@@ -1597,9 +1596,9 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               boxShadow: isChildDragging
                                 ? `0 12px 32px rgba(0,229,255,0.32), 0 0 24px rgba(0,229,255,0.20)`
                                 : childSelected
-                                  ? `0 0 18px rgba(0,229,255,0.30)`
+                                  ? `0 0 14px rgba(0,229,255,0.22)`
                                   : childEditing
-                                    ? `0 0 18px rgba(168,118,255,0.30)`
+                                    ? `0 0 14px rgba(168,118,255,0.22)`
                                     : 'none',
                               transition: isChildDragging
                                 ? 'box-shadow 200ms ease, opacity 200ms ease'
@@ -1608,33 +1607,13 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               touchAction: 'pan-y',
                             }}
                           >
-                            <div
-                              aria-hidden="true"
-                              style={{
-                                flexShrink: 0,
-                                height: 30, minWidth: 30,
-                                padding: '0 8px',
-                                boxSizing: 'border-box',
-                                borderRadius: 99,
-                                background: 'linear-gradient(180deg, rgba(0,229,255,0.16), rgba(0,229,255,0.06))',
-                                border: '1px solid rgba(0,229,255,0.42)',
-                                color: T.cyan,
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                fontFamily: T.mono, fontSize: 12, fontWeight: 700,
-                                fontVariantNumeric: 'tabular-nums',
-                                letterSpacing: '0.02em',
-                                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-                                textShadow: `0 0 8px rgba(0,229,255,0.4)`,
-                                pointerEvents: 'none',
-                                marginLeft: 4,
-                              }}
-                            >
-                              {childPriority}
-                            </div>
+                            <span style={{
+                              width: 6, height: 6, borderRadius: 1,
+                              background: T.purple, opacity: 0.6, flexShrink: 0,
+                            }} />
                             <span style={{
                               flex: 1, minWidth: 0,
                               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                              fontWeight: 500,
                             }}>{child.text}</span>
                             <button
                               onPointerDown={(e) => e.stopPropagation()}
@@ -1642,18 +1621,16 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               aria-label={`Launch ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
-                                width: 32, height: 32, borderRadius: 99,
+                                width: 28, height: 28, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 color: T.cyan,
                                 background: 'rgba(0,229,255,0.10)',
                                 border: '1px solid rgba(0,229,255,0.32)',
-                                boxShadow: '0 0 10px rgba(0,229,255,0.12)',
-                                transition: 'all 150ms',
                                 WebkitTapHighlightColor: 'transparent',
                               }}
                             >
-                              <svg width="13" height="13" viewBox="0 0 13 13">
-                                <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                              <svg width="12" height="12" viewBox="0 0 13 13">
+                                <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </button>
                             <button
@@ -1662,7 +1639,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               aria-label={`Delete ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
-                                width: 32, height: 32, borderRadius: 99,
+                                width: 28, height: 28, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 color: T.text3,
                               }}
