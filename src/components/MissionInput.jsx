@@ -65,6 +65,18 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   useEffect(() => { dragRef.current = drag; }, [drag]);
   useEffect(() => { itemsRef.current = items; }, [items]);
 
+  // Block native touch-scroll while a drag is active. Must be registered with
+  // { passive: false } — JSX onTouchMove is always passive and cannot call preventDefault().
+  useEffect(() => {
+    const el = listScrollRef.current;
+    if (!el) return;
+    const handler = (e) => {
+      if (dragRef.current) e.preventDefault();
+    };
+    el.addEventListener('touchmove', handler, { passive: false });
+    return () => el.removeEventListener('touchmove', handler);
+  }, []);
+
   // Cancel any in-flight auto-scroll frame and lingering tap/press timers on unmount.
   useEffect(() => () => {
     if (autoScrollRef.current.rafId) {
@@ -1053,7 +1065,13 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     if (!pressed) return;
     const dx = e.clientX - pressed.startX;
     const dy = e.clientY - pressed.startY;
-    if (dx * dx + dy * dy > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
+    const dist2 = dx * dx + dy * dy;
+    if (dist2 > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
+      // Gesture is more horizontal than vertical — let the browser scroll naturally.
+      if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+        pressedItemRef.current = null;
+        return;
+      }
       if (pressed.isChild) {
         activateChildDrag(pressed);
       } else {
@@ -1252,6 +1270,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
             display: 'flex', flexDirection: 'column', gap: 8,
             flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 4,
             userSelect: 'none', WebkitUserSelect: 'none',
+            overscrollBehavior: 'contain',
           }}>
             {itemsLoading && items.length === 0 && (
               <div style={{
@@ -1324,7 +1343,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           ? 'box-shadow 200ms ease, opacity 200ms ease'
                           : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 200ms ease, border-color 200ms ease',
                         willChange: isDragging ? 'transform' : 'auto',
-                        touchAction: 'manipulation',
+                        touchAction: 'pan-y',
                         animation: highlightDelay === 0 ? 'folderPop 360ms cubic-bezier(0.2,0.8,0.2,1)' : undefined,
                       }}
                     >
@@ -1424,7 +1443,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               fontFamily: T.display, fontSize: 13, color: T.text2,
                               flexShrink: 0,
                               cursor: isChildDragging ? 'grabbing' : 'grab',
-                              touchAction: 'manipulation',
+                              touchAction: 'pan-y',
                               transform: isChildDragging ? `translateY(${drag.deltaY}px) scale(1.03)` : 'none',
                               zIndex: isChildDragging ? 10 : 1,
                               opacity: isChildDragging ? 0.96 : 1,
@@ -1545,10 +1564,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                       willChange: isDragging || isHoverTarget ? 'transform' : 'auto',
                       animationDelay: isHighlighted ? `${highlightDelay}ms` : undefined,
-                      // manipulation = pan + pinch-zoom, but suppresses the
-                      // iOS double-tap-zoom gesture so our double-tap handler
-                      // fires cleanly. Single-finger vertical pan still works.
-                      touchAction: 'manipulation',
+                      touchAction: 'pan-y',
                     }}
                   >
                     {/* Priority badge — reflects the item's current rank.
