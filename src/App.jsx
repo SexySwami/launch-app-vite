@@ -13,7 +13,7 @@ import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { generateSteps } from './lib/generateSteps.js';
 
 export default function App() {
-  const [screen, setScreen] = useState('input');
+  const [screen, setScreen] = useState('home');
   const [mission, setMission] = useState('');
   const [stepIdx, setStepIdx] = useState(0);
   const [momentumGained, setMomentumGained] = useState(0);
@@ -205,7 +205,14 @@ export default function App() {
 
   let body = null;
   if (screen === 'home')
-    body = <HomeScreen />;
+    body = (
+      <HomeScreen
+        mission={mission}
+        setMission={setMission}
+        onLaunch={(text) => launchMission(text)}
+        onHistory={() => setScreen('input')}
+      />
+    );
   else if (screen === 'profile')
     body = <ProfileScreen />;
   else if (screen === 'input')
