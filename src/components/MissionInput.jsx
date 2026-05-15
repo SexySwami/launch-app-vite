@@ -553,8 +553,8 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       if (!node) continue;
       const rect = node.getBoundingClientRect();
       const relative = (clientY - rect.top) / rect.height;
-      const isFlatItem = !other.type || other.type === 'item';
-      if (relative > 0.25 && relative < 0.75 && isFlatItem) {
+      const isDropTarget = !other.type || other.type === 'item' || other.type === 'folder';
+      if (relative > 0.25 && relative < 0.75 && isDropTarget) {
         hoverTargetId = other.id;
         // Don't pick a dropIdx — the pointer is "inside" this row.
       }
@@ -616,8 +616,39 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     const dragged = itemsNow.find(i => i.id === draggedId);
     const target = itemsNow.find(i => i.id === targetId);
     if (!dragged || !target) return;
-    // For now folder creation only works between two flat items.
-    if (dragged.type === 'folder' || target.type === 'folder') return;
+    // Can't drag a folder into anything.
+    if (dragged.type === 'folder') return;
+
+    // Dragging a flat item onto an existing folder → add it to that folder.
+    if (target.type === 'folder') {
+      stopAutoScroll();
+      if (hoverFolderTimerRef.current) { clearTimeout(hoverFolderTimerRef.current); hoverFolderTimerRef.current = null; }
+      if (hoverProgressRafRef.current) { cancelAnimationFrame(hoverProgressRafRef.current); hoverProgressRafRef.current = null; }
+      hoverFolderRef.current = { targetId: null, startedAt: 0 };
+      setHoverProgress(0);
+      setDrag(null);
+      justEndedDragRef.current = true;
+      setTimeout(() => { justEndedDragRef.current = false; }, 120);
+
+      const next = itemsNow
+        .filter(i => i.id !== draggedId)
+        .map(i => i.id === targetId
+          ? { ...i, children: [...(i.children || []), { id: dragged.id, text: dragged.text, createdAt: dragged.createdAt || Date.now() }] }
+          : i
+        );
+      setItems(next);
+      if (canCallAPI) {
+        try {
+          const res = await fetch('/api/queue', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: next }) });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+          if (Array.isArray(data.items)) setItems(data.items);
+        } catch (err) {
+          setItemsError(err.message || 'Could not add to folder');
+        }
+      }
+      return;
+    }
 
     stopAutoScroll();
     if (hoverFolderTimerRef.current) {
