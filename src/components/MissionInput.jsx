@@ -62,6 +62,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const [namingFolderId, setNamingFolderId] = useState(null);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [emptyFolderPrompt, setEmptyFolderPrompt] = useState(null);
+  const [folderDeleteConfirmId, setFolderDeleteConfirmId] = useState(null);
   const [hoverProgress, setHoverProgress] = useState(0);
   const hoverFolderRef = useRef({ targetId: null, startedAt: 0 });
   const hoverFolderTimerRef = useRef(null);
@@ -1670,32 +1671,22 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
-                      {/* Launch first item in folder */}
+                      {/* Delete folder — X opens confirmation */}
                       <button
                         onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const firstChild = item.children?.[0];
-                          if (firstChild) handleLaunchItem(firstChild.text, { id: firstChild.id, index: -1 });
-                        }}
-                        aria-label={`Launch first item in folder ${folderName}`}
-                        disabled={childCount === 0}
+                        onClick={(e) => { e.stopPropagation(); setFolderDeleteConfirmId(item.id); }}
+                        aria-label={`Delete folder ${folderName}`}
                         style={{
-                          all: 'unset', flexShrink: 0,
-                          cursor: childCount > 0 ? 'pointer' : 'default',
+                          all: 'unset', cursor: 'pointer', flexShrink: 0,
                           width: 32, height: 32, borderRadius: 99,
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          color: childCount > 0 ? T.cyan : T.text3,
-                          background: childCount > 0 ? 'rgba(0,229,255,0.10)' : 'transparent',
-                          border: childCount > 0 ? '1px solid rgba(0,229,255,0.28)' : '1px solid transparent',
-                          boxShadow: childCount > 0 ? '0 0 8px rgba(0,229,255,0.15)' : 'none',
-                          opacity: childCount === 0 ? 0.35 : 1,
-                          transition: 'color 150ms, background 150ms',
+                          color: T.text3,
+                          transition: 'color 150ms',
                           WebkitTapHighlightColor: 'transparent',
                         }}
                       >
-                        <svg width="13" height="13" viewBox="0 0 14 14">
-                          <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
+                        <svg width="10" height="10" viewBox="0 0 10 10">
+                          <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                         </svg>
                       </button>
                     </div>
@@ -2095,6 +2086,97 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           onSave={(name) => handleSaveFolderName(namingFolderId, name)}
         />
       )}
+
+      {folderDeleteConfirmId && (() => {
+        const confirmFolder = items.find(i => i.id === folderDeleteConfirmId);
+        const confirmName = confirmFolder?.name || 'New Folder';
+        return (
+          <div
+            onClick={() => setFolderDeleteConfirmId(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 210,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '20px 16px',
+              background: 'rgba(2,4,8,0.7)',
+              backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+              animation: 'backdropIn 220ms ease',
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%', maxWidth: 360,
+                background: 'linear-gradient(160deg, rgba(168,118,255,0.16), rgba(255,255,255,0.025) 55%, rgba(168,118,255,0.06))',
+                border: `1px solid rgba(168,118,255,0.6)`,
+                borderRadius: 22,
+                padding: '20px 18px 16px',
+                boxShadow: `0 0 0 1px rgba(255,255,255,0.05) inset, 0 30px 80px rgba(0,0,0,0.65), 0 0 60px rgba(168,118,255,0.30)`,
+                backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+                animation: 'modalIn 280ms cubic-bezier(0.2,0.8,0.2,1)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: `linear-gradient(180deg, ${T.purple}, rgba(168,118,255,0.6))`,
+                  color: '#0e0820',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 14px rgba(168,118,255,0.5), inset 0 1px 0 rgba(255,255,255,0.18)`,
+                  flexShrink: 0,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 14 14">
+                    <path d="M1.5 3.5a1 1 0 0 1 1-1h3l1 1.2h5a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3.5z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
+                    color: T.purple, textTransform: 'uppercase', fontWeight: 600,
+                    marginBottom: 2,
+                  }}>Delete folder</div>
+                  <div style={{
+                    fontFamily: T.display, fontSize: 16, color: T.text, fontWeight: 600,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{confirmName}</div>
+                </div>
+              </div>
+              <div style={{
+                fontFamily: T.display, fontSize: 13, color: T.text2,
+                marginBottom: 16, lineHeight: 1.4,
+              }}>
+                Are you sure you want to delete this folder? All items inside it will also be removed.
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setFolderDeleteConfirmId(null)}
+                  style={{
+                    all: 'unset', cursor: 'pointer', flex: 1,
+                    textAlign: 'center', padding: '12px 14px',
+                    fontFamily: T.display, fontSize: 14, fontWeight: 600, color: T.text,
+                    borderRadius: 12,
+                    border: `1px solid ${T.hairlineSoft}`,
+                    background: 'rgba(255,255,255,0.04)',
+                  }}
+                >No</button>
+                <button
+                  onClick={() => {
+                    handleDeleteItem(folderDeleteConfirmId);
+                    setFolderDeleteConfirmId(null);
+                  }}
+                  style={{
+                    all: 'unset', cursor: 'pointer', flex: 1,
+                    textAlign: 'center', padding: '12px 14px',
+                    fontFamily: T.display, fontSize: 14, fontWeight: 600, color: '#0e0820',
+                    borderRadius: 12,
+                    background: `linear-gradient(180deg, ${T.purple}, rgba(168,118,255,0.7))`,
+                    boxShadow: `0 0 16px rgba(168,118,255,0.4)`,
+                  }}
+                >Yes</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {emptyFolderPrompt && (
         <div
