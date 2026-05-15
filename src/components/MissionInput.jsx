@@ -1670,20 +1670,32 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
-                      {/* Delete (× also removes children for now) */}
+                      {/* Launch first item in folder */}
                       <button
                         onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
-                        aria-label={`Delete folder ${folderName}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const firstChild = item.children?.[0];
+                          if (firstChild) handleLaunchItem(firstChild.text, { id: firstChild.id, index: -1 });
+                        }}
+                        aria-label={`Launch first item in folder ${folderName}`}
+                        disabled={childCount === 0}
                         style={{
-                          all: 'unset', cursor: 'pointer', flexShrink: 0,
+                          all: 'unset', flexShrink: 0,
+                          cursor: childCount > 0 ? 'pointer' : 'default',
                           width: 32, height: 32, borderRadius: 99,
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          color: T.text3,
+                          color: childCount > 0 ? T.cyan : T.text3,
+                          background: childCount > 0 ? 'rgba(0,229,255,0.10)' : 'transparent',
+                          border: childCount > 0 ? '1px solid rgba(0,229,255,0.28)' : '1px solid transparent',
+                          boxShadow: childCount > 0 ? '0 0 8px rgba(0,229,255,0.15)' : 'none',
+                          opacity: childCount === 0 ? 0.35 : 1,
+                          transition: 'color 150ms, background 150ms',
+                          WebkitTapHighlightColor: 'transparent',
                         }}
                       >
-                        <svg width="10" height="10" viewBox="0 0 10 10">
-                          <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <svg width="13" height="13" viewBox="0 0 14 14">
+                          <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
                         </svg>
                       </button>
                     </div>
@@ -1784,17 +1796,22 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                             </button>
                             <button
                               onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => { e.stopPropagation(); handleDeleteItem(child.id); }}
-                              aria-label={`Delete ${child.text}`}
+                              onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, { id: child.id, index: -1 }); }}
+                              aria-label={`Launch ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
                                 width: 28, height: 28, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                color: T.text3,
+                                color: T.cyan,
+                                background: 'rgba(0,229,255,0.10)',
+                                border: '1px solid rgba(0,229,255,0.28)',
+                                boxShadow: '0 0 8px rgba(0,229,255,0.15)',
+                                transition: 'color 150ms, background 150ms',
+                                WebkitTapHighlightColor: 'transparent',
                               }}
                             >
-                              <svg width="10" height="10" viewBox="0 0 10 10">
-                                <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                              <svg width="11" height="11" viewBox="0 0 14 14">
+                                <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
                               </svg>
                             </button>
                           </div>
@@ -1934,18 +1951,22 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                     </button>
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
-                      aria-label={`Delete ${item.text}`}
+                      onClick={(e) => { e.stopPropagation(); handleLaunchItem(item.text, { id: item.id, index: idx }); }}
+                      aria-label={`Launch ${item.text}`}
                       style={{
                         all: 'unset', cursor: 'pointer', flexShrink: 0,
                         width: 32, height: 32, borderRadius: 99,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        color: T.text3,
-                        transition: 'color 150ms',
+                        color: T.cyan,
+                        background: 'rgba(0,229,255,0.10)',
+                        border: '1px solid rgba(0,229,255,0.28)',
+                        boxShadow: '0 0 8px rgba(0,229,255,0.15)',
+                        transition: 'color 150ms, background 150ms',
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      <svg width="10" height="10" viewBox="0 0 10 10">
-                        <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <svg width="12" height="12" viewBox="0 0 14 14">
+                        <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
                       </svg>
                     </button>
                   </div>
