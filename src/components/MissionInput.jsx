@@ -48,6 +48,8 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   // within ~320ms is recognized as a double-tap instead.
   const tapTimerRef = useRef(null);
   const lastTapRef = useRef({ time: 0, id: null });
+  const folderTapTimerRef = useRef(null);
+  const lastFolderTapRef = useRef({ time: 0, id: null });
 
   // Folder state.
   // - Expanded/collapsed lives on each folder item itself (`item.expanded`),
@@ -57,6 +59,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   //   item that triggers folder creation.
   // - hoverProgress: 0..1, animates the hover ring during the 2s hold.
   const [namingFolderId, setNamingFolderId] = useState(null);
+  const [editingFolderId, setEditingFolderId] = useState(null);
   const [emptyFolderPrompt, setEmptyFolderPrompt] = useState(null);
   const [hoverProgress, setHoverProgress] = useState(0);
   const hoverFolderRef = useRef({ targetId: null, startedAt: 0 });
@@ -86,6 +89,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
     if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (folderTapTimerRef.current) clearTimeout(folderTapTimerRef.current);
     if (hoverFolderTimerRef.current) clearTimeout(hoverFolderTimerRef.current);
     if (hoverProgressRafRef.current) cancelAnimationFrame(hoverProgressRafRef.current);
   }, []);
@@ -856,6 +860,45 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
   };
 
+  // Double-tap on a folder title → open the name overlay in read-only preview mode.
+  const handleFolderDoubleTap = (folder) => {
+    if (justEndedDragRef.current) return;
+    setEditingFolderId(folder.id);
+  };
+
+  // Click dispatcher for folder rows — distinguishes single tap (expand/collapse)
+  // from double tap (rename overlay), using the same 320 ms window as item rows.
+  const handleFolderClick = (folder) => {
+    if (justEndedDragRef.current) return;
+    const now = Date.now();
+    const last = lastFolderTapRef.current;
+    if (last.id === folder.id && (now - last.time) < TAP_DOUBLE_INTERVAL) {
+      if (folderTapTimerRef.current) {
+        clearTimeout(folderTapTimerRef.current);
+        folderTapTimerRef.current = null;
+      }
+      lastFolderTapRef.current = { time: 0, id: null };
+      handleFolderDoubleTap(folder);
+      return;
+    }
+    lastFolderTapRef.current = { time: now, id: folder.id };
+    if (folderTapTimerRef.current) clearTimeout(folderTapTimerRef.current);
+    folderTapTimerRef.current = setTimeout(() => {
+      folderTapTimerRef.current = null;
+      toggleFolderExpanded(folder.id);
+    }, TAP_DOUBLE_INTERVAL);
+  };
+
+  const handleCancelFolderEdit = () => setEditingFolderId(null);
+
+  const handleSaveFolderEdit = async (newName) => {
+    const id = editingFolderId;
+    const name = (newName || '').trim();
+    setEditingFolderId(null);
+    if (!name || !id) return;
+    await handleSaveFolderName(id, name);
+  };
+
   // Resolve the empty-folder prompt: either delete the folder or keep it empty.
   const resolveEmptyFolderPrompt = async (action) => {
     const prompt = emptyFolderPrompt;
@@ -1491,7 +1534,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                       }}
                     >
                     <div
-                      onClick={() => { if (justEndedDragRef.current) return; toggleFolderExpanded(item.id); }}
+                      onClick={() => handleFolderClick(item)}
                       onPointerDown={(e) => handleRowPointerDown(e, item, idx)}
                       onPointerMove={handleRowPointerMove}
                       onPointerUp={handleRowPointerUp}
@@ -1897,6 +1940,16 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           startMode={overlayStartMode}
           onCancel={handleCancelEdit}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {editingFolderId && (
+        <EditItemOverlay
+          item={(() => { const f = items.find(i => i.id === editingFolderId); return f ? { id: f.id, text: f.name || '' } : null; })()}
+          saving={false}
+          startMode="view"
+          onCancel={handleCancelFolderEdit}
+          onSave={handleSaveFolderEdit}
         />
       )}
 
