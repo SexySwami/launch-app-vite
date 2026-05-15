@@ -229,11 +229,56 @@ export function MissionInput({ onLaunch, mission, setMission }) {
         texts = tasks;
       }
 
+      // Multiple parsed tasks → group into an AI-named folder.
+      if (texts.length > 1) {
+        let folderName = 'New Tasks';
+        try {
+          const nameRes = await fetch('/api/name-folder', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ tasks: texts }),
+          });
+          const nameData = await nameRes.json().catch(() => ({}));
+          if (nameRes.ok && nameData.name) folderName = nameData.name.trim() || folderName;
+        } catch {}
+
+        const mkId = () => (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `m_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+        const folderId = mkId();
+        const children = texts.map(t => ({ id: mkId(), text: t, createdAt: Date.now() }));
+        const folder = {
+          id: folderId,
+          type: 'folder',
+          name: folderName,
+          createdAt: Date.now(),
+          expanded: true,
+          children,
+        };
+
+        const updatedItems = append
+          ? [...itemsRef.current, folder]
+          : [folder, ...itemsRef.current];
+        setItems(updatedItems);
+        highlightAddedItems([folder, ...children]);
+
+        const putRes = await fetch('/api/queue', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: updatedItems }),
+        });
+        const putData = await putRes.json().catch(() => ({}));
+        if (!putRes.ok) throw new Error(putData.error || `Failed (${putRes.status})`);
+        if (Array.isArray(putData.items)) setItems(putData.items);
+        return [folder];
+      }
+
       const url = append ? '/api/queue?append=1' : '/api/queue';
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(texts.length === 1 ? { text: texts[0] } : { texts }),
+        body: JSON.stringify({ text: texts[0] }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
@@ -1470,7 +1515,9 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           : `0 0 12px rgba(168,118,255,0.14)`,
                         transition: 'box-shadow 200ms ease, border-color 200ms ease',
                         touchAction: 'pan-y',
-                        animation: highlightDelay === 0 ? 'folderPop 360ms cubic-bezier(0.2,0.8,0.2,1)' : undefined,
+                        animation: isHighlighted
+                          ? `greenPulse 1s ease-out ${highlightDelay}ms, folderPop 360ms cubic-bezier(0.2,0.8,0.2,1)`
+                          : undefined,
                       }}
                     >
                       {/* Folder badge */}
@@ -1555,9 +1602,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           const isChildDragging = drag?.id === child.id && drag?.dragSource?.type === 'folder-child';
                           const childSelected = selectedItemId === child.id;
                           const childEditing = editingItemId === child.id;
+                          const childHighlightDelay = highlightedIds.get(child.id);
+                          const isChildHighlighted = childHighlightDelay !== undefined;
                           return (
                           <div
                             key={child.id}
+                            className={isChildHighlighted ? 'new-item-highlight' : undefined}
                             onClick={() => handleRowClick(child)}
                             onPointerDown={(e) => handleChildPointerDown(e, child, item.id)}
                             onPointerMove={handleRowPointerMove}
@@ -1598,6 +1648,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                                 ? 'box-shadow 200ms ease, opacity 200ms ease'
                                 : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                               willChange: isChildDragging ? 'transform' : 'auto',
+                              animationDelay: isChildHighlighted ? `${childHighlightDelay}ms` : undefined,
                               touchAction: 'pan-y',
                             }}
                           >
