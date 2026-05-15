@@ -49,12 +49,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const lastTapRef = useRef({ time: 0, id: null });
 
   // Folder state.
-  // - expandedFolders: Set of folder ids that are currently expanded.
+  // - Expanded/collapsed lives on each folder item itself (`item.expanded`),
+  //   so it persists across reloads and devices via the queue PUT.
   // - namingFolderId: the folder whose naming overlay is currently shown.
   // - hoverFolderTimerRef + hoverFolderRef: track the 2s drag-hold over an
   //   item that triggers folder creation.
   // - hoverProgress: 0..1, animates the hover ring during the 2s hold.
-  const [expandedFolders, setExpandedFolders] = useState(() => new Set());
   const [namingFolderId, setNamingFolderId] = useState(null);
   const [hoverProgress, setHoverProgress] = useState(0);
   const hoverFolderRef = useRef({ targetId: null, startedAt: 0 });
@@ -528,7 +528,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   // Recomputes deltaY (pointer + scroll offset), dropIdx (for between-items
   // drops) and hoverTargetId (for over-item drops → folder creation) for the
   // current pointer Y. Called from pointermove and the auto-scroll frame.
-  const FOLDER_HOVER_MS = 2000;
+  const FOLDER_HOVER_MS = 500;
 
   const updateDragVisuals = (clientY) => {
     const dragNow = dragRef.current;
@@ -642,6 +642,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       type: 'folder',
       name: '',
       createdAt: Date.now(),
+      expanded: true,
       children: [
         { id: target.id, text: target.text, createdAt: target.createdAt || Date.now() },
         { id: dragged.id, text: dragged.text, createdAt: dragged.createdAt || Date.now() },
@@ -653,7 +654,6 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       .map(i => i.id === targetId ? folder : i);
 
     setItems(next);
-    setExpandedFolders(prev => { const s = new Set(prev); s.add(folderId); return s; });
     setNamingFolderId(folderId);
 
     if (canCallAPI) {
@@ -695,13 +695,27 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
   };
 
-  const toggleFolderExpanded = (id) => {
-    setExpandedFolders(prev => {
-      const s = new Set(prev);
-      if (s.has(id)) s.delete(id);
-      else s.add(id);
-      return s;
-    });
+  const toggleFolderExpanded = async (id) => {
+    const before = items;
+    const next = items.map(i =>
+      i.id === id && i.type === 'folder' ? { ...i, expanded: !i.expanded } : i
+    );
+    setItems(next); // optimistic
+
+    if (!canCallAPI) return;
+    try {
+      const res = await fetch('/api/queue', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ items: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+      if (Array.isArray(data.items)) setItems(data.items);
+    } catch (err) {
+      setItems(before);
+      setItemsError(err.message || 'Could not save folder state');
+    }
   };
 
   const autoScrollFrame = () => {
@@ -1071,7 +1085,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
               // Folder row — different layout from a flat item.
               if (item.type === 'folder') {
-                const expanded = expandedFolders.has(item.id);
+                const expanded = !!item.expanded;
                 const childCount = Array.isArray(item.children) ? item.children.length : 0;
                 const folderName = item.name || 'New Folder';
                 return (
