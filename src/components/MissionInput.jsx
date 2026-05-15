@@ -952,9 +952,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     // so dropping doesn't accidentally launch the dropped item.
     justEndedDragRef.current = true;
     setTimeout(() => { justEndedDragRef.current = false; }, 120);
-    // If we were hovering over another item but the merge timer hadn't fired,
-    // pointerup is a "cancel merge" — release without reordering.
-    if (hoverTargetId) return;
+    // Note: we used to bail here when hoverTargetId was set, treating any
+    // release-in-hover-zone as a cancelled merge. That made reordering near
+    // folders (especially between two folders) feel broken — releasing while
+    // the pointer was anywhere in the middle 50% of a folder lost the drop.
+    // Now: if the merge timer didn't fire, fall through to a normal drop at
+    // the computed dropIdx (it's always set independently of hoverTargetId).
 
     // Child drag-out → eject from folder, insert at dropIdx in top-level.
     if (dragSource?.type === 'folder-child') {
@@ -1352,7 +1355,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
               const othersIdx = drag && !isDragging
                 ? others.findIndex(i => i.id === item.id)
                 : -1;
-              const showIndicatorBefore = drag && !isDragging && drag.dropIdx === othersIdx && drag.hoverTargetId == null;
+              const showIndicatorBefore = drag && !isDragging && drag.dropIdx === othersIdx;
               const isFirstItem = idx === 0;
               const highlightDelay = highlightedIds.get(item.id);
               const isHighlighted = highlightDelay !== undefined;
@@ -1371,6 +1374,22 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                     <div
                       ref={el => { if (el) itemRefs.current[item.id] = el; else delete itemRefs.current[item.id]; }}
                       data-item-id={item.id}
+                      style={{
+                        display: 'flex', flexDirection: 'column', gap: 8,
+                        flexShrink: 0,
+                        // Transform on the wrapper so children visually move with the folder during drag.
+                        transform: isDragging
+                          ? `translateY(${drag.deltaY}px) scale(1.02)`
+                          : 'none',
+                        zIndex: isDragging ? 10 : 1,
+                        opacity: isDragging ? 0.96 : 1,
+                        transition: isDragging
+                          ? 'opacity 200ms ease'
+                          : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1)',
+                        willChange: isDragging ? 'transform' : 'auto',
+                      }}
+                    >
+                    <div
                       onClick={() => { if (justEndedDragRef.current) return; toggleFolderExpanded(item.id); }}
                       onPointerDown={(e) => handleRowPointerDown(e, item, idx)}
                       onPointerMove={handleRowPointerMove}
@@ -1390,18 +1409,10 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         WebkitTapHighlightColor: 'transparent',
                         flexShrink: 0, minHeight: 48,
                         position: 'relative',
-                        transform: isDragging
-                          ? `translateY(${drag.deltaY}px) scale(1.02)`
-                          : 'none',
-                        zIndex: isDragging ? 10 : 1,
                         boxShadow: isDragging
                           ? `0 12px 32px rgba(168,118,255,0.32), 0 0 24px rgba(168,118,255,0.20)`
                           : `0 0 12px rgba(168,118,255,0.14)`,
-                        opacity: isDragging ? 0.96 : 1,
-                        transition: isDragging
-                          ? 'box-shadow 200ms ease, opacity 200ms ease'
-                          : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 200ms ease, border-color 200ms ease',
-                        willChange: isDragging ? 'transform' : 'auto',
+                        transition: 'box-shadow 200ms ease, border-color 200ms ease',
                         touchAction: 'pan-y',
                         animation: highlightDelay === 0 ? 'folderPop 360ms cubic-bezier(0.2,0.8,0.2,1)' : undefined,
                       }}
@@ -1559,6 +1570,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         })}
                       </div>
                     )}
+                    </div>
                   </Fragment>
                 );
               }
