@@ -191,7 +191,18 @@ function ReactorCore({ state, intensity, onLaunch }) {
   const warming = state === 'warming';
   const idle = state === 'idle';
 
-  const glow = 0.3 + intensity * 0.7;
+  const speed1 = idle ? 60 : warming ? 42 : 28;
+  const speed2 = idle ? 36 : warming ? 24 : 16;
+  const speed3 = idle ? 20 : warming ? 14 : 10;
+
+  const glow = 0.25 + intensity * 0.75;
+
+  const stateLabel = armed ? 'MISSION LOCKED' : warming ? 'CHARGING' : 'STANDBY';
+  const stateColor = armed ? T.cyan : warming ? T.teal : T.text3;
+  const caption = idle ? 'Enter a mission' : armed ? 'Tap to launch' : 'Building energy';
+
+  const ring2Particles = idle ? 1 : warming ? 2 : 3;
+  const ring3Particles = idle ? 1 : warming ? 2 : 4;
 
   const handleDown = () => !idle && setPressing(true);
   const handleUp = () => setPressing(false);
@@ -203,230 +214,226 @@ function ReactorCore({ state, intensity, onLaunch }) {
   return (
     <div style={{
       flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      position: 'relative', padding: '8px 0', minHeight: 340,
+      position: 'relative', padding: '8px 0', minHeight: 320,
     }}>
-      {/* Ambient halo — cyan + warm gold */}
       <div style={{
-        position: 'absolute', width: 440, height: 440, borderRadius: '50%',
+        position: 'absolute', width: 460, height: 460, borderRadius: '50%',
         background: `radial-gradient(circle,
-          rgba(0,229,255,${0.16 * glow}) 0%,
-          rgba(255,180,71,${0.10 * glow}) 35%,
-          rgba(168,118,255,${0.05 * glow}) 60%,
+          rgba(0,229,255,${0.22 * glow}) 0%,
+          rgba(61,127,255,${0.10 * glow}) 30%,
+          rgba(168,118,255,${0.06 * glow}) 55%,
           transparent 75%)`,
-        animation: armed ? 'haloPulse 2.8s ease-in-out infinite' : 'haloPulse 5s ease-in-out infinite',
+        animation: armed ? 'haloPulse 2.6s ease-in-out infinite' : 'haloPulse 4.5s ease-in-out infinite',
+        pointerEvents: 'none',
+        transition: 'opacity 600ms ease',
+      }} />
+
+      <div style={{
+        position: 'absolute', width: 320, height: 320, borderRadius: '50%',
+        background: `radial-gradient(circle, rgba(168,118,255,${0.18 * glow}), transparent 70%)`,
+        filter: 'blur(8px)',
         pointerEvents: 'none',
       }} />
 
-      <button
-        onPointerDown={handleDown}
-        onPointerUp={handleUp}
-        onPointerLeave={handleUp}
-        onClick={handleClick}
-        disabled={idle}
-        aria-label="Activate launch"
-        style={{
-          all: 'unset',
-          position: 'relative',
-          width: 300, height: 300,
-          cursor: idle ? 'not-allowed' : 'pointer',
-          transform: `scale(${pressing ? 0.96 : 1})`,
-          transition: 'transform 200ms cubic-bezier(0.2,0.8,0.2,1)',
-          animation: armed ? 'reactorBreatheArmed 2.8s ease-in-out infinite' : 'reactorBreathe 4.4s ease-in-out infinite',
-        }}
-      >
-        <svg width="300" height="300" viewBox="-150 -150 300 300" style={{ overflow: 'visible' }}>
+      <div style={{
+        position: 'relative', width: 340, height: 340,
+        animation: armed ? 'reactorBreatheArmed 2.6s ease-in-out infinite' : 'reactorBreathe 4.2s ease-in-out infinite',
+        transform: pressing ? 'scale(0.96)' : 'scale(1)',
+        transition: 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+      }}>
+        <svg width="340" height="340" viewBox="-170 -170 340 340" style={{ overflow: 'visible' }}>
           <defs>
-            {/* Gold ring gradient */}
-            <linearGradient id="abGold" x1="0" y1="-1" x2="0" y2="1">
-              <stop offset="0%"   stopColor="#FFE499"/>
-              <stop offset="45%"  stopColor="#F5B040"/>
-              <stop offset="100%" stopColor="#A8650A"/>
+            <linearGradient id="rxRingGrad" x1="0" y1="-1" x2="0" y2="1">
+              <stop offset="0%" stopColor={T.cyan} stopOpacity="0.9" />
+              <stop offset="50%" stopColor={T.blue} stopOpacity="0.5" />
+              <stop offset="100%" stopColor={T.purple} stopOpacity="0.7" />
             </linearGradient>
-
-            {/* Plasma orb radial */}
-            <radialGradient id="abPlasma" cx="0.5" cy="0.5" r="0.6">
-              <stop offset="0%"   stopColor="rgba(220,255,255,0.95)"/>
-              <stop offset="22%"  stopColor="rgba(90,240,255,0.85)"/>
-              <stop offset="55%"  stopColor="rgba(0,170,200,0.7)"/>
-              <stop offset="90%"  stopColor="rgba(2,55,80,0.95)"/>
-              <stop offset="100%" stopColor="rgba(2,30,45,1)"/>
-            </radialGradient>
-
-            {/* Bottom shadow inside orb — depth */}
-            <radialGradient id="abOrbShade" cx="0.5" cy="0.95" r="0.5">
-              <stop offset="0%"   stopColor="rgba(0,0,0,0.55)"/>
-              <stop offset="100%" stopColor="rgba(0,0,0,0)"/>
-            </radialGradient>
-
-            {/* Top specular highlight */}
-            <radialGradient id="abOrbSpec" cx="0.5" cy="0.18" r="0.45">
-              <stop offset="0%"   stopColor="rgba(255,255,255,0.5)"/>
-              <stop offset="60%"  stopColor="rgba(255,255,255,0.08)"/>
-              <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
-            </radialGradient>
-
-            {/* Hex badge fill */}
-            <linearGradient id="abHexFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor="#FFE08A"/>
-              <stop offset="100%" stopColor="#B5740C"/>
+            <linearGradient id="rxRingGradFaint" x1="0" y1="-1" x2="0" y2="1">
+              <stop offset="0%" stopColor={T.cyan} stopOpacity="0.45" />
+              <stop offset="100%" stopColor={T.purple} stopOpacity="0.35" />
             </linearGradient>
-
-            {/* Plasma noise — fractal displacement gives an organic cloud feel */}
-            <filter id="abNoise" x="-20%" y="-20%" width="140%" height="140%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="3" result="noise"/>
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="28"/>
+            <radialGradient id="rxCoreGrad" cx="0.5" cy="0.42" r="0.65">
+              <stop offset="0%"  stopColor={T.cyan} stopOpacity={armed ? 0.85 : warming ? 0.50 : 0.20} />
+              <stop offset="35%" stopColor={T.blue} stopOpacity={armed ? 0.45 : warming ? 0.25 : 0.10} />
+              <stop offset="100%" stopColor="#030610" stopOpacity="0.98" />
+            </radialGradient>
+            <radialGradient id="rxCoreSpec" cx="0.5" cy="0.22" r="0.50">
+              <stop offset="0%"   stopColor="rgba(255,255,255,0.55)" />
+              <stop offset="55%"  stopColor="rgba(255,255,255,0.06)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </radialGradient>
+            <radialGradient id="rxCoreBottomShadow" cx="0.5" cy="0.92" r="0.50">
+              <stop offset="0%"   stopColor="rgba(0,0,0,0.55)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+            </radialGradient>
+            <filter id="rxGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
-
-            {/* Soft cyan glow */}
-            <filter id="abCyanGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3.5"/>
-            </filter>
-
-            {/* Clip plasma to orb */}
-            <clipPath id="abOrbClip">
-              <circle r="96"/>
-            </clipPath>
           </defs>
 
-          {/* ── Outer metallic ring ── */}
-          <circle r="142" fill="none" stroke="#0d1422" strokeWidth="9"/>
-          <circle r="142" fill="none" stroke="rgba(180,200,220,0.10)" strokeWidth="1"/>
-          <circle r="137" fill="none" stroke="rgba(0,0,0,0.5)"        strokeWidth="0.6"/>
-          <circle r="147" fill="none" stroke="rgba(0,0,0,0.5)"        strokeWidth="0.6"/>
-
-          {/* ── Cyan arc segments at TL and BR ── */}
-          {/* Soft outer halo of cyan glow behind arcs */}
-          <path d={describeArc(142, 235, 350)} fill="none"
-                stroke={T.cyan} strokeWidth="14" strokeLinecap="round"
-                opacity={0.18 * glow} filter="url(#abCyanGlow)"/>
-          <path d={describeArc(142, 55, 170)} fill="none"
-                stroke={T.cyan} strokeWidth="14" strokeLinecap="round"
-                opacity={0.18 * glow} filter="url(#abCyanGlow)"/>
-          {/* Bright arc cores */}
-          <path d={describeArc(142, 235, 350)} fill="none"
-                stroke={T.cyan} strokeWidth="6" strokeLinecap="round"
-                opacity={0.55 + glow * 0.45}
-                style={{ filter: `drop-shadow(0 0 6px ${T.cyan}) drop-shadow(0 0 12px rgba(0,229,255,0.7))` }}/>
-          <path d={describeArc(142, 55, 170)} fill="none"
-                stroke={T.cyan} strokeWidth="6" strokeLinecap="round"
-                opacity={0.55 + glow * 0.45}
-                style={{ filter: `drop-shadow(0 0 6px ${T.cyan}) drop-shadow(0 0 12px rgba(0,229,255,0.7))` }}/>
-          {/* Bright inner-cyan caps */}
-          <path d={describeArc(142, 240, 345)} fill="none"
-                stroke="#CFFAFF" strokeWidth="2.2" strokeLinecap="round"
-                opacity={0.55 + glow * 0.45}/>
-          <path d={describeArc(142, 60, 165)} fill="none"
-                stroke="#CFFAFF" strokeWidth="2.2" strokeLinecap="round"
-                opacity={0.55 + glow * 0.45}/>
-
-          {/* ── Gold ring ── */}
-          <circle r="118" fill="none"
-                  stroke="url(#abGold)" strokeWidth="3.2"
-                  opacity={0.7 + glow * 0.3}
-                  style={{ filter: `drop-shadow(0 0 10px rgba(255,180,60,${0.5 + glow * 0.4})) drop-shadow(0 0 24px rgba(255,170,40,${0.3 + glow * 0.4}))` }}/>
-          <circle r="118" fill="none"
-                  stroke="#FFEDB5" strokeWidth="0.8"
-                  opacity={0.5 + glow * 0.4}/>
-
-          {/* ── Inner plasma orb ── */}
-          {/* Base radial */}
-          <circle r="96" fill="url(#abPlasma)"/>
-
-          {/* Noise plasma overlay — clipped to orb */}
-          <g clipPath="url(#abOrbClip)" opacity={0.5 + glow * 0.45}>
-            <rect x="-110" y="-110" width="220" height="220"
-                  fill="rgba(80,220,240,0.55)"
-                  filter="url(#abNoise)"/>
-            {/* Drifting energy cloud */}
-            <ellipse cx="-28" cy="22" rx="38" ry="32"
-                     fill="rgba(180,255,255,0.30)" filter="url(#abCyanGlow)"
-                     style={{ animation: 'haloPulse 5s ease-in-out infinite' }}/>
-            <ellipse cx="30" cy="-22" rx="44" ry="30"
-                     fill="rgba(0,255,240,0.22)" filter="url(#abCyanGlow)"
-                     style={{ animation: 'haloPulse 7s ease-in-out infinite reverse' }}/>
-          </g>
-
-          {/* Lightning tendrils — clipped + flickering */}
-          <g clipPath="url(#abOrbClip)" opacity={0.7 + glow * 0.3}
-             style={{ filter: 'drop-shadow(0 0 4px rgba(180,255,255,0.9))' }}>
-            <path d="M-55,-30 L-28,-18 L-44,2 L-18,18 L-34,46"
-                  stroke="rgba(220,255,255,0.95)" strokeWidth="1.2" fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ animation: 'plasmaCrack 0.9s ease-in-out infinite alternate' }}/>
-            <path d="M48,-46 L24,-22 L42,-2 L18,16 L34,40"
-                  stroke="rgba(220,255,255,0.85)" strokeWidth="1" fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ animation: 'plasmaCrack 0.7s ease-in-out infinite alternate-reverse' }}/>
-            <path d="M-22,56 L-6,28 L-20,12 L4,-10 L-12,-34"
-                  stroke="rgba(220,255,255,0.85)" strokeWidth="1" fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ animation: 'plasmaCrack 1.1s ease-in-out infinite alternate' }}/>
-            <path d="M38,52 L18,32 L46,12 L22,-8"
-                  stroke="rgba(220,255,255,0.8)" strokeWidth="0.9" fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ animation: 'plasmaCrack 0.85s ease-in-out infinite alternate-reverse' }}/>
-            <path d="M0,-58 L8,-30 L-6,-12 L10,8"
-                  stroke="rgba(220,255,255,0.75)" strokeWidth="0.9" fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ animation: 'plasmaCrack 1.3s ease-in-out infinite alternate' }}/>
-          </g>
-
-          {/* Sparkle dots inside orb */}
-          <g clipPath="url(#abOrbClip)">
-            {Array.from({ length: 10 }).map((_, i) => {
-              const angle = (i / 10) * Math.PI * 2 + 0.4;
-              const dist = 28 + ((i * 7) % 50);
-              return <circle key={i}
-                cx={Math.cos(angle) * dist}
-                cy={Math.sin(angle) * dist}
-                r={0.9 + (i % 3) * 0.4}
-                fill="rgba(255,255,255,0.9)"
-                style={{ animation: `pulse ${1.2 + (i % 5) * 0.3}s ease-in-out infinite ${i * 0.15}s` }}/>;
+          <g style={{ animation: `spinR ${speed1}s linear infinite`, transformOrigin: 'center', transformBox: 'fill-box' }}>
+            <circle r="160" fill="none"
+                    stroke={`rgba(140,200,255,${0.22 + glow * 0.15})`}
+                    strokeWidth="0.6"
+                    strokeDasharray="2 8"/>
+            {Array.from({ length: 12 }).map((_, i) => {
+              const a = (i / 12) * Math.PI * 2;
+              const cosA = Math.cos(a), sinA = Math.sin(a);
+              const r1 = 155, r2 = 165;
+              return <line key={i}
+                x1={cosA * r1} y1={sinA * r1}
+                x2={cosA * r2} y2={sinA * r2}
+                stroke={i % 3 === 0 ? T.cyan : `rgba(140,200,255,${0.4 + glow * 0.3})`}
+                strokeWidth={i % 3 === 0 ? 1.2 : 0.7}
+                opacity={i % 3 === 0 ? 0.9 : 0.55}/>;
             })}
           </g>
 
-          {/* Bottom-shade + top spec for depth */}
-          <circle r="96" fill="url(#abOrbShade)" opacity="0.9"/>
-          <circle r="94" fill="url(#abOrbSpec)" opacity={armed ? 0.7 : warming ? 0.55 : 0.4}/>
-
-          {/* Orb rim — hairline to define edge */}
-          <circle r="96" fill="none" stroke="rgba(0,229,255,0.35)" strokeWidth="0.8"/>
-          <circle r="96" fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.4"/>
-
-          {/* Hexagonal gold badge with checkmark — bottom-right */}
-          <g transform="translate(72, 72)"
-             style={{ filter: 'drop-shadow(0 0 8px rgba(255,180,60,0.75)) drop-shadow(0 2px 4px rgba(0,0,0,0.55))' }}>
-            <polygon
-              points="13,-7.5 13,7.5 0,15 -13,7.5 -13,-7.5 0,-15"
-              fill="url(#abHexFill)"
-              stroke="rgba(255,240,200,0.7)"
-              strokeWidth="0.6"/>
-            <path d="M -5 0.5 L -1 4.5 L 6 -3.5"
-                  stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  fill="none"/>
+          <g style={{ animation: `spinL ${speed2}s linear infinite`, transformOrigin: 'center', transformBox: 'fill-box' }}>
+            <circle r="132" fill="none"
+                    stroke="url(#rxRingGrad)"
+                    strokeWidth="1"
+                    opacity={0.5 + glow * 0.4}
+                    style={{ filter: `drop-shadow(0 0 4px ${T.cyan}${Math.round(glow * 90).toString(16).padStart(2, '0')})` }}/>
+            <path
+              d={describeArc(132, 0, armed ? 70 : warming ? 45 : 20)}
+              fill="none"
+              stroke={T.cyan}
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              opacity={0.4 + glow * 0.6}
+              style={{ filter: `drop-shadow(0 0 6px ${T.cyan})` }}/>
+            {Array.from({ length: ring2Particles }).map((_, i) => {
+              const angle = (i / Math.max(1, ring2Particles)) * Math.PI * 2;
+              return <circle key={i}
+                cx={Math.cos(angle) * 132}
+                cy={Math.sin(angle) * 132}
+                r={2.5 + glow * 1.5}
+                fill={i % 2 ? T.cyan : T.blue}
+                opacity={0.7 + glow * 0.3}
+                filter="url(#rxGlow)"/>;
+            })}
           </g>
+
+          <g style={{ animation: `spinR ${speed3}s linear infinite`, transformOrigin: 'center', transformBox: 'fill-box' }}>
+            <circle r="104" fill="none"
+                    stroke="url(#rxRingGradFaint)"
+                    strokeWidth="0.8"
+                    strokeDasharray="6 14"
+                    opacity={0.5 + glow * 0.5}/>
+            {Array.from({ length: ring3Particles }).map((_, i) => {
+              const angle = (i / Math.max(1, ring3Particles)) * Math.PI * 2;
+              return <circle key={i}
+                cx={Math.cos(angle) * 104}
+                cy={Math.sin(angle) * 104}
+                r={1.8 + glow}
+                fill={i % 2 ? T.purple : T.teal}
+                opacity={0.7 + glow * 0.3}
+                filter="url(#rxGlow)"/>;
+            })}
+          </g>
+
+          <circle r="84" fill="none"
+                  stroke={`rgba(0,229,255,${0.10 + glow * 0.32})`}
+                  strokeWidth="3"
+                  style={{ filter: 'blur(6px)' }}/>
+          <circle r="80" fill="url(#rxCoreGrad)"
+                  stroke={`rgba(0,229,255,${0.45 + glow * 0.50})`}
+                  strokeWidth="1.2"
+                  style={{ filter: `drop-shadow(0 0 ${14 + glow * 26}px rgba(0,229,255,${0.40 + glow * 0.55}))` }}/>
+          <circle r="80" fill="url(#rxCoreBottomShadow)" opacity="0.85"/>
+          <circle r="78" fill="url(#rxCoreSpec)" opacity={armed ? 0.85 : warming ? 0.65 : 0.45}/>
+          <circle r="72" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+          {!idle && (
+            <circle r={armed ? 3.2 : 2.2} cx="0" cy="0" fill={T.cyan}
+                    style={{
+                      filter: `drop-shadow(0 0 10px ${T.cyan})`,
+                      animation: 'coreInnerPulse 1.4s ease-in-out infinite',
+                      transformOrigin: 'center', transformBox: 'fill-box',
+                    }}/>
+          )}
         </svg>
 
-        {/* ACTIVATE text */}
-        <div style={{
-          position: 'absolute', left: '50%', top: '50%',
-          transform: 'translate(-50%, -50%)',
-          fontFamily: T.display,
-          fontSize: 30,
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          color: armed ? '#fff' : warming ? T.text : T.text2,
-          textShadow: `0 0 12px rgba(0,229,255,${0.5 + glow * 0.5}),
-                       0 0 28px rgba(0,229,255,${0.25 + glow * 0.45}),
-                       0 2px 4px rgba(0,30,40,0.6)`,
-          transition: 'all 320ms cubic-bezier(0.2,0.8,0.2,1)',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          whiteSpace: 'nowrap',
-        }}>
-          ACTIVATE
-        </div>
-      </button>
+        <button
+          onPointerDown={handleDown}
+          onPointerUp={handleUp}
+          onPointerLeave={handleUp}
+          onClick={handleClick}
+          disabled={idle}
+          aria-label="Initiate launch"
+          style={{
+            all: 'unset',
+            position: 'absolute', left: '50%', top: '50%',
+            transform: `translate(-50%, -50%) scale(${pressing ? 0.93 : 1})`,
+            width: 156, height: 156, borderRadius: '50%',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            cursor: idle ? 'not-allowed' : 'pointer',
+            transition: 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 300ms ease',
+            background: armed
+              ? 'radial-gradient(circle at 50% 28%, rgba(0,229,255,0.45), rgba(61,127,255,0.16) 55%, rgba(0,0,0,0))'
+              : warming
+                ? 'radial-gradient(circle at 50% 28%, rgba(0,229,255,0.24), rgba(61,127,255,0.08) 60%, rgba(0,0,0,0))'
+                : 'radial-gradient(circle at 50% 28%, rgba(255,255,255,0.07), transparent 70%)',
+            boxShadow: armed
+              ? `0 0 0 1px rgba(0,229,255,0.72) inset,
+                 0 0 0 6px rgba(0,229,255,0.06),
+                 0 0 60px rgba(0,229,255,0.78),
+                 0 0 140px rgba(61,127,255,0.45),
+                 inset 0 7px 18px rgba(0,229,255,0.22),
+                 inset 0 -10px 22px rgba(0,0,0,0.38)`
+              : warming
+                ? `0 0 0 1px rgba(0,229,255,0.42) inset,
+                   0 0 36px rgba(0,229,255,0.32),
+                   inset 0 4px 14px rgba(0,229,255,0.14),
+                   inset 0 -8px 18px rgba(0,0,0,0.32)`
+                : `0 0 0 1px rgba(255,255,255,0.08) inset,
+                   inset 0 -6px 16px rgba(0,0,0,0.30)`,
+          }}
+        >
+          <div style={{
+            fontFamily: T.mono, fontSize: 9, letterSpacing: '0.24em',
+            color: stateColor, textTransform: 'uppercase', fontWeight: 600,
+            marginBottom: 8,
+            textShadow: armed ? `0 0 14px ${T.cyan}, 0 0 28px rgba(0,229,255,0.4)` : warming ? `0 0 8px ${T.teal}80` : 'none',
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            transition: 'all 300ms',
+            whiteSpace: 'nowrap',
+          }}>
+            <span style={{
+              width: 4, height: 4, borderRadius: 99, background: stateColor,
+              boxShadow: armed ? `0 0 8px ${stateColor}` : 'none',
+              animation: armed ? 'pulse 1.4s ease-in-out infinite' : 'none',
+            }} />
+            {stateLabel}
+          </div>
+
+          <div style={{
+            fontFamily: T.display, fontWeight: 700,
+            fontSize: armed ? 28 : 24, letterSpacing: '0.12em',
+            color: armed ? T.text : warming ? T.text2 : T.text3,
+            textShadow: armed
+              ? `0 0 16px ${T.cyan}, 0 0 44px rgba(0,229,255,0.55)`
+              : warming
+                ? '0 0 10px rgba(0,229,255,0.5)'
+                : 'none',
+            transition: 'all 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+          }}>
+            INITIATE
+          </div>
+
+          <div style={{
+            fontFamily: T.mono, fontSize: 8.5, letterSpacing: '0.24em',
+            color: T.text3, textTransform: 'uppercase', marginTop: 8,
+            opacity: idle ? 0.5 : 0.9,
+            transition: 'opacity 300ms',
+            whiteSpace: 'nowrap',
+          }}>
+            {caption}
+          </div>
+        </button>
+      </div>
     </div>
   );
 }
