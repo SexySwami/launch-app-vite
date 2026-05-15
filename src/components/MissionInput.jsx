@@ -1251,6 +1251,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           <div ref={listScrollRef} className="scroll-thin" style={{
             display: 'flex', flexDirection: 'column', gap: 8,
             flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 4,
+            userSelect: 'none', WebkitUserSelect: 'none',
           }}>
             {itemsLoading && items.length === 0 && (
               <div style={{
