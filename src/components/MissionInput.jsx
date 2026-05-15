@@ -56,6 +56,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   //   item that triggers folder creation.
   // - hoverProgress: 0..1, animates the hover ring during the 2s hold.
   const [namingFolderId, setNamingFolderId] = useState(null);
+  const [emptyFolderPrompt, setEmptyFolderPrompt] = useState(null);
   const [hoverProgress, setHoverProgress] = useState(0);
   const hoverFolderRef = useRef({ targetId: null, startedAt: 0 });
   const hoverFolderTimerRef = useRef(null);
@@ -539,11 +540,14 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     const scrollDelta = currentScrollTop - (dragNow.startScrollTop || 0);
     const deltaY = (clientY - dragNow.startY) + scrollDelta;
 
-    const others = itemsNow.filter(i => i.id !== dragNow.id);
+    // Child-drag mode: dragged item is still inside its source folder data-wise.
+    // No hover-merge gestures (you can't fold an ejected item into another row mid-drag),
+    // and "others" is every top-level item (the dragged child isn't in the top-level list).
+    const isChildDrag = dragNow.dragSource?.type === 'folder-child';
+    const others = isChildDrag
+      ? itemsNow
+      : itemsNow.filter(i => i.id !== dragNow.id);
 
-    // Hover-over detection: pointer in the middle 50% of a non-dragged top-
-    // level row (and that row is itself a flat item — folders can't merge
-    // with other rows for now).
     let hoverTargetId = null;
     let dropIdx = others.length;
     let dropIdxSet = false;
@@ -553,10 +557,13 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       if (!node) continue;
       const rect = node.getBoundingClientRect();
       const relative = (clientY - rect.top) / rect.height;
-      const isDropTarget = !other.type || other.type === 'item' || other.type === 'folder';
-      if (relative > 0.25 && relative < 0.75 && isDropTarget) {
-        hoverTargetId = other.id;
-        // Don't pick a dropIdx — the pointer is "inside" this row.
+      // Only top-level drags can arm the hover-merge gesture.
+      if (!isChildDrag) {
+        const isDropTarget = !other.type || other.type === 'item' || other.type === 'folder';
+        if (relative > 0.25 && relative < 0.75 && isDropTarget) {
+          hoverTargetId = other.id;
+          // Don't pick a dropIdx — the pointer is "inside" this row.
+        }
       }
       if (!dropIdxSet) {
         const midY = rect.top + rect.height / 2;
@@ -749,6 +756,29 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
   };
 
+  // Resolve the empty-folder prompt: either delete the folder or keep it empty.
+  const resolveEmptyFolderPrompt = async (action) => {
+    const prompt = emptyFolderPrompt;
+    setEmptyFolderPrompt(null);
+    if (!prompt) return;
+    if (action !== 'delete') return; // 'keep' → no-op, folder stays empty.
+    const next = itemsRef.current.filter(i => i.id !== prompt.folderId);
+    setItems(next);
+    if (!canCallAPI) return;
+    try {
+      const res = await fetch('/api/queue', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ items: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+      if (Array.isArray(data.items)) setItems(data.items);
+    } catch (err) {
+      setItemsError(err.message || 'Could not delete folder');
+    }
+  };
+
   // Eject a child item from its folder back to the top-level queue.
   // If the folder would be left with 1 child, unwrap that child too.
   // If left with 0 children, delete the folder.
@@ -883,20 +913,68 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     const dragNow = dragRef.current;
     if (!dragNow) return;
-    const { fromIdx, dropIdx, hoverTargetId } = dragNow;
+    const { fromIdx, dropIdx, hoverTargetId, dragSource } = dragNow;
     setDrag(null);
     // Suppress the click event that fires after pointerup on the same target,
     // so dropping doesn't accidentally launch the dropped item.
     justEndedDragRef.current = true;
     setTimeout(() => { justEndedDragRef.current = false; }, 120);
-    // If we were hovering over another item but the 2s timer hadn't fired,
+    // If we were hovering over another item but the merge timer hadn't fired,
     // pointerup is a "cancel merge" — release without reordering.
     if (hoverTargetId) return;
+
+    // Child drag-out → eject from folder, insert at dropIdx in top-level.
+    if (dragSource?.type === 'folder-child') {
+      handleChildDropAtTopLevel(dragSource.folderId, dragSource.childId, dropIdx);
+      return;
+    }
+
     if (fromIdx === dropIdx) return;
     const reordered = [...items];
     const [moved] = reordered.splice(fromIdx, 1);
     reordered.splice(dropIdx, 0, moved);
     reorderItems(reordered);
+  };
+
+  // Eject child from its folder and insert it into the top-level items at the
+  // requested drop index. If the source folder ends up empty, prompt the user
+  // whether to delete it or keep it.
+  const handleChildDropAtTopLevel = async (folderId, childId, dropIdx) => {
+    const currentItems = itemsRef.current;
+    const folder = currentItems.find(i => i.id === folderId);
+    if (!folder) return;
+    const child = (folder.children || []).find(c => c.id === childId);
+    if (!child) return;
+    const remainingChildren = (folder.children || []).filter(c => c.id !== childId);
+    const ejectedLeaf = { id: child.id, text: child.text, createdAt: child.createdAt };
+
+    // Insert ejected leaf into top-level at dropIdx, with the folder's children updated in place.
+    const next = [];
+    for (let i = 0; i < currentItems.length; i++) {
+      if (i === dropIdx) next.push(ejectedLeaf);
+      const it = currentItems[i];
+      next.push(it.id === folderId ? { ...it, children: remainingChildren } : it);
+    }
+    if (dropIdx >= currentItems.length) next.push(ejectedLeaf);
+
+    setItems(next);
+    if (remainingChildren.length === 0) {
+      setEmptyFolderPrompt({ folderId, folderName: folder.name || 'New Folder' });
+    }
+
+    if (!canCallAPI) return;
+    try {
+      const res = await fetch('/api/queue', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ items: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+      if (Array.isArray(data.items)) setItems(data.items);
+    } catch (err) {
+      setItemsError(err.message || 'Could not move item');
+    }
   };
 
   // ── Row-level instant drag (entire row is the drag target) ─────────────
@@ -944,21 +1022,26 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     };
   };
 
-  const ejectChildForDrag = (pressed) => {
-    const { child, folderId } = pressed;
-    const currentItems = itemsRef.current;
-    const folder = currentItems.find(i => i.id === folderId);
-    if (!folder) return;
-    const remaining = (folder.children || []).filter(c => c.id !== child.id);
-    const ejectedLeaf = { id: child.id, text: child.text, createdAt: child.createdAt };
-    const newItems = [
-      ...currentItems.map(i => i.id === folderId ? { ...i, children: remaining } : i),
-      ejectedLeaf,
-    ];
-    // Sync ref immediately so the drag system sees the updated list before React re-renders.
-    itemsRef.current = newItems;
-    setItems(newItems);
-    activateDrag({ ...pressed, idx: newItems.length - 1 });
+  // Activate drag for a child item. The child stays in the folder data structure
+  // during the drag — only the drag state is set, with source tracking. The
+  // child row gets visually translated via the existing render path.
+  const activateChildDrag = (pressed) => {
+    const startScrollTop = listScrollRef.current?.scrollTop || 0;
+    lastPointerYRef.current = pressed.startY;
+    setDrag({
+      id: pressed.child.id,
+      dragSource: { type: 'folder-child', folderId: pressed.folderId, childId: pressed.child.id },
+      fromIdx: -1,
+      startY: pressed.startY,
+      deltaY: 0,
+      dropIdx: 0,
+      hoverTargetId: null,
+      startScrollTop,
+    });
+    try { pressed.target.setPointerCapture(pressed.pointerId); } catch {}
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate(8); } catch {}
+    }
   };
 
   const handleRowPointerMove = (e) => {
@@ -972,7 +1055,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     const dy = e.clientY - pressed.startY;
     if (dx * dx + dy * dy > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
       if (pressed.isChild) {
-        ejectChildForDrag(pressed);
+        activateChildDrag(pressed);
       } else {
         activateDrag(pressed);
       }
@@ -1322,9 +1405,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         borderLeft: `1px dashed rgba(168,118,255,0.32)`,
                         flexShrink: 0,
                       }}>
-                        {item.children.map((child, ci) => (
+                        {item.children.map((child, ci) => {
+                          const isChildDragging = drag?.id === child.id && drag?.dragSource?.type === 'folder-child';
+                          return (
                           <div
                             key={child.id}
+                            onClick={(e) => e.stopPropagation()}
                             onPointerDown={(e) => handleChildPointerDown(e, child, item.id)}
                             onPointerMove={handleRowPointerMove}
                             onPointerUp={handleRowPointerUp}
@@ -1336,8 +1422,19 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               borderRadius: 12, padding: '8px 10px',
                               fontFamily: T.display, fontSize: 13, color: T.text2,
                               flexShrink: 0,
-                              cursor: 'grab',
+                              cursor: isChildDragging ? 'grabbing' : 'grab',
                               touchAction: 'manipulation',
+                              transform: isChildDragging ? `translateY(${drag.deltaY}px) scale(1.03)` : 'none',
+                              zIndex: isChildDragging ? 10 : 1,
+                              opacity: isChildDragging ? 0.96 : 1,
+                              boxShadow: isChildDragging
+                                ? `0 12px 32px rgba(0,229,255,0.32), 0 0 24px rgba(0,229,255,0.20)`
+                                : 'none',
+                              transition: isChildDragging
+                                ? 'box-shadow 200ms ease, opacity 200ms ease'
+                                : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 200ms ease',
+                              willChange: isChildDragging ? 'transform' : 'auto',
+                              position: 'relative',
                             }}
                           >
                             <span style={{
@@ -1379,7 +1476,8 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                               </svg>
                             </button>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </Fragment>
@@ -1592,6 +1690,94 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           onSkip={() => setNamingFolderId(null)}
           onSave={(name) => handleSaveFolderName(namingFolderId, name)}
         />
+      )}
+
+      {emptyFolderPrompt && (
+        <div
+          onClick={() => resolveEmptyFolderPrompt('keep')}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 210,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px 16px',
+            background: 'rgba(2,4,8,0.7)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            animation: 'backdropIn 220ms ease',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 360,
+              background: 'linear-gradient(160deg, rgba(168,118,255,0.16), rgba(255,255,255,0.025) 55%, rgba(168,118,255,0.06))',
+              border: `1px solid rgba(168,118,255,0.6)`,
+              borderRadius: 22,
+              padding: '20px 18px 16px',
+              boxShadow: `0 0 0 1px rgba(255,255,255,0.05) inset, 0 30px 80px rgba(0,0,0,0.65), 0 0 60px rgba(168,118,255,0.30)`,
+              backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+              animation: 'modalIn 280ms cubic-bezier(0.2,0.8,0.2,1)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: `linear-gradient(180deg, ${T.purple}, rgba(168,118,255,0.6))`,
+                color: '#0e0820',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 0 14px rgba(168,118,255,0.5), inset 0 1px 0 rgba(255,255,255,0.18)`,
+                flexShrink: 0,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 14 14">
+                  <path d="M1.5 3.5a1 1 0 0 1 1-1h3l1 1.2h5a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V3.5z" fill="currentColor"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
+                  color: T.purple, textTransform: 'uppercase', fontWeight: 600,
+                  marginBottom: 2,
+                }}>
+                  Folder is empty
+                </div>
+                <div style={{
+                  fontFamily: T.display, fontSize: 16, color: T.text, fontWeight: 600,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  {emptyFolderPrompt.folderName}
+                </div>
+              </div>
+            </div>
+            <div style={{
+              fontFamily: T.display, fontSize: 13, color: T.text2,
+              marginBottom: 16, lineHeight: 1.4,
+            }}>
+              You moved the last item out. Delete this folder, or keep it empty for later?
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => resolveEmptyFolderPrompt('keep')}
+                style={{
+                  all: 'unset', cursor: 'pointer', flex: 1,
+                  textAlign: 'center', padding: '12px 14px',
+                  fontFamily: T.display, fontSize: 14, fontWeight: 600, color: T.text,
+                  borderRadius: 12,
+                  border: `1px solid ${T.hairlineSoft}`,
+                  background: 'rgba(255,255,255,0.04)',
+                }}
+              >Keep empty</button>
+              <button
+                onClick={() => resolveEmptyFolderPrompt('delete')}
+                style={{
+                  all: 'unset', cursor: 'pointer', flex: 1,
+                  textAlign: 'center', padding: '12px 14px',
+                  fontFamily: T.display, fontSize: 14, fontWeight: 600, color: '#0e0820',
+                  borderRadius: 12,
+                  background: `linear-gradient(180deg, ${T.purple}, rgba(168,118,255,0.7))`,
+                  boxShadow: `0 0 16px rgba(168,118,255,0.4)`,
+                }}
+              >Delete folder</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {pendingUndo && (
