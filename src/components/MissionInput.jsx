@@ -925,7 +925,28 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     const dragNow = dragRef.current;
     if (!dragNow) return;
-    const { fromIdx, dropIdx, hoverTargetId, dragSource } = dragNow;
+    const { fromIdx, dropIdx, hoverTargetId, dragSource, capturedTarget, capturedPointerId } = dragNow;
+
+    // Release pointer capture BEFORE the items mutation that may unmount the
+    // captured element. iOS otherwise leaves capture half-released and routes
+    // subsequent pointer events to the detached element.
+    if (capturedTarget && capturedPointerId != null) {
+      try {
+        if (capturedTarget.hasPointerCapture?.(capturedPointerId)) {
+          capturedTarget.releasePointerCapture(capturedPointerId);
+        }
+      } catch {}
+    }
+
+    // Sync-clear all drag-related refs so a fast subsequent press isn't blocked
+    // by stale state waiting for React's commit.
+    dragRef.current = null;
+    pressedItemRef.current = null;
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+
     setDrag(null);
     // Suppress the click event that fires after pointerup on the same target,
     // so dropping doesn't accidentally launch the dropped item.
@@ -1009,14 +1030,18 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const activateDrag = (pressed) => {
     const startScrollTop = listScrollRef.current?.scrollTop || 0;
     lastPointerYRef.current = pressed.startY;
-    setDrag({
+    const newDrag = {
       id: pressed.id,
       fromIdx: pressed.idx,
       startY: pressed.startY,
       deltaY: 0,
       dropIdx: pressed.idx,
       startScrollTop,
-    });
+      capturedTarget: pressed.target,
+      capturedPointerId: pressed.pointerId,
+    };
+    dragRef.current = newDrag; // sync — useEffect would otherwise lag a frame
+    setDrag(newDrag);
     try { pressed.target.setPointerCapture(pressed.pointerId); } catch {}
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate(8); } catch {}
@@ -1055,7 +1080,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const activateChildDrag = (pressed) => {
     const startScrollTop = listScrollRef.current?.scrollTop || 0;
     lastPointerYRef.current = pressed.startY;
-    setDrag({
+    const newDrag = {
       id: pressed.child.id,
       dragSource: { type: 'folder-child', folderId: pressed.folderId, childId: pressed.child.id },
       fromIdx: -1,
@@ -1064,7 +1089,11 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       dropIdx: 0,
       hoverTargetId: null,
       startScrollTop,
-    });
+      capturedTarget: pressed.target,
+      capturedPointerId: pressed.pointerId,
+    };
+    dragRef.current = newDrag;
+    setDrag(newDrag);
     try { pressed.target.setPointerCapture(pressed.pointerId); } catch {}
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate(8); } catch {}
