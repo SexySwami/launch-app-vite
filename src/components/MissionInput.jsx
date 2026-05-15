@@ -101,6 +101,10 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const [pendingUndo, setPendingUndo] = useState(null);
   const undoTimeoutRef = useRef(null);
   const lastShakeRef = useRef(0);
+
+  // Brief toast shown when "I'm Lazy, Help Me" fires with an empty list.
+  const [emptyListToast, setEmptyListToast] = useState(false);
+  const emptyListToastTimerRef = useRef(null);
   const [motionPermission, setMotionPermission] = useState(() => {
     if (typeof window === 'undefined' || typeof window.DeviceMotionEvent === 'undefined') {
       return 'unsupported';
@@ -111,6 +115,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
   useEffect(() => () => {
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    if (emptyListToastTimerRef.current) clearTimeout(emptyListToastTimerRef.current);
   }, []);
 
   // Newly-appended items pulse green for ~1s and the list auto-scrolls to them.
@@ -635,9 +640,36 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   }, [selectedItemId, editingItemId]);
 
   const handleLazyLaunch = () => {
-    if (items.length === 0 || drag) return;
-    const first = items[0];
-    handleLaunchItem(first.text, { id: first.id, index: 0 }, first.description);
+    if (drag) return;
+
+    // Walk the live items list top-to-bottom to find the first real task.
+    // Folders are unwrapped to their first child; empty folders are skipped.
+    let firstItem = null;
+    let firstSource = null;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.type === 'folder') {
+        if (Array.isArray(it.children) && it.children.length > 0) {
+          firstItem = it.children[0];
+          firstSource = { id: firstItem.id, index: i };
+          break;
+        }
+        // empty folder — skip
+      } else {
+        firstItem = it;
+        firstSource = { id: it.id, index: i };
+        break;
+      }
+    }
+
+    if (!firstItem) {
+      if (emptyListToastTimerRef.current) clearTimeout(emptyListToastTimerRef.current);
+      setEmptyListToast(true);
+      emptyListToastTimerRef.current = setTimeout(() => setEmptyListToast(false), 2500);
+      return;
+    }
+
+    handleLaunchItem(firstItem.text, firstSource, firstItem.description);
   };
 
   const reorderItems = async (newOrder) => {
@@ -2389,6 +2421,37 @@ export function MissionInput({ onLaunch, mission, setMission }) {
             boxShadow: `0 0 8px ${T.cyan}88`,
             animation: 'toastDrain 10s linear forwards',
           }} />
+        </div>
+      )}
+
+      {emptyListToast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
+            left: 16, right: 16,
+            zIndex: 100,
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(11, 16, 26, 0.92)',
+            border: `1px solid ${T.hairline}`,
+            borderRadius: 14,
+            padding: '12px 16px',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            boxShadow: '0 14px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',
+            fontFamily: T.display,
+            animation: 'toastIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+            maxWidth: 480, marginLeft: 'auto', marginRight: 'auto',
+          }}
+        >
+          <span style={{
+            width: 6, height: 6, borderRadius: 99, flexShrink: 0,
+            background: T.text3,
+          }} />
+          <span style={{ fontSize: 14, color: T.text2, fontWeight: 500 }}>
+            No items in your checklist
+          </span>
         </div>
       )}
     </div>
