@@ -311,6 +311,37 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     // Stay open for fast repeated entry; empty Enter will dismiss.
   };
 
+  // Folder button in the add-item box — creates an empty folder (with the
+  // typed text as the first child if present) and opens the naming overlay.
+  const handleCreateFolderFromInput = async () => {
+    const text = newItemDraft.trim();
+    const mkId = () => (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `f_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const folderId = mkId();
+    const children = text ? [{ id: mkId(), text, createdAt: Date.now() }] : [];
+    const folder = { id: folderId, type: 'folder', name: '', createdAt: Date.now(), expanded: true, children };
+    const next = [folder, ...itemsRef.current];
+    setItems(next);
+    setNamingFolderId(folderId);
+    setAddingItem(false);
+    setNewItemDraft('');
+    if (canCallAPI) {
+      try {
+        const res = await fetch('/api/queue', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: next }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+        if (Array.isArray(data.items)) setItems(data.items);
+      } catch (err) {
+        setItemsError(err.message || 'Could not create folder');
+      }
+    }
+  };
+
   // Find an item by id anywhere in the list (top-level or inside a folder).
   // Returns { item, parentFolderId, parentFolderIdx, childIdx, topLevelIdx } or null.
   const findItemAnywhere = (id, source = items) => {
@@ -1457,6 +1488,23 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                     <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 )}
+              </button>
+              <button
+                onClick={handleCreateFolderFromInput}
+                aria-label="Create folder"
+                title="Create folder"
+                style={{
+                  all: 'unset', cursor: 'pointer', flexShrink: 0,
+                  width: 30, height: 30, borderRadius: 99,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${T.hairlineSoft}`,
+                  color: T.text2,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
+                  <path d="M1 3.5C1 2.67 1.67 2 2.5 2H5.38l1.25 1.5H11.5C12.33 3.5 13 4.17 13 5v5.5C13 11.33 12.33 12 11.5 12h-9C1.67 12 1 11.33 1 10.5V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                </svg>
               </button>
               <button
                 onClick={() => { setAddingItem(false); setNewItemDraft(''); }}
