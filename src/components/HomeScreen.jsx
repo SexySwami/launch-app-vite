@@ -2,7 +2,27 @@ import { useState, useEffect } from 'react';
 import { T } from '../tokens.js';
 
 const EXAMPLES = ['Finish WSI proposal', 'Send client follow-up', 'Start workout'];
-const GEN_IDEAS = ['Refine product brief', 'Draft week-ahead plan', 'Outline next deliverable'];
+
+// Flatten the queue into a priority-ordered list. Folders contribute their
+// children in the order they appear inside the folder; loose items appear
+// at their top-level position. Empty/invalid items are dropped.
+function flattenQueue(items) {
+  const out = [];
+  if (!Array.isArray(items)) return out;
+  for (const item of items) {
+    if (!item) continue;
+    if (item.type === 'folder') {
+      for (const child of (item.children || [])) {
+        if (child && typeof child.text === 'string' && child.text.trim()) {
+          out.push(child);
+        }
+      }
+    } else if (typeof item.text === 'string' && item.text.trim()) {
+      out.push(item);
+    }
+  }
+  return out;
+}
 
 function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   const [phIdx, setPhIdx] = useState(0);
@@ -91,10 +111,10 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   );
 }
 
-function AssistPills({ onAction }) {
+function AssistPills({ onAction, historyDisabled }) {
   const pills = [
-    { id: 'generate', icon: '✨', label: 'Generate' },
-    { id: 'history',  icon: '↺',  label: 'History' },
+    { id: 'generate', icon: '✨', label: 'Generate', disabled: false },
+    { id: 'history',  icon: '↺',  label: 'History',  disabled: !!historyDisabled },
   ];
   return (
     <div style={{
@@ -103,29 +123,39 @@ function AssistPills({ onAction }) {
       position: 'relative', zIndex: 2,
     }}>
       {pills.map(p => (
-        <button key={p.id} onClick={() => onAction(p.id)} style={{
-          all: 'unset', cursor: 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '6px 12px', borderRadius: 99,
-          background: 'rgba(255,255,255,0.04)',
-          border: `1px solid ${T.hairlineSoft}`,
-          fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
-          color: T.text2, letterSpacing: '0.005em',
-          whiteSpace: 'nowrap',
-          transition: 'all 200ms ease',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = 'rgba(0,229,255,0.08)';
-          e.currentTarget.style.borderColor = 'rgba(0,229,255,0.45)';
-          e.currentTarget.style.color = T.text;
-          e.currentTarget.style.boxShadow = '0 0 14px rgba(0,229,255,0.18)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-          e.currentTarget.style.borderColor = T.hairlineSoft;
-          e.currentTarget.style.color = T.text2;
-          e.currentTarget.style.boxShadow = 'none';
-        }}>
+        <button
+          key={p.id}
+          onClick={() => { if (!p.disabled) onAction(p.id); }}
+          disabled={p.disabled}
+          aria-disabled={p.disabled || undefined}
+          style={{
+            all: 'unset',
+            cursor: p.disabled ? 'not-allowed' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 99,
+            background: 'rgba(255,255,255,0.04)',
+            border: `1px solid ${T.hairlineSoft}`,
+            fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
+            color: p.disabled ? T.text3 : T.text2, letterSpacing: '0.005em',
+            whiteSpace: 'nowrap',
+            opacity: p.disabled ? 0.42 : 1,
+            transition: 'all 200ms ease',
+          }}
+          onMouseEnter={e => {
+            if (p.disabled) return;
+            e.currentTarget.style.background = 'rgba(0,229,255,0.08)';
+            e.currentTarget.style.borderColor = 'rgba(0,229,255,0.45)';
+            e.currentTarget.style.color = T.text;
+            e.currentTarget.style.boxShadow = '0 0 14px rgba(0,229,255,0.18)';
+          }}
+          onMouseLeave={e => {
+            if (p.disabled) return;
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+            e.currentTarget.style.borderColor = T.hairlineSoft;
+            e.currentTarget.style.color = T.text2;
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
           <span style={{ fontSize: 12, filter: 'saturate(1.15)' }}>{p.icon}</span>
           {p.label}
         </button>
@@ -438,18 +468,59 @@ function ReactorCore({ state, intensity, onLaunch }) {
   );
 }
 
-export function HomeScreen({ mission, setMission, onLaunch, onHistory }) {
+export function HomeScreen({
+  mission, setMission, onLaunch,
+  cycleIdx, setCycleIdx,
+  cycleHistory, setCycleHistory,
+  cycleHistoryPos, setCycleHistoryPos,
+}) {
   const [inputFocused, setInputFocused] = useState(false);
+  const [flatItems, setFlatItems] = useState([]);
+
+  // Refresh the priority list every time the home screen mounts so changes
+  // made in the Checklists tab show up immediately.
+  useEffect(() => {
+    let cancelled = false;
+    const canCallAPI = typeof window !== 'undefined'
+      && /^https?:$/.test(window.location?.protocol || '');
+    if (!canCallAPI) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/queue', { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        setFlatItems(flattenQueue(data?.items));
+      } catch {
+        if (!cancelled) setFlatItems([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const trimmed = mission.trim();
   const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
   const intensity = Math.min(1, trimmed.length / 18);
 
+  const historyDisabled = cycleHistoryPos <= 0;
+
   const handleAssist = (id) => {
     if (id === 'generate') {
-      setMission(GEN_IDEAS[Math.floor(Math.random() * GEN_IDEAS.length)]);
+      if (!flatItems.length) return;
+      const safeIdx = ((cycleIdx % flatItems.length) + flatItems.length) % flatItems.length;
+      const item = flatItems[safeIdx];
+      const text = (item?.text || '').toString();
+      if (!text) return;
+      const nextHistory = [...cycleHistory, { id: item.id, text }];
+      setCycleHistory(nextHistory);
+      setCycleHistoryPos(nextHistory.length - 1);
+      setCycleIdx((safeIdx + 1) % flatItems.length);
+      setMission(text);
     } else if (id === 'history') {
-      onHistory && onHistory();
+      if (historyDisabled) return;
+      const newPos = cycleHistoryPos - 1;
+      setCycleHistoryPos(newPos);
+      const prev = cycleHistory[newPos];
+      if (prev) setMission(prev.text);
     }
   };
 
@@ -471,7 +542,7 @@ export function HomeScreen({ mission, setMission, onLaunch, onHistory }) {
 
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <EnergyBeam energy={intensity} state={reactorState} />
-        <AssistPills onAction={handleAssist} />
+        <AssistPills onAction={handleAssist} historyDisabled={historyDisabled} />
         <ReactorCore
           state={reactorState}
           intensity={intensity}

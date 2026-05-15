@@ -38,6 +38,15 @@ export default function App() {
   const [sourceItemIndex, setSourceItemIndex] = useState(null);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
 
+  // Home-screen Generate/History cycle state. Lives at app level so it
+  // survives tab switches for the duration of the session.
+  // - cycleIdx: next index into the flattened priority list to show on Generate.
+  // - cycleHistory: ordered list of items already shown via Generate.
+  // - cycleHistoryPos: current position when navigating back via History.
+  const [cycleIdx, setCycleIdx] = useState(0);
+  const [cycleHistory, setCycleHistory] = useState([]);
+  const [cycleHistoryPos, setCycleHistoryPos] = useState(-1);
+
   const resolvedStep = useMemo(() => {
     const base = steps[stepIdx];
     if (!base) return base;
@@ -210,7 +219,12 @@ export default function App() {
         mission={mission}
         setMission={setMission}
         onLaunch={(text) => launchMission(text)}
-        onHistory={() => setScreen('input')}
+        cycleIdx={cycleIdx}
+        setCycleIdx={setCycleIdx}
+        cycleHistory={cycleHistory}
+        setCycleHistory={setCycleHistory}
+        cycleHistoryPos={cycleHistoryPos}
+        setCycleHistoryPos={setCycleHistoryPos}
       />
     );
   else if (screen === 'profile')
