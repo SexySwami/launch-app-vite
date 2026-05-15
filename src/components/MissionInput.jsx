@@ -1157,12 +1157,6 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     const dy = e.clientY - pressed.startY;
     const dist2 = dx * dx + dy * dy;
     if (dist2 > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
-      // Gesture is more horizontal than vertical — let the browser scroll naturally.
-      if (Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
-        pressedItemRef.current = null;
-        return;
-      }
       const elapsed = Date.now() - pressed.pressedAt;
       if (elapsed >= DRAG_DELAY_MS) {
         // Both thresholds met — activate immediately.
