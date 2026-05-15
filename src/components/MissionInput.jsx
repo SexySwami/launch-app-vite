@@ -21,6 +21,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const [drag, setDrag] = useState(null);
   // drag = null | { id, fromIdx, startY, deltaY, dropIdx, startScrollTop }
   const itemRefs = useRef({});
+  const priorityMapRef = useRef(new Map());
 
   // Refs used by the auto-scroll-on-edge logic.
   const listScrollRef = useRef(null);
@@ -259,6 +260,25 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     // Stay open for fast repeated entry; empty Enter will dismiss.
   };
 
+  // Find an item by id anywhere in the list (top-level or inside a folder).
+  // Returns { item, parentFolderId, parentFolderIdx, childIdx, topLevelIdx } or null.
+  const findItemAnywhere = (id, source = items) => {
+    for (let i = 0; i < source.length; i++) {
+      const it = source[i];
+      if (it.id === id) {
+        return { item: it, parentFolderId: null, parentFolderIdx: -1, childIdx: -1, topLevelIdx: i };
+      }
+      if (it.type === 'folder' && Array.isArray(it.children)) {
+        for (let j = 0; j < it.children.length; j++) {
+          if (it.children[j].id === id) {
+            return { item: it.children[j], parentFolderId: it.id, parentFolderIdx: i, childIdx: j, topLevelIdx: -1 };
+          }
+        }
+      }
+    }
+    return null;
+  };
+
   const handleDeleteItem = async (id) => {
     // FIRST — request DeviceMotion permission synchronously inside the user
     // gesture (iOS 13+ requirement). Anything async after this would lose
@@ -276,23 +296,39 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       return;
     }
 
-    const idx = items.findIndex(item => item.id === id);
-    const itemToDelete = items.find(item => item.id === id);
-    if (idx === -1 || !itemToDelete) return;
+    const found = findItemAnywhere(id);
+    if (!found) return;
+    const { item: itemToDelete, parentFolderId, parentFolderIdx, childIdx, topLevelIdx } = found;
 
-    // Save undo snapshot — overwrites any previous, restarts the 10s timer.
+    // Save undo snapshot — restoring a child to top-level is fine for now.
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-    setPendingUndo({ item: itemToDelete, originalIndex: idx, deletedAt: Date.now() });
+    const restoreIdx = topLevelIdx >= 0 ? topLevelIdx : parentFolderIdx + 1;
+    setPendingUndo({ item: itemToDelete, originalIndex: restoreIdx, deletedAt: Date.now() });
     undoTimeoutRef.current = setTimeout(() => {
       setPendingUndo(null);
       undoTimeoutRef.current = null;
     }, 10000);
 
-    // Optimistic update — snap it out of the list immediately.
+    // Optimistic update — snap it out of the list immediately. For child items
+    // remove from folder.children; for top-level remove from items.
     const before = items;
-    setItems(prev => prev.filter(item => item.id !== id));
+    const next = parentFolderId
+      ? items.map(i => i.id === parentFolderId
+          ? { ...i, children: (i.children || []).filter(c => c.id !== id) }
+          : i)
+      : items.filter(item => item.id !== id);
+    setItems(next);
     try {
-      const res = await fetch(`/api/queue?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      // For top-level deletion the DELETE endpoint is sufficient. For children
+      // we PUT the whole items array (the child isn't visible to the by-id
+      // delete on the server side).
+      const res = parentFolderId
+        ? await fetch('/api/queue', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ items: next }),
+          })
+        : await fetch(`/api/queue?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       if (Array.isArray(data.items)) setItems(data.items);
@@ -428,19 +464,18 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
   // Action menu Edit Item → open the overlay in editable mode.
   const handleStartEdit = () => {
-    const item = items.find(i => i.id === selectedItemId);
-    if (!item) return;
+    const found = findItemAnywhere(selectedItemId);
+    if (!found) return;
     setOverlayStartMode('edit');
-    setEditingItemId(item.id);
+    setEditingItemId(found.item.id);
     setSelectedItemId(null);
   };
 
   // Action menu: Launch (selected item)
   const handleSelectedLaunch = () => {
-    const idx = items.findIndex(i => i.id === selectedItemId);
-    const item = items[idx];
-    if (!item) return;
-    handleLaunchItem(item.text, { id: item.id, index: idx });
+    const found = findItemAnywhere(selectedItemId);
+    if (!found) return;
+    handleLaunchItem(found.item.text, { id: found.item.id, index: found.topLevelIdx });
   };
 
   // Edit overlay: Cancel
@@ -455,7 +490,15 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     if (!text || !id) return;
 
     setSavingItem(true);
-    const updated = items.map(i => i.id === id ? { ...i, text } : i);
+    // Update either at top level or inside a folder's children.
+    const updated = items.map(i => {
+      if (i.id === id) return { ...i, text };
+      if (i.type === 'folder' && Array.isArray(i.children)) {
+        const hit = i.children.some(c => c.id === id);
+        if (hit) return { ...i, children: i.children.map(c => c.id === id ? { ...c, text } : c) };
+      }
+      return i;
+    });
     setItems(updated);
     setEditingItemId(null);
 
@@ -479,10 +522,10 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   // Clear stale selection / edit state if the underlying item disappears
   // (deleted locally, removed by a cross-device sync, etc.).
   useEffect(() => {
-    if (selectedItemId && !items.some(i => i.id === selectedItemId)) {
+    if (selectedItemId && !findItemAnywhere(selectedItemId, items)) {
       setSelectedItemId(null);
     }
-    if (editingItemId && !items.some(i => i.id === editingItemId)) {
+    if (editingItemId && !findItemAnywhere(editingItemId, items)) {
       setEditingItemId(null);
       setMission('');
     }
@@ -1349,6 +1392,25 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                 Syncing queue from cloud…
               </div>
             )}
+            {(() => {
+              // Global priority numbering across top-level items + folder children.
+              // Folders themselves don't get a number; their children continue the
+              // sequence so the badges reflect the launch order.
+              priorityMapRef.current = new Map();
+              let n = 0;
+              for (const it of items) {
+                if (it.type === 'folder') {
+                  for (const c of (it.children || [])) {
+                    n += 1;
+                    priorityMapRef.current.set(c.id, n);
+                  }
+                } else {
+                  n += 1;
+                  priorityMapRef.current.set(it.id, n);
+                }
+              }
+              return null;
+            })()}
             {items.map((item, idx) => {
               const isDragging = drag?.id === item.id;
               const others = drag ? items.filter(i => i.id !== drag.id) : [];
@@ -1497,66 +1559,110 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                       }}>
                         {item.children.map((child, ci) => {
                           const isChildDragging = drag?.id === child.id && drag?.dragSource?.type === 'folder-child';
+                          const childSelected = selectedItemId === child.id;
+                          const childEditing = editingItemId === child.id;
+                          const childPriority = priorityMapRef.current.get(child.id);
                           return (
                           <div
                             key={child.id}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={() => handleRowClick(child)}
                             onPointerDown={(e) => handleChildPointerDown(e, child, item.id)}
                             onPointerMove={handleRowPointerMove}
                             onPointerUp={handleRowPointerUp}
                             onPointerCancel={handleRowPointerCancel}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowTap(child); } }}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8,
-                              background: 'rgba(255,255,255,0.02)',
-                              border: `1px solid ${T.hairlineSoft}`,
-                              borderRadius: 12, padding: '8px 10px',
-                              fontFamily: T.display, fontSize: 13, color: T.text2,
-                              flexShrink: 0,
-                              cursor: isChildDragging ? 'grabbing' : 'grab',
-                              touchAction: 'pan-y',
+                              background: childSelected
+                                ? 'linear-gradient(180deg, rgba(0,229,255,0.14), rgba(0,229,255,0.04))'
+                                : childEditing
+                                  ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
+                                  : 'rgba(255,255,255,0.025)',
+                              border: `1px solid ${
+                                childSelected ? 'rgba(0,229,255,0.6)'
+                                : childEditing ? 'rgba(168,118,255,0.55)'
+                                : T.hairlineSoft
+                              }`,
+                              borderRadius: 14, padding: '4px 4px 4px 4px',
+                              fontFamily: T.display, fontSize: 14, color: T.text,
+                              cursor: isChildDragging ? 'grabbing' : 'pointer', textAlign: 'left',
+                              WebkitTapHighlightColor: 'transparent',
+                              flexShrink: 0, minHeight: 48,
+                              position: 'relative',
                               transform: isChildDragging ? `translateY(${drag.deltaY}px) scale(1.03)` : 'none',
                               zIndex: isChildDragging ? 10 : 1,
                               opacity: isChildDragging ? 0.96 : 1,
                               boxShadow: isChildDragging
                                 ? `0 12px 32px rgba(0,229,255,0.32), 0 0 24px rgba(0,229,255,0.20)`
-                                : 'none',
+                                : childSelected
+                                  ? `0 0 18px rgba(0,229,255,0.30)`
+                                  : childEditing
+                                    ? `0 0 18px rgba(168,118,255,0.30)`
+                                    : 'none',
                               transition: isChildDragging
                                 ? 'box-shadow 200ms ease, opacity 200ms ease'
-                                : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 200ms ease',
+                                : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                               willChange: isChildDragging ? 'transform' : 'auto',
-                              position: 'relative',
+                              touchAction: 'pan-y',
                             }}
                           >
-                            <span style={{
-                              width: 6, height: 6, borderRadius: 1,
-                              background: T.purple, opacity: 0.6, flexShrink: 0,
-                            }} />
+                            <div
+                              aria-hidden="true"
+                              style={{
+                                flexShrink: 0,
+                                height: 30, minWidth: 30,
+                                padding: '0 8px',
+                                boxSizing: 'border-box',
+                                borderRadius: 99,
+                                background: 'linear-gradient(180deg, rgba(0,229,255,0.16), rgba(0,229,255,0.06))',
+                                border: '1px solid rgba(0,229,255,0.42)',
+                                color: T.cyan,
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                fontFamily: T.mono, fontSize: 12, fontWeight: 700,
+                                fontVariantNumeric: 'tabular-nums',
+                                letterSpacing: '0.02em',
+                                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                                textShadow: `0 0 8px rgba(0,229,255,0.4)`,
+                                pointerEvents: 'none',
+                                marginLeft: 4,
+                              }}
+                            >
+                              {childPriority}
+                            </div>
                             <span style={{
                               flex: 1, minWidth: 0,
                               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              fontWeight: 500,
                             }}>{child.text}</span>
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, null); }}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, { id: child.id, index: -1 }); }}
                               aria-label={`Launch ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
-                                width: 28, height: 28, borderRadius: 99,
+                                width: 32, height: 32, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 color: T.cyan,
                                 background: 'rgba(0,229,255,0.10)',
                                 border: '1px solid rgba(0,229,255,0.32)',
+                                boxShadow: '0 0 10px rgba(0,229,255,0.12)',
+                                transition: 'all 150ms',
+                                WebkitTapHighlightColor: 'transparent',
                               }}
                             >
-                              <svg width="12" height="12" viewBox="0 0 13 13">
-                                <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                              <svg width="13" height="13" viewBox="0 0 13 13">
+                                <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleEjectChild(item.id, child.id); }}
-                              aria-label={`Remove ${child.text} from folder`}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteItem(child.id); }}
+                              aria-label={`Delete ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
-                                width: 28, height: 28, borderRadius: 99,
+                                width: 32, height: 32, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 color: T.text3,
                               }}
@@ -1667,7 +1773,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         transition: 'background 200ms ease, color 200ms ease, box-shadow 200ms ease',
                       }}
                     >
-                      {idx + 1}
+                      {priorityMapRef.current.get(item.id) ?? (idx + 1)}
                     </div>
                     <span style={{
                       flex: 1, minWidth: 0,
@@ -1764,7 +1870,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           unchanged when this opens/closes. */}
       {editingItemId && (
         <EditItemOverlay
-          item={items.find(i => i.id === editingItemId)}
+          item={findItemAnywhere(editingItemId)?.item}
           saving={savingItem}
           startMode={overlayStartMode}
           onCancel={handleCancelEdit}
