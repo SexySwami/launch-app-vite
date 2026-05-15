@@ -156,7 +156,7 @@ export default function App() {
   // keyword logic if the API is unreachable or errors.
   // `source` (optional): { id, index } of the originating queue item, so we
   // can remove it from the queue on completion and restore later if needed.
-  const launchMission = async (missionText, source) => {
+  const launchMission = async (missionText, source, description) => {
     const m = (missionText || '').trim();
     if (!m) return;
     setMission(m);
@@ -180,7 +180,7 @@ export default function App() {
       const res = await fetch('/api/generate-steps', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mission: m }),
+        body: JSON.stringify({ mission: m, ...(description ? { description: description.toString().trim() } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !Array.isArray(data.steps) || data.steps.length === 0) {

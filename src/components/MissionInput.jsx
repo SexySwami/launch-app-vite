@@ -496,12 +496,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
   // `source` (optional): { id, index } of the queue item this launch came from.
   // null/undefined for launches via the freeform input.
-  const handleLaunchItem = (text, source) => {
+  const handleLaunchItem = (text, source, description) => {
     if (drag) return; // ignore taps mid-drag
     setSelectedItemId(null);
     setEditingItemId(null);
     setMission(text);
-    onLaunch(text, source || null);
+    onLaunch(text, source || null, description || null);
   };
 
   // Single-tap on a row → toggle the action menu for that item.
@@ -558,7 +558,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const handleSelectedLaunch = () => {
     const found = findItemAnywhere(selectedItemId);
     if (!found) return;
-    handleLaunchItem(found.item.text, { id: found.item.id, index: found.topLevelIdx });
+    handleLaunchItem(found.item.text, { id: found.item.id, index: found.topLevelIdx }, found.item.description);
   };
 
   // Edit overlay: Cancel
@@ -566,19 +566,26 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setEditingItemId(null);
   };
 
-  // Edit overlay: Save (overlay passes the new text)
-  const handleSaveEdit = async (newText) => {
+  // Edit overlay: Save (overlay passes the new text and optional description)
+  const handleSaveEdit = async (newText, newDescription) => {
     const text = (newText || '').trim();
     const id = editingItemId;
     if (!text || !id) return;
 
     setSavingItem(true);
+    const desc = typeof newDescription === 'string' ? newDescription.trim() : '';
+    const applyDesc = (item) => {
+      const next = { ...item, text };
+      if (desc) next.description = desc;
+      else delete next.description;
+      return next;
+    };
     // Update either at top level or inside a folder's children.
     const updated = items.map(i => {
-      if (i.id === id) return { ...i, text };
+      if (i.id === id) return applyDesc(i);
       if (i.type === 'folder' && Array.isArray(i.children)) {
         const hit = i.children.some(c => c.id === id);
-        if (hit) return { ...i, children: i.children.map(c => c.id === id ? { ...c, text } : c) };
+        if (hit) return { ...i, children: i.children.map(c => c.id === id ? applyDesc(c) : c) };
       }
       return i;
     });
@@ -630,7 +637,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const handleLazyLaunch = () => {
     if (items.length === 0 || drag) return;
     const first = items[0];
-    handleLaunchItem(first.text, { id: first.id, index: 0 });
+    handleLaunchItem(first.text, { id: first.id, index: 0 }, first.description);
   };
 
   const reorderItems = async (newOrder) => {
@@ -1835,7 +1842,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                             </button>
                             <button
                               onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, { id: child.id, index: -1 }); }}
+                              onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, { id: child.id, index: -1 }, child.description); }}
                               aria-label={`Launch ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
@@ -1990,7 +1997,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                     </button>
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); handleLaunchItem(item.text, { id: item.id, index: idx }); }}
+                      onClick={(e) => { e.stopPropagation(); handleLaunchItem(item.text, { id: item.id, index: idx }, item.description); }}
                       aria-label={`Launch ${item.text}`}
                       style={{
                         all: 'unset', cursor: 'pointer', flexShrink: 0,

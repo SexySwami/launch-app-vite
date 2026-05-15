@@ -16,10 +16,13 @@ import { T } from '../tokens.js';
 // / Keep Editing instead of dismissing immediately.
 export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'edit' }) {
   const [text, setText] = useState(item?.text || '');
+  const [description, setDescription] = useState(item?.description || '');
+  const [descShown, setDescShown] = useState(!!(item?.description));
   const [mode, setMode] = useState(startMode);
   const [edited, setEdited] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const taRef = useRef(null);
+  const descRef = useRef(null);
 
   // Auto-resize the textarea like the rest of the app's auto-resize inputs.
   const autoResize = (el) => {
@@ -33,13 +36,18 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
   // Resync when the editing target changes.
   useEffect(() => {
     setText(item?.text || '');
+    setDescription(item?.description || '');
+    setDescShown(!!(item?.description));
     setMode(startMode);
     setEdited(false);
     setConfirming(false);
   }, [item?.id, startMode]);
 
   // Auto-resize on text or mode change.
-  useEffect(() => { autoResize(taRef.current); }, [text, mode, confirming]);
+  useEffect(() => {
+    autoResize(taRef.current);
+    autoResize(descRef.current);
+  }, [text, description, mode, confirming, descShown]);
 
   // Initial focus only when starting in edit mode (action-menu entry).
   useEffect(() => {
@@ -142,7 +150,7 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
-                onClick={() => onSave(text)}
+                onClick={() => onSave(text, description)}
                 disabled={!canSave}
                 style={{
                   all: 'unset',
@@ -254,7 +262,7 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && text.trim()) {
                   e.preventDefault();
-                  onSave(text);
+                  onSave(text, description);
                 }
               }}
               placeholder="Item text…"
@@ -284,6 +292,58 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
               }}
             />
 
+            {/* Description field / toggle */}
+            {descShown ? (
+              <textarea
+                ref={descRef}
+                className="scroll-thin"
+                value={description}
+                onChange={(e) => { setDescription(e.target.value); setEdited(true); }}
+                placeholder="Add context, background, or details…"
+                rows={1}
+                style={{
+                  all: 'unset',
+                  display: 'block', boxSizing: 'border-box',
+                  width: '100%',
+                  fontFamily: T.display, fontSize: 14, fontWeight: 400,
+                  color: T.text2, letterSpacing: '-0.003em',
+                  lineHeight: 1.45,
+                  padding: '10px 14px',
+                  minHeight: 44, maxHeight: 200,
+                  resize: 'none',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  background: 'rgba(168,118,255,0.04)',
+                  border: `1px solid rgba(168,118,255,0.28)`,
+                  borderRadius: 12,
+                  overflowY: 'hidden',
+                  marginBottom: 12,
+                  cursor: 'auto',
+                  transition: 'border-color 200ms ease',
+                }}
+              />
+            ) : (
+              <button
+                onClick={() => setDescShown(true)}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  marginBottom: 12,
+                  padding: '7px 12px', borderRadius: 10,
+                  background: 'rgba(168,118,255,0.07)',
+                  border: `1px solid rgba(168,118,255,0.25)`,
+                  color: T.purple,
+                  fontFamily: T.mono, fontSize: 10, fontWeight: 600,
+                  letterSpacing: '0.18em', textTransform: 'uppercase',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 11 11" style={{ flexShrink: 0 }}>
+                  <path d="M5.5 2v7M2 5.5h7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                </svg>
+                Description
+              </button>
+            )}
+
             {/* Bottom buttons */}
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -305,7 +365,7 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
                 {edited ? 'Cancel' : 'Close'}
               </button>
               <button
-                onClick={() => canSave && onSave(text)}
+                onClick={() => canSave && onSave(text, description)}
                 disabled={!canSave || (mode === 'view' && !edited)}
                 style={{
                   all: 'unset',
