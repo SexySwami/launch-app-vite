@@ -931,6 +931,36 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     };
   };
 
+  const handleChildPointerDown = (e, child, folderId) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (dragRef.current) return;
+    e.stopPropagation();
+    pressedItemRef.current = {
+      id: child.id, idx: -1,
+      startX: e.clientX, startY: e.clientY,
+      pointerId: e.pointerId,
+      target: e.currentTarget,
+      isChild: true, folderId, child,
+    };
+  };
+
+  const ejectChildForDrag = (pressed) => {
+    const { child, folderId } = pressed;
+    const currentItems = itemsRef.current;
+    const folder = currentItems.find(i => i.id === folderId);
+    if (!folder) return;
+    const remaining = (folder.children || []).filter(c => c.id !== child.id);
+    const ejectedLeaf = { id: child.id, text: child.text, createdAt: child.createdAt };
+    const newItems = [
+      ...currentItems.map(i => i.id === folderId ? { ...i, children: remaining } : i),
+      ejectedLeaf,
+    ];
+    // Sync ref immediately so the drag system sees the updated list before React re-renders.
+    itemsRef.current = newItems;
+    setItems(newItems);
+    activateDrag({ ...pressed, idx: newItems.length - 1 });
+  };
+
   const handleRowPointerMove = (e) => {
     if (dragRef.current) {
       handleDragMove(e);
@@ -941,7 +971,11 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     const dx = e.clientX - pressed.startX;
     const dy = e.clientY - pressed.startY;
     if (dx * dx + dy * dy > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
-      activateDrag(pressed);
+      if (pressed.isChild) {
+        ejectChildForDrag(pressed);
+      } else {
+        activateDrag(pressed);
+      }
       pressedItemRef.current = null;
     }
   };
@@ -1289,14 +1323,23 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         flexShrink: 0,
                       }}>
                         {item.children.map((child, ci) => (
-                          <div key={child.id} style={{
-                            display: 'flex', alignItems: 'center', gap: 8,
-                            background: 'rgba(255,255,255,0.02)',
-                            border: `1px solid ${T.hairlineSoft}`,
-                            borderRadius: 12, padding: '8px 10px',
-                            fontFamily: T.display, fontSize: 13, color: T.text2,
-                            flexShrink: 0,
-                          }}>
+                          <div
+                            key={child.id}
+                            onPointerDown={(e) => handleChildPointerDown(e, child, item.id)}
+                            onPointerMove={handleRowPointerMove}
+                            onPointerUp={handleRowPointerUp}
+                            onPointerCancel={handleRowPointerCancel}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              background: 'rgba(255,255,255,0.02)',
+                              border: `1px solid ${T.hairlineSoft}`,
+                              borderRadius: 12, padding: '8px 10px',
+                              fontFamily: T.display, fontSize: 13, color: T.text2,
+                              flexShrink: 0,
+                              cursor: 'grab',
+                              touchAction: 'manipulation',
+                            }}
+                          >
                             <span style={{
                               width: 6, height: 6, borderRadius: 1,
                               background: T.purple, opacity: 0.6, flexShrink: 0,
