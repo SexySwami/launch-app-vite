@@ -43,6 +43,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [editingItemId, setEditingItemId] = useState(null);
   const [overlayStartMode, setOverlayStartMode] = useState('edit');
+  const [itemOptionsId, setItemOptionsId] = useState(null); // ⋯ button menu
 
   // Double-tap detection. We delay the single-tap action so a second tap
   // within ~320ms is recognized as a double-tap instead.
@@ -475,6 +476,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   const handleRowTap = (item) => {
     if (justEndedDragRef.current) return;
     if (editingItemId) return; // ignore row taps mid-edit
+    setItemOptionsId(null); // close ⋯ panel if open
     setSelectedItemId(prev => prev === item.id ? null : item.id);
   };
 
@@ -897,6 +899,59 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setEditingFolderId(null);
     if (!name || !id) return;
     await handleSaveFolderName(id, name);
+  };
+
+  // Check Off: pulse green → remove from queue → finalize in completed steps.
+  // No undo toast (intentional action); no micro-steps logged (empty dropdown).
+  const handleCheckOff = async (id) => {
+    setItemOptionsId(null);
+    const found = findItemAnywhere(id);
+    if (!found) return;
+    const { item: itemToCheck, parentFolderId, topLevelIdx } = found;
+
+    // Green pulse so the item glows before vanishing.
+    setHighlightedIds(prev => { const next = new Map(prev); next.set(id, 0); return next; });
+    await new Promise(r => setTimeout(r, 650));
+
+    // Use itemsRef for fresh state after the async wait.
+    const currentItems = itemsRef.current;
+    const next = parentFolderId
+      ? currentItems.map(i => i.id === parentFolderId
+          ? { ...i, children: (i.children || []).filter(c => c.id !== id) }
+          : i)
+      : currentItems.filter(i => i.id !== id);
+    setItems(next);
+    setHighlightedIds(prev => { const n = new Map(prev); n.delete(id); return n; });
+
+    if (!canCallAPI) return;
+
+    // Finalize to the completed steps screen (no log-step → empty dropdown).
+    const completionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    try {
+      await fetch('/api/completed?action=finalize', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: completionId,
+          sourceItemId: itemToCheck.id,
+          sourceItemIndex: topLevelIdx >= 0 ? topLevelIdx : -1,
+          text: itemToCheck.text,
+        }),
+      });
+    } catch {}
+
+    // Remove from the queue.
+    try {
+      const res = parentFolderId
+        ? await fetch('/api/queue', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ items: next }),
+          })
+        : await fetch(`/api/queue?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.items)) setItems(data.items);
+    } catch {}
   };
 
   // Resolve the empty-folder prompt: either delete the folder or keep it empty.
@@ -1705,20 +1760,26 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                             }}>{child.text}</span>
                             <button
                               onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, { id: child.id, index: -1 }); }}
-                              aria-label={`Launch ${child.text}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setItemOptionsId(prev => prev === child.id ? null : child.id);
+                                setSelectedItemId(null);
+                              }}
+                              aria-label={`Options for ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
                                 width: 28, height: 28, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                color: T.cyan,
-                                background: 'rgba(0,229,255,0.10)',
-                                border: '1px solid rgba(0,229,255,0.32)',
+                                color: T.text3,
+                                background: 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${T.hairlineSoft}`,
                                 WebkitTapHighlightColor: 'transparent',
                               }}
                             >
-                              <svg width="12" height="12" viewBox="0 0 13 13">
-                                <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                              <svg width="13" height="13" viewBox="0 0 14 14">
+                                <circle cx="2.5" cy="7" r="1.25" fill="currentColor"/>
+                                <circle cx="7" cy="7" r="1.25" fill="currentColor"/>
+                                <circle cx="11.5" cy="7" r="1.25" fill="currentColor"/>
                               </svg>
                             </button>
                             <button
@@ -1845,25 +1906,30 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       fontWeight: isFirstItem ? 600 : 500,
                     }}>{item.text}</span>
-                    {/* Direct-launch checkmark — bypasses the action menu */}
+                    {/* Options menu trigger — three dots, neutral; opens Remove / Check Off */}
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); handleLaunchItem(item.text, { id: item.id, index: idx }); }}
-                      aria-label={`Launch ${item.text}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setItemOptionsId(prev => prev === item.id ? null : item.id);
+                        setSelectedItemId(null);
+                      }}
+                      aria-label={`Options for ${item.text}`}
                       style={{
                         all: 'unset', cursor: 'pointer', flexShrink: 0,
                         width: 32, height: 32, borderRadius: 99,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        color: T.cyan,
-                        background: 'rgba(0,229,255,0.10)',
-                        border: '1px solid rgba(0,229,255,0.32)',
-                        boxShadow: '0 0 10px rgba(0,229,255,0.12)',
-                        transition: 'all 150ms',
+                        color: T.text3,
+                        background: 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${T.hairlineSoft}`,
+                        transition: 'color 150ms, background 150ms',
                         WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      <svg width="13" height="13" viewBox="0 0 13 13">
-                        <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                      <svg width="14" height="14" viewBox="0 0 14 14">
+                        <circle cx="2.5" cy="7" r="1.25" fill="currentColor"/>
+                        <circle cx="7" cy="7" r="1.25" fill="currentColor"/>
+                        <circle cx="11.5" cy="7" r="1.25" fill="currentColor"/>
                       </svg>
                     </button>
                     <button
@@ -1925,6 +1991,54 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                 <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
               </svg>
             </GlowButton>
+          </div>
+        </div>
+      )}
+
+      {itemOptionsId && (
+        <div style={{ padding: '0 24px' }}>
+          {/* ── ⋯ options menu: Remove Item / Check Off ──────────────── */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+              style={{
+                flex: 1, height: 60, borderRadius: 18,
+                background: 'linear-gradient(180deg, rgba(255,179,71,0.14), rgba(255,179,71,0.04))',
+                border: `1px solid rgba(255,179,71,0.4)`,
+                color: T.warn,
+                fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                letterSpacing: '0.04em', textTransform: 'uppercase',
+                cursor: 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,179,71,0.10)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13">
+                <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+              </svg>
+              Remove
+            </button>
+            <button
+              onClick={() => handleCheckOff(itemOptionsId)}
+              style={{
+                flex: 1, height: 60, borderRadius: 18,
+                background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
+                border: `1px solid rgba(0,255,110,0.45)`,
+                color: '#00e56e',
+                fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                letterSpacing: '0.04em', textTransform: 'uppercase',
+                cursor: 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13">
+                <path d="M2 7l3.5 3.5 5.5-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Check Off
+            </button>
           </div>
         </div>
       )}
