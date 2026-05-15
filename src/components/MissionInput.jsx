@@ -989,9 +989,22 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
   };
 
-  // ── Row-level instant drag (entire row is the drag target) ─────────────
-  // No long-press; any movement past DRAG_MOVE_THRESHOLD activates drag.
-  const DRAG_MOVE_THRESHOLD = 5;
+  // ── Row-level drag activation thresholds ─────────────────────────────────
+  // Both distance AND time must be satisfied before drag starts, preventing
+  // accidental drags from taps or small finger shifts.
+  const DRAG_MOVE_THRESHOLD = 10; // px — minimum distance before drag is considered
+  const DRAG_DELAY_MS = 150;      // ms  — minimum hold time before drag activates
+
+  // Shared activator so the timer callback and move handler both go through
+  // the same path regardless of whether the pressed item is a top-level row
+  // or a folder child.
+  const commitDrag = (pressed) => {
+    if (pressed.isChild) {
+      activateChildDrag(pressed);
+    } else {
+      activateDrag(pressed);
+    }
+  };
 
   const activateDrag = (pressed) => {
     const startScrollTop = listScrollRef.current?.scrollTop || 0;
@@ -1018,6 +1031,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       startX: e.clientX, startY: e.clientY,
       pointerId: e.pointerId,
       target: e.currentTarget,
+      pressedAt: Date.now(),
     };
   };
 
@@ -1031,6 +1045,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       pointerId: e.pointerId,
       target: e.currentTarget,
       isChild: true, folderId, child,
+      pressedAt: Date.now(),
     };
   };
 
@@ -1069,15 +1084,28 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     if (dist2 > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
       // Gesture is more horizontal than vertical — let the browser scroll naturally.
       if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
         pressedItemRef.current = null;
         return;
       }
-      if (pressed.isChild) {
-        activateChildDrag(pressed);
-      } else {
-        activateDrag(pressed);
+      const elapsed = Date.now() - pressed.pressedAt;
+      if (elapsed >= DRAG_DELAY_MS) {
+        // Both thresholds met — activate immediately.
+        if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+        commitDrag(pressed);
+        pressedItemRef.current = null;
+      } else if (!pressTimerRef.current) {
+        // Distance met but hold time not yet — wait out the remainder, then activate
+        // if the user is still pressing.
+        pressTimerRef.current = setTimeout(() => {
+          pressTimerRef.current = null;
+          const stillPressed = pressedItemRef.current;
+          if (stillPressed) {
+            commitDrag(stillPressed);
+            pressedItemRef.current = null;
+          }
+        }, DRAG_DELAY_MS - elapsed);
       }
-      pressedItemRef.current = null;
     }
   };
 
@@ -1086,11 +1114,13 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       handleDragEnd();
       return;
     }
+    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
     pressedItemRef.current = null;
     // Click event fires next; tap → action menu is handled by onClick.
   };
 
   const handleRowPointerCancel = () => {
+    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
     pressedItemRef.current = null;
     if (dragRef.current) handleDragEnd();
   };
