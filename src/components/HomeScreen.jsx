@@ -364,17 +364,17 @@ function ReactorCore({ state, intensity, onLaunch }) {
             })}
           </g>
 
-          <circle r="84" fill="none"
+          <circle r="96" fill="none"
                   stroke={`rgba(0,229,255,${0.10 + glow * 0.32})`}
                   strokeWidth="3"
                   style={{ filter: 'blur(6px)' }}/>
-          <circle r="80" fill="url(#rxCoreGrad)"
+          <circle r="92" fill="url(#rxCoreGrad)"
                   stroke={`rgba(0,229,255,${0.45 + glow * 0.50})`}
                   strokeWidth="1.2"
                   style={{ filter: `drop-shadow(0 0 ${14 + glow * 26}px rgba(0,229,255,${0.40 + glow * 0.55}))` }}/>
-          <circle r="80" fill="url(#rxCoreBottomShadow)" opacity="0.85"/>
-          <circle r="78" fill="url(#rxCoreSpec)" opacity={armed ? 0.85 : warming ? 0.65 : 0.45}/>
-          <circle r="72" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+          <circle r="92" fill="url(#rxCoreBottomShadow)" opacity="0.85"/>
+          <circle r="90" fill="url(#rxCoreSpec)" opacity={armed ? 0.85 : warming ? 0.65 : 0.45}/>
+          <circle r="84" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
           {!idle && (
             <circle r={armed ? 3.2 : 2.2} cx="0" cy="0" fill={T.cyan}
                     style={{
@@ -396,7 +396,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
             all: 'unset',
             position: 'absolute', left: '50%', top: '50%',
             transform: `translate(-50%, -50%) scale(${pressing ? 0.93 : 1})`,
-            width: 156, height: 156, borderRadius: '50%',
+            width: 180, height: 180, borderRadius: '50%',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
             cursor: idle ? 'not-allowed' : 'pointer',
@@ -441,7 +441,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
 
           <div style={{
             fontFamily: T.display, fontWeight: 700,
-            fontSize: armed ? 28 : 24, letterSpacing: '0.12em',
+            fontSize: armed ? 32 : 28, letterSpacing: '0.12em',
             color: armed ? T.text : warming ? T.text2 : T.text3,
             textShadow: armed
               ? `0 0 16px ${T.cyan}, 0 0 44px rgba(0,229,255,0.55)`
