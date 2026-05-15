@@ -749,6 +749,56 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
   };
 
+  // Eject a child item from its folder back to the top-level queue.
+  // If the folder would be left with 1 child, unwrap that child too.
+  // If left with 0 children, delete the folder.
+  const handleEjectChild = async (folderId, childId) => {
+    const folder = items.find(i => i.id === folderId);
+    if (!folder) return;
+    const remaining = (folder.children || []).filter(c => c.id !== childId);
+    const ejected = (folder.children || []).find(c => c.id === childId);
+    if (!ejected) return;
+
+    let next;
+    if (remaining.length === 0) {
+      // Folder empty — remove it, bring ejected item up.
+      next = items.flatMap(i => i.id === folderId
+        ? [{ id: ejected.id, text: ejected.text, createdAt: ejected.createdAt }]
+        : [i]
+      );
+    } else if (remaining.length === 1) {
+      // One child left — unwrap: replace folder with remaining + ejected item.
+      next = items.flatMap(i => i.id === folderId
+        ? [
+            { id: remaining[0].id, text: remaining[0].text, createdAt: remaining[0].createdAt },
+            { id: ejected.id, text: ejected.text, createdAt: ejected.createdAt },
+          ]
+        : [i]
+      );
+    } else {
+      // Folder still has multiple children — just remove this child and append to top level.
+      next = [
+        ...items.map(i => i.id === folderId ? { ...i, children: remaining } : i),
+        { id: ejected.id, text: ejected.text, createdAt: ejected.createdAt },
+      ];
+    }
+
+    setItems(next);
+    if (!canCallAPI) return;
+    try {
+      const res = await fetch('/api/queue', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ items: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+      if (Array.isArray(data.items)) setItems(data.items);
+    } catch (err) {
+      setItemsError(err.message || 'Could not remove item from folder');
+    }
+  };
+
   const autoScrollFrame = () => {
     autoScrollRef.current.rafId = null;
     const dragNow = dragRef.current;
@@ -1269,6 +1319,20 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                             >
                               <svg width="12" height="12" viewBox="0 0 13 13">
                                 <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleEjectChild(item.id, child.id); }}
+                              aria-label={`Remove ${child.text} from folder`}
+                              style={{
+                                all: 'unset', cursor: 'pointer', flexShrink: 0,
+                                width: 28, height: 28, borderRadius: 99,
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                color: T.text3,
+                              }}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 10 10">
+                                <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                               </svg>
                             </button>
                           </div>
