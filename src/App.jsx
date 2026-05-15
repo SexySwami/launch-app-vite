@@ -8,6 +8,8 @@ import { NextPhase } from './components/NextPhase.jsx';
 import { Dashboard } from './components/Dashboard.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
 import { CompletedSteps } from './components/CompletedSteps.jsx';
+import { HomeScreen } from './components/HomeScreen.jsx';
+import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { generateSteps } from './lib/generateSteps.js';
 
 export default function App() {
@@ -198,8 +200,15 @@ export default function App() {
     }
   };
 
+  const FLOW_SCREENS = new Set(['countdown', 'step', 'reward', 'nextphase']);
+  const showTabBar = !FLOW_SCREENS.has(screen);
+
   let body = null;
-  if (screen === 'input')
+  if (screen === 'home')
+    body = <HomeScreen />;
+  else if (screen === 'profile')
+    body = <ProfileScreen />;
+  else if (screen === 'input')
     body = <MissionInput onLaunch={launchMission} mission={mission} setMission={setMission} />;
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
@@ -231,7 +240,7 @@ export default function App() {
       />
     );
   else if (screen === 'completed')
-    body = <CompletedSteps onBack={() => setScreen('nextphase')} />;
+    body = <CompletedSteps onBack={() => setScreen('input')} />;
   else if (screen === 'dashboard')
     body = <Dashboard momentum={momentum} launchesToday={launchesToday} onNewMission={() => { setMission(''); setMomentumGained(0); setScreen('input'); }} />;
 
@@ -268,11 +277,11 @@ export default function App() {
         {body}
       </div>
 
-      {/* Bottom nav (visible on dashboard) */}
-      {screen === 'dashboard' && <BottomNav screen={screen} onNav={setScreen} />}
+      {/* Tab bar — hidden during launch flow */}
+      {showTabBar && <BottomNav screen={screen} onNav={setScreen} />}
 
-      {/* Bottom safe-area pad */}
-      <div style={{ height: 'max(12px, env(safe-area-inset-bottom))', flexShrink: 0 }} />
+      {/* Bottom safe-area pad — only needed when tab bar is absent (tab bar handles its own) */}
+      {!showTabBar && <div style={{ height: 'max(12px, env(safe-area-inset-bottom))', flexShrink: 0 }} />}
     </div>
   );
 }
