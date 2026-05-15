@@ -1526,11 +1526,11 @@ export function MissionInput({ onLaunch, mission, setMission }) {
               onClick={() => setAddingItem(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                background: 'rgba(168,118,255,0.08)',
-                border: `1px solid rgba(168,118,255,0.32)`,
+                background: 'rgba(79,227,193,0.07)',
+                border: `1px solid rgba(79,227,193,0.30)`,
                 borderRadius: 14, padding: '12px 14px',
                 fontFamily: T.display, fontSize: 14, fontWeight: 500,
-                color: T.purple,
+                color: T.teal,
                 cursor: 'pointer', textAlign: 'left',
                 transition: 'all 150ms',
                 WebkitAppearance: 'none', appearance: 'none',
