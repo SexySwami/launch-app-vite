@@ -1273,8 +1273,9 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   // ── Row-level drag activation thresholds ─────────────────────────────────
   // Both distance AND time must be satisfied before drag starts, preventing
   // accidental drags from taps or small finger shifts.
-  const DRAG_MOVE_THRESHOLD = 10; // px — minimum distance before drag is considered
+  const DRAG_MOVE_THRESHOLD = 6;  // px — minimum distance after hold to commit drag
   const DRAG_DELAY_MS = 150;      // ms  — minimum hold time before drag activates
+  const SCROLL_CANCEL_DIST = 20;  // px — if moved this far before delay, it's a scroll
 
   // Shared activator so the timer callback and move handler both go through
   // the same path regardless of whether the pressed item is a top-level row
@@ -1289,11 +1290,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
   const activateDrag = (pressed) => {
     const startScrollTop = listScrollRef.current?.scrollTop || 0;
-    lastPointerYRef.current = pressed.startY;
+    const currentY = pressed.lastMoveY != null ? pressed.lastMoveY : pressed.startY;
+    lastPointerYRef.current = currentY;
     const newDrag = {
       id: pressed.id,
       fromIdx: pressed.idx,
-      startY: pressed.startY,
+      startY: currentY,
       deltaY: 0,
       dropIdx: pressed.idx,
       startScrollTop,
@@ -1314,6 +1316,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     pressedItemRef.current = {
       id: item.id, idx,
       startX: e.clientX, startY: e.clientY,
+      lastMoveX: e.clientX, lastMoveY: e.clientY,
       pointerId: e.pointerId,
       target: e.currentTarget,
       pressedAt: Date.now(),
@@ -1327,6 +1330,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     pressedItemRef.current = {
       id: child.id, idx: -1,
       startX: e.clientX, startY: e.clientY,
+      lastMoveX: e.clientX, lastMoveY: e.clientY,
       pointerId: e.pointerId,
       target: e.currentTarget,
       isChild: true, folderId, child,
@@ -1339,12 +1343,13 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   // child row gets visually translated via the existing render path.
   const activateChildDrag = (pressed) => {
     const startScrollTop = listScrollRef.current?.scrollTop || 0;
-    lastPointerYRef.current = pressed.startY;
+    const currentY = pressed.lastMoveY != null ? pressed.lastMoveY : pressed.startY;
+    lastPointerYRef.current = currentY;
     const newDrag = {
       id: pressed.child.id,
       dragSource: { type: 'folder-child', folderId: pressed.folderId, childId: pressed.child.id },
       fromIdx: -1,
-      startY: pressed.startY,
+      startY: currentY,
       deltaY: 0,
       dropIdx: 0,
       hoverTargetId: null,
@@ -1367,11 +1372,33 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
     const pressed = pressedItemRef.current;
     if (!pressed) return;
+
+    // Manual scroll forwarding: touch-action:none disables native scroll on
+    // rows, so we replicate it here during the pre-drag phase.
+    const scrollDelta = pressed.lastMoveY - e.clientY;
+    if (listScrollRef.current && scrollDelta !== 0) {
+      listScrollRef.current.scrollTop += scrollDelta;
+    }
+    pressed.lastMoveX = e.clientX;
+    pressed.lastMoveY = e.clientY;
+
+    // If already committed to scroll-only mode, just keep forwarding scroll.
+    if (pressed.scrollOnly) return;
+
     const dx = e.clientX - pressed.startX;
     const dy = e.clientY - pressed.startY;
     const dist2 = dx * dx + dy * dy;
+    const elapsed = Date.now() - pressed.pressedAt;
+
+    // If user moved too far before hold time elapsed, they're scrolling —
+    // cancel drag eligibility but keep scroll forwarding alive.
+    if (elapsed < DRAG_DELAY_MS && dist2 > SCROLL_CANCEL_DIST * SCROLL_CANCEL_DIST) {
+      pressed.scrollOnly = true;
+      if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+      return;
+    }
+
     if (dist2 > DRAG_MOVE_THRESHOLD * DRAG_MOVE_THRESHOLD) {
-      const elapsed = Date.now() - pressed.pressedAt;
       if (elapsed >= DRAG_DELAY_MS) {
         // Both thresholds met — activate immediately.
         if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
@@ -1379,11 +1406,17 @@ export function MissionInput({ onLaunch, mission, setMission }) {
         pressedItemRef.current = null;
       } else if (!pressTimerRef.current) {
         // Distance met but hold time not yet — wait out the remainder, then activate
-        // if the user is still pressing.
+        // if the user is still pressing and hasn't scrolled away.
         pressTimerRef.current = setTimeout(() => {
           pressTimerRef.current = null;
           const stillPressed = pressedItemRef.current;
-          if (stillPressed) {
+          if (stillPressed && !stillPressed.scrollOnly) {
+            const sdx = stillPressed.lastMoveX - stillPressed.startX;
+            const sdy = stillPressed.lastMoveY - stillPressed.startY;
+            if (sdx * sdx + sdy * sdy > SCROLL_CANCEL_DIST * SCROLL_CANCEL_DIST) {
+              stillPressed.scrollOnly = true;
+              return;
+            }
             commitDrag(stillPressed);
             pressedItemRef.current = null;
           }
@@ -1700,7 +1733,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                           ? `0 12px 32px rgba(168,118,255,0.32), 0 0 24px rgba(168,118,255,0.20)`
                           : `0 0 12px rgba(168,118,255,0.14)`,
                         transition: 'box-shadow 200ms ease, border-color 200ms ease',
-                        touchAction: 'pan-y',
+                        touchAction: 'none',
                         animation: isHighlighted
                           ? `greenPulse 1s ease-out ${highlightDelay}ms, folderPop 360ms cubic-bezier(0.2,0.8,0.2,1)`
                           : undefined,
@@ -1837,7 +1870,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                                 : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                               willChange: isChildDragging ? 'transform' : 'auto',
                               animationDelay: isChildHighlighted ? `${childHighlightDelay}ms` : undefined,
-                              touchAction: 'pan-y',
+                              touchAction: 'none',
                             }}
                           >
                             <span style={{
@@ -1962,7 +1995,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
                         : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                       willChange: isDragging || isHoverTarget ? 'transform' : 'auto',
                       animationDelay: isHighlighted ? `${highlightDelay}ms` : undefined,
-                      touchAction: 'pan-y',
+                      touchAction: 'none',
                     }}
                   >
                     {/* Priority badge — reflects the item's current rank.
