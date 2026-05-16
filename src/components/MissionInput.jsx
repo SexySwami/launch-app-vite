@@ -81,6 +81,12 @@ export function MissionInput({
   const hoverFolderTimerRef = useRef(null);
   const hoverProgressRafRef = useRef(null);
 
+  // true = touch screen (coarse pointer), false = mouse (fine pointer).
+  // Used to gate scroll-forwarding and drag thresholds; never changes after mount.
+  const isTouchDeviceRef = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+  );
+
   useEffect(() => { dragRef.current = drag; }, [drag]);
   useEffect(() => { itemsRef.current = items; }, [items]);
 
@@ -1287,11 +1293,14 @@ export function MissionInput({
   };
 
   // ── Row-level drag activation thresholds ─────────────────────────────────
-  // Both distance AND time must be satisfied before drag starts, preventing
-  // accidental drags from taps or small finger shifts.
-  const DRAG_MOVE_THRESHOLD = 6;  // px — minimum distance after hold to commit drag
-  const DRAG_DELAY_MS = 150;      // ms  — minimum hold time before drag activates
-  const SCROLL_CANCEL_DIST = 20;  // px — if moved this far before delay, it's a scroll
+  // On touch: both distance AND time must be satisfied before drag starts,
+  // preventing accidental drags from taps or small finger shifts.
+  // On desktop (mouse): activate on any movement — accidental mouse drags
+  // aren't a problem and the delay makes drag feel sluggish.
+  const _isTouch = isTouchDeviceRef.current;
+  const DRAG_MOVE_THRESHOLD = _isTouch ? 6 : 3;   // px
+  const DRAG_DELAY_MS       = _isTouch ? 150 : 0;  // ms
+  const SCROLL_CANCEL_DIST  = _isTouch ? 20 : 8;   // px
 
   // Shared activator so the timer callback and move handler both go through
   // the same path regardless of whether the pressed item is a top-level row
@@ -1389,11 +1398,15 @@ export function MissionInput({
     const pressed = pressedItemRef.current;
     if (!pressed) return;
 
-    // Manual scroll forwarding: touch-action:none disables native scroll on
-    // rows, so we replicate it here during the pre-drag phase.
-    const scrollDelta = pressed.lastMoveY - e.clientY;
-    if (listScrollRef.current && scrollDelta !== 0) {
-      listScrollRef.current.scrollTop += scrollDelta;
+    // Manual scroll forwarding: on touch, touch-action:none disables native
+    // scroll on rows so we replicate it here during the pre-drag phase.
+    // Skip on desktop — the mouse wheel handles scroll independently and
+    // forwarding pointermove deltas as scroll would fight the drag gesture.
+    if (isTouchDeviceRef.current) {
+      const scrollDelta = pressed.lastMoveY - e.clientY;
+      if (listScrollRef.current && scrollDelta !== 0) {
+        listScrollRef.current.scrollTop += scrollDelta;
+      }
     }
     pressed.lastMoveX = e.clientX;
     pressed.lastMoveY = e.clientY;
@@ -1783,7 +1796,7 @@ export function MissionInput({
                           ? `0 12px 32px rgba(168,118,255,0.32), 0 0 24px rgba(168,118,255,0.20)`
                           : `0 0 12px rgba(168,118,255,0.14)`,
                         transition: 'box-shadow 200ms ease, border-color 200ms ease',
-                        touchAction: 'none',
+                        touchAction: isTouchDeviceRef.current ? 'none' : 'auto',
                         animation: isHighlighted
                           ? `greenPulse 1s ease-out ${highlightDelay}ms, folderPop 360ms cubic-bezier(0.2,0.8,0.2,1)`
                           : undefined,
@@ -1920,7 +1933,7 @@ export function MissionInput({
                                 : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                               willChange: isChildDragging ? 'transform' : 'auto',
                               animationDelay: isChildHighlighted ? `${childHighlightDelay}ms` : undefined,
-                              touchAction: 'none',
+                              touchAction: isTouchDeviceRef.current ? 'none' : 'auto',
                             }}
                           >
                             <span style={{
@@ -2045,7 +2058,7 @@ export function MissionInput({
                         : 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 120ms ease, border-color 200ms ease, background 200ms ease',
                       willChange: isDragging || isHoverTarget ? 'transform' : 'auto',
                       animationDelay: isHighlighted ? `${highlightDelay}ms` : undefined,
-                      touchAction: 'none',
+                      touchAction: isTouchDeviceRef.current ? 'none' : 'auto',
                     }}
                   >
                     {/* Priority badge — reflects the item's current rank.
