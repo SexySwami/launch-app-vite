@@ -1,6 +1,6 @@
 import { T } from '../tokens.js';
 
-export function Telemetry({ time, code = 'MC-04', state = 'IDLE' }) {
+export function Telemetry({ time, code = 'MC-04', state = 'IDLE', color = T.teal }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -9,7 +9,7 @@ export function Telemetry({ time, code = 'MC-04', state = 'IDLE' }) {
     }}>
       <span>{code} · {state}</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ width: 5, height: 5, borderRadius: 99, background: T.teal, boxShadow: `0 0 8px ${T.teal}`, animation: 'pulse 1.6s ease-in-out infinite' }} />
+        <span style={{ width: 5, height: 5, borderRadius: 99, background: color, boxShadow: `0 0 8px ${color}`, animation: 'pulse 1.6s ease-in-out infinite' }} />
         {time}
       </span>
     </div>

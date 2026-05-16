@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { T } from './tokens.js';
 import { MissionInput } from './components/MissionInput.jsx';
 import { Countdown } from './components/Countdown.jsx';
@@ -10,7 +10,16 @@ import { BottomNav } from './components/BottomNav.jsx';
 import { CompletedSteps } from './components/CompletedSteps.jsx';
 import { HomeScreen } from './components/HomeScreen.jsx';
 import { ProfileScreen } from './components/ProfileScreen.jsx';
+import { RootFolderScreen } from './components/RootFolderScreen.jsx';
 import { generateSteps } from './lib/generateSteps.js';
+
+// Root folders the Checklists tab can drill into. Order is preserved in the UI.
+const FOLDERS = [
+  { id: 'work',     name: 'Work',     accent: T.cyan,   iconKey: 'work',     code: 'RT-01', tagline: 'Mission Ops' },
+  { id: 'personal', name: 'Personal', accent: T.purple, iconKey: 'personal', code: 'RT-02', tagline: 'Off-Duty'    },
+  { id: 'health',   name: 'Health',   accent: T.teal,   iconKey: 'health',   code: 'RT-03', tagline: 'Vital Signs' },
+];
+const DEFAULT_FOLDER_ID = 'work';
 
 export default function App() {
   const [screen, setScreen] = useState('home');
@@ -25,22 +34,34 @@ export default function App() {
   const [stepsError, setStepsError] = useState(null);
 
   // Completion-logging state.
-  // - completionGroupId: unique id for the current mission's completed-entry
-  //   in the backend. Generated when launchMission fires; reused for each
-  //   "Log Completion" tap and the final auto-save.
-  // - sourceItemId / sourceItemIndex: track which queue item this mission
-  //   came from, so we can remove it from the queue on completion and
-  //   restore it later via the X on the Completed Steps screen.
-  // - loggedSteps: set of step indices the user has explicitly logged in
-  //   this mission, so the Log button can flip to "Logged" and not double-fire.
   const [completionGroupId, setCompletionGroupId] = useState(null);
   const [sourceItemId, setSourceItemId] = useState(null);
   const [sourceItemIndex, setSourceItemIndex] = useState(null);
+  const [sourceFolderId, setSourceFolderId] = useState(DEFAULT_FOLDER_ID);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
 
-  // Home-screen Generate/History navigation. currentItemIdx is the position
-  // in the flattened checklist currently shown. -1 means nothing shown yet.
+  // Home-screen Generate/History navigation.
   const [currentItemIdx, setCurrentItemIdx] = useState(-1);
+
+  // Root-folder routing inside the Checklists tab.
+  // - openFolderId: null → root folder selection; otherwise the folder being shown.
+  // - mountedFolderIds: lazy-mount set so once a folder is opened, its
+  //   MissionInput stays mounted (hidden) — Back never loses its state.
+  // - lastLaunchedFolderId: which checklist the user launched from, so the
+  //   post-completion "Keep Going" button can return there.
+  const [openFolderId, setOpenFolderId] = useState(null);
+  const [mountedFolderIds, setMountedFolderIds] = useState(() => new Set());
+  const lastLaunchedFolderIdRef = useRef(DEFAULT_FOLDER_ID);
+
+  const openFolder = (folderId) => {
+    setMountedFolderIds(prev => {
+      if (prev.has(folderId)) return prev;
+      const next = new Set(prev);
+      next.add(folderId);
+      return next;
+    });
+    setOpenFolderId(folderId);
+  };
 
   const resolvedStep = useMemo(() => {
     const base = steps[stepIdx];
@@ -57,8 +78,6 @@ export default function App() {
     const reward = steps[stepIdx]?.reward || 4;
     setMomentumGained(g => g + reward);
     if (stepIdx + 1 >= steps.length) {
-      // Final step → finalize the completion entry and remove the original
-      // queue item (if this mission came from one).
       finalizeCompletion();
       setMomentum(m => m + 15);
       setLaunchesToday(n => n + 1);
@@ -78,7 +97,6 @@ export default function App() {
     const step = steps[stepIdx];
     if (!step) return false;
 
-    // Optimistically mark this step as logged so the button can flip state.
     setLoggedSteps(prev => {
       const next = new Set(prev);
       next.add(stepIdx);
@@ -94,6 +112,7 @@ export default function App() {
           id: completionGroupId,
           sourceItemId: sourceItemId || null,
           sourceItemIndex: typeof sourceItemIndex === 'number' ? sourceItemIndex : null,
+          folderId: sourceFolderId,
           text: mission,
           microStep: {
             tag: step.tag || '',
@@ -103,7 +122,6 @@ export default function App() {
         }),
       });
     } catch (err) {
-      // Rollback the local "logged" state so the user can retry.
       setLoggedSteps(prev => {
         const next = new Set(prev);
         next.delete(stepIdx);
@@ -124,13 +142,16 @@ export default function App() {
             id: completionGroupId,
             sourceItemId: sourceItemId || null,
             sourceItemIndex: typeof sourceItemIndex === 'number' ? sourceItemIndex : null,
+            folderId: sourceFolderId,
             text: mission,
           }),
         });
-        // Remove the original queue item server-side; MissionInput will
-        // refetch on remount / visibility change.
+        // Remove the original queue item from the *source* folder, not the
+        // legacy default. MissionInput refetches on visibility change so its
+        // local items will catch up.
         if (sourceItemId) {
-          await fetch(`/api/queue?id=${encodeURIComponent(sourceItemId)}`, { method: 'DELETE' });
+          const folderParam = encodeURIComponent(sourceFolderId || DEFAULT_FOLDER_ID);
+          await fetch(`/api/queue?folder=${folderParam}&id=${encodeURIComponent(sourceItemId)}`, { method: 'DELETE' });
         }
       } catch {}
     }
@@ -138,16 +159,20 @@ export default function App() {
 
   const handleBackStep = () => {
     if (stepIdx > 0) {
-      // Going back undoes the previous step's reward — it's no longer "done".
       const prevReward = steps[stepIdx - 1]?.reward || 4;
       setMomentumGained(g => Math.max(0, g - prevReward));
       setStepIdx(i => i - 1);
     } else {
-      // From the first step, exit back to mission input. Mission text stays
-      // populated so the user can relaunch or edit easily.
+      // First step → exit back to whichever checklist this launch came from
+      // (or the root folder screen if we don't know).
       setStepIdx(0);
       setMomentumGained(0);
       setStepOverrides({});
+      if (lastLaunchedFolderIdRef.current) {
+        openFolder(lastLaunchedFolderIdRef.current);
+      } else {
+        setOpenFolderId(null);
+      }
       setScreen('input');
     }
   };
@@ -158,10 +183,9 @@ export default function App() {
     setScreen('step');
   };
 
-  // Kick off Claude API call for step generation. Falls back to local
-  // keyword logic if the API is unreachable or errors.
-  // `source` (optional): { id, index } of the originating queue item, so we
-  // can remove it from the queue on completion and restore later if needed.
+  // `source` may include { id, index, folderId }. If no folderId is supplied
+  // (e.g. Home-screen launches) we fall back to the default folder so the
+  // queue DELETE on completion still hits a sensible Redis key.
   const launchMission = async (missionText, source, description) => {
     const m = (missionText || '').trim();
     if (!m) return;
@@ -172,12 +196,14 @@ export default function App() {
     setSteps([]);
     setStepsError(null);
     setStepsLoading(true);
-    // Fresh completion session for this launch.
     setCompletionGroupId(typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `c_${Date.now()}_${Math.random().toString(36).slice(2)}`);
     setSourceItemId(source?.id || null);
     setSourceItemIndex(typeof source?.index === 'number' ? source.index : null);
+    const launchFolderId = source?.folderId || DEFAULT_FOLDER_ID;
+    setSourceFolderId(launchFolderId);
+    lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
     setScreen('countdown');
 
@@ -194,7 +220,6 @@ export default function App() {
       }
       setSteps(data.steps);
     } catch (err) {
-      // Fall back to the local keyword-matched generator.
       setSteps(generateSteps(m));
       if (err.message !== '__skip_api__') {
         setStepsError(err.message || 'Could not generate steps');
@@ -204,8 +229,83 @@ export default function App() {
     }
   };
 
+  // Tab nav: tapping Checklists always returns to the root folder screen
+  // (per spec). Other tabs are unchanged.
+  const handleNav = (id) => {
+    if (id === 'input') setOpenFolderId(null);
+    setScreen(id);
+  };
+
+  // Post-completion routing (spec):
+  //   I'm Good Now / Next Task → category (root folder) screen
+  //   Keep Going               → the checklist the user launched from
+  const resetMissionState = () => {
+    setMission('');
+    setMomentumGained(0);
+    setStepOverrides({});
+    setSteps([]);
+  };
+  const handleKeepGoing = () => {
+    resetMissionState();
+    const target = lastLaunchedFolderIdRef.current;
+    if (target) openFolder(target);
+    else setOpenFolderId(null);
+    setScreen('input');
+  };
+  const handleAllDone = () => {
+    resetMissionState();
+    setOpenFolderId(null);
+    setScreen('input');
+  };
+  const handleNextTask = () => {
+    resetMissionState();
+    setOpenFolderId(null);
+    setScreen('input');
+  };
+
   const FLOW_SCREENS = new Set(['countdown', 'step', 'reward', 'nextphase']);
   const showTabBar = !FLOW_SCREENS.has(screen);
+
+  // Render the Checklists tab as a layered stack: the root folder selection
+  // takes layout, and each lazily-mounted folder MissionInput overlays it
+  // (absolutely positioned). Switching folders hides via visibility:hidden
+  // so component state — fetched items, drag/edit state, etc. — survives.
+  const renderInputBranch = () => {
+    const foldersById = Object.fromEntries(FOLDERS.map(f => [f.id, f]));
+    return (
+      <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {!openFolderId && (
+          <RootFolderScreen folders={FOLDERS} onOpen={openFolder} />
+        )}
+        {Array.from(mountedFolderIds).map(fid => {
+          const folder = foldersById[fid];
+          if (!folder) return null;
+          const active = openFolderId === fid;
+          return (
+            <div
+              key={fid}
+              style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                visibility: active ? 'visible' : 'hidden',
+                pointerEvents: active ? 'auto' : 'none',
+              }}
+              aria-hidden={!active}
+            >
+              <MissionInput
+                folderId={fid}
+                folder={folder}
+                onLaunch={launchMission}
+                mission={mission}
+                setMission={setMission}
+                onBack={() => setOpenFolderId(null)}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   let body = null;
   if (screen === 'home')
@@ -221,7 +321,7 @@ export default function App() {
   else if (screen === 'profile')
     body = <ProfileScreen />;
   else if (screen === 'input')
-    body = <MissionInput onLaunch={launchMission} mission={mission} setMission={setMission} />;
+    body = renderInputBranch();
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
   else if (screen === 'step')
@@ -245,16 +345,16 @@ export default function App() {
   else if (screen === 'nextphase')
     body = (
       <NextPhase
-        onKeepGoing={() => { setMission(''); setMomentumGained(0); setStepOverrides({}); setSteps([]); setScreen('input'); }}
-        onAllDone={() => setScreen('dashboard')}
-        onNextTask={() => { setMission(''); setMomentumGained(0); setStepOverrides({}); setSteps([]); setScreen('input'); }}
+        onKeepGoing={handleKeepGoing}
+        onAllDone={handleAllDone}
+        onNextTask={handleNextTask}
         onSeeCompleted={() => setScreen('completed')}
       />
     );
   else if (screen === 'completed')
-    body = <CompletedSteps onBack={() => setScreen('input')} />;
+    body = <CompletedSteps onBack={() => { setOpenFolderId(null); setScreen('input'); }} />;
   else if (screen === 'dashboard')
-    body = <Dashboard momentum={momentum} launchesToday={launchesToday} onNewMission={() => { setMission(''); setMomentumGained(0); setScreen('input'); }} />;
+    body = <Dashboard momentum={momentum} launchesToday={launchesToday} onNewMission={() => { setMission(''); setMomentumGained(0); setOpenFolderId(null); setScreen('input'); }} />;
 
   return (
     <div style={{
@@ -290,7 +390,7 @@ export default function App() {
       </div>
 
       {/* Tab bar — hidden during launch flow */}
-      {showTabBar && <BottomNav screen={screen} onNav={setScreen} />}
+      {showTabBar && <BottomNav screen={screen} onNav={handleNav} />}
 
       {/* Bottom safe-area pad — only needed when tab bar is absent (tab bar handles its own) */}
       {!showTabBar && <div style={{ height: 'max(12px, env(safe-area-inset-bottom))', flexShrink: 0 }} />}
