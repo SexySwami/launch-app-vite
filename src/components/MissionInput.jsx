@@ -7,7 +7,20 @@ import { DropIndicator } from './DropIndicator.jsx';
 import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { FolderNamingOverlay } from './FolderNamingOverlay.jsx';
 
-export function MissionInput({ onLaunch, mission, setMission }) {
+export function MissionInput({
+  onLaunch,
+  mission,
+  setMission,
+  folderId = 'work',
+  folder = null,
+  onBack = null,
+}) {
+  // Per-folder API base. Every queue mutation includes ?folder=<id> so the
+  // backend can route to the right Redis key (launch:queue:<id>).
+  const queueUrl = `/api/queue?folder=${encodeURIComponent(folderId)}`;
+  const queueAppendUrl = `${queueUrl}&append=1`;
+  const queueIdUrl = (id) => `${queueUrl}&id=${encodeURIComponent(id)}`;
+
   // Cloud-backed mission queue (Upstash Redis via /api/queue).
   const [items, setItems] = useState([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -166,7 +179,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     }
     setItemsError(null);
     try {
-      const res = await fetch('/api/queue', { cache: 'no-store' });
+      const res = await fetch(queueUrl, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       setItems(Array.isArray(data.items) ? data.items : []);
@@ -274,7 +287,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
         setItems(updatedItems);
         highlightAddedItems([folder, ...children]);
 
-        const putRes = await fetch('/api/queue', {
+        const putRes = await fetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: updatedItems }),
@@ -285,7 +298,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
         return [folder];
       }
 
-      const url = append ? '/api/queue?append=1' : '/api/queue';
+      const url = append ? queueAppendUrl : queueUrl;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -333,7 +346,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setNewItemDraft('');
     if (canCallAPI) {
       try {
-        const res = await fetch('/api/queue', {
+        const res = await fetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: next }),
@@ -410,12 +423,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       // we PUT the whole items array (the child isn't visible to the by-id
       // delete on the server side).
       const res = parentFolderId
-        ? await fetch('/api/queue', {
+        ? await fetch(queueUrl, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ items: next }),
           })
-        : await fetch(`/api/queue?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        : await fetch(queueIdUrl(id), { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       if (Array.isArray(data.items)) setItems(data.items);
@@ -453,7 +466,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: restored }),
@@ -500,13 +513,15 @@ export function MissionInput({ onLaunch, mission, setMission }) {
   }, [motionPermission, pendingUndo]);
 
   // `source` (optional): { id, index } of the queue item this launch came from.
-  // null/undefined for launches via the freeform input.
+  // null/undefined for launches via the freeform input. We always tag the
+  // launch with this MissionInput's folderId so the parent app can route
+  // completion writes back to the right folder.
   const handleLaunchItem = (text, source, description) => {
     if (drag) return; // ignore taps mid-drag
     setSelectedItemId(null);
     setEditingItemId(null);
     setMission(text);
-    onLaunch(text, source || null, description || null);
+    onLaunch(text, { ...(source || {}), folderId }, description || null);
   };
 
   // Single-tap on a row → toggle the action menu for that item.
@@ -599,7 +614,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     if (!canCallAPI) { setSavingItem(false); return; }
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: updated }),
@@ -678,7 +693,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setItemsError(null);
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: newOrder }),
@@ -823,7 +838,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
       setItems(next);
       if (canCallAPI) {
         try {
-          const res = await fetch('/api/queue', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: next }) });
+          const res = await fetch(queueUrl, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: next }) });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
           if (Array.isArray(data.items)) setItems(data.items);
@@ -873,7 +888,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     if (canCallAPI) {
       try {
-        const res = await fetch('/api/queue', {
+        const res = await fetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: next }),
@@ -897,7 +912,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setNamingFolderId(null);
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: updated }),
@@ -919,7 +934,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1006,6 +1021,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           id: completionId,
           sourceItemId: itemToCheck.id,
           sourceItemIndex: topLevelIdx >= 0 ? topLevelIdx : -1,
+          folderId,
           text: itemToCheck.text,
         }),
       });
@@ -1014,12 +1030,12 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     // Remove from the queue.
     try {
       const res = parentFolderId
-        ? await fetch('/api/queue', {
+        ? await fetch(queueUrl, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ items: next }),
           })
-        : await fetch(`/api/queue?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        : await fetch(queueIdUrl(id), { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.items)) setItems(data.items);
     } catch {}
@@ -1035,7 +1051,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setItems(next);
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1085,7 +1101,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     setItems(next);
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1257,7 +1273,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
 
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/queue', {
+      const res = await fetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1441,14 +1457,48 @@ export function MissionInput({ onLaunch, mission, setMission }) {
     if (dragRef.current) handleDragEnd();
   };
 
+  const telemetryCode = folder?.name
+    ? `MC-04 / ${folder.name.toUpperCase()}`
+    : 'MC-04 / READY';
+  const accent = folder?.accent || T.cyan;
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 0 24px', minHeight: 0 }}>
       <div style={{ paddingTop: 8 }}>
-        <Telemetry time="04:32:11 UTC" code="MC-04 / READY" state="STANDBY" />
+        <Telemetry time="04:32:11 UTC" code={telemetryCode} state="STANDBY" color={accent} />
       </div>
 
+      {onBack && (
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          padding: '12px 20px 0',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={onBack}
+            aria-label="Back to folders"
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px 8px 8px', borderRadius: 99,
+              background: 'rgba(255,255,255,0.04)',
+              border: `1px solid ${T.hairline}`,
+              color: T.text2,
+              fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
+              textTransform: 'uppercase', fontWeight: 600,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11">
+              <path d="M7.5 1.5L3.5 5.5L7.5 9.5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Folders
+          </button>
+        </div>
+      )}
+
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 24px 0', minHeight: 0 }}>
-        <Eyebrow style={{ marginBottom: 14 }}>Pre-flight</Eyebrow>
+        <Eyebrow color={accent} style={{ marginBottom: 14 }}>Pre-flight</Eyebrow>
         <h1 style={{
           fontFamily: T.display, fontWeight: 600, fontSize: 36, lineHeight: 1.05,
           letterSpacing: '-0.02em', color: T.text, margin: 0,
