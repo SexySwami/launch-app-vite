@@ -2392,7 +2392,7 @@ export function MissionInput({ onLaunch, mission, setMission }) {
           role="status"
           style={{
             position: 'fixed',
-            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
+            top: 'calc(env(safe-area-inset-top, 0px) + 16px)',
             left: 16, right: 16,
             zIndex: 100,
             display: 'flex', alignItems: 'center', gap: 12,
