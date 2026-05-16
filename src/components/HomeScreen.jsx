@@ -111,9 +111,9 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   );
 }
 
-function AssistPills({ onAction, historyDisabled }) {
+function AssistPills({ onAction, historyDisabled, generateDisabled }) {
   const pills = [
-    { id: 'generate', icon: '✨', label: 'Generate', disabled: false },
+    { id: 'generate', icon: '✨', label: 'Generate', disabled: !!generateDisabled },
     { id: 'history',  icon: '↺',  label: 'History',  disabled: !!historyDisabled },
   ];
   return (
@@ -470,9 +470,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
 
 export function HomeScreen({
   mission, setMission, onLaunch,
-  cycleIdx, setCycleIdx,
-  cycleHistory, setCycleHistory,
-  cycleHistoryPos, setCycleHistoryPos,
+  currentItemIdx, setCurrentItemIdx,
 }) {
   const [inputFocused, setInputFocused] = useState(false);
   const [flatItems, setFlatItems] = useState([]);
@@ -501,26 +499,22 @@ export function HomeScreen({
   const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
   const intensity = Math.min(1, trimmed.length / 18);
 
-  const historyDisabled = cycleHistoryPos <= 0;
+  const historyDisabled = currentItemIdx <= 0;
+  const generateDisabled = flatItems.length === 0;
 
   const handleAssist = (id) => {
     if (id === 'generate') {
       if (!flatItems.length) return;
-      const safeIdx = ((cycleIdx % flatItems.length) + flatItems.length) % flatItems.length;
-      const item = flatItems[safeIdx];
-      const text = (item?.text || '').toString();
-      if (!text) return;
-      const nextHistory = [...cycleHistory, { id: item.id, text }];
-      setCycleHistory(nextHistory);
-      setCycleHistoryPos(nextHistory.length - 1);
-      setCycleIdx((safeIdx + 1) % flatItems.length);
-      setMission(text);
+      const nextIdx = (currentItemIdx + 1) % flatItems.length;
+      setCurrentItemIdx(nextIdx);
+      const item = flatItems[nextIdx];
+      setMission((item?.text || '').toString());
     } else if (id === 'history') {
       if (historyDisabled) return;
-      const newPos = cycleHistoryPos - 1;
-      setCycleHistoryPos(newPos);
-      const prev = cycleHistory[newPos];
-      if (prev) setMission(prev.text);
+      const nextIdx = currentItemIdx - 1;
+      setCurrentItemIdx(nextIdx);
+      const item = flatItems[nextIdx];
+      if (item) setMission((item?.text || '').toString());
     }
   };
 
@@ -542,7 +536,7 @@ export function HomeScreen({
 
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <EnergyBeam energy={intensity} state={reactorState} />
-        <AssistPills onAction={handleAssist} historyDisabled={historyDisabled} />
+        <AssistPills onAction={handleAssist} historyDisabled={historyDisabled} generateDisabled={generateDisabled} />
         <ReactorCore
           state={reactorState}
           intensity={intensity}
