@@ -57,7 +57,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
       onPointerCancel={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       style={{
-        all: 'unset', display: 'block', cursor: 'pointer',
+        all: 'unset', display: 'block', cursor: 'pointer', boxSizing: 'border-box',
         width: '100%', position: 'relative',
         borderRadius: 22,
         padding: '20px 20px 18px',
