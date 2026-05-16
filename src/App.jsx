@@ -313,9 +313,10 @@ export default function App() {
       <HomeScreen
         mission={mission}
         setMission={setMission}
-        onLaunch={(text) => launchMission(text)}
+        onLaunch={(text, folderId) => launchMission(text, { folderId: folderId || DEFAULT_FOLDER_ID })}
         currentItemIdx={currentItemIdx}
         setCurrentItemIdx={setCurrentItemIdx}
+        folders={FOLDERS}
       />
     );
   else if (screen === 'profile')

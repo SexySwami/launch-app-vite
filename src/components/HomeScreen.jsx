@@ -1,7 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 
 const EXAMPLES = ['Finish WSI proposal', 'Send client follow-up', 'Start workout'];
+
+const DEFAULT_FOLDERS = [
+  { id: 'work',     name: 'Work',     accent: T.cyan,   iconKey: 'work' },
+  { id: 'personal', name: 'Personal', accent: T.purple, iconKey: 'personal' },
+  { id: 'health',   name: 'Health',   accent: T.teal,   iconKey: 'health' },
+];
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 // Flatten the queue into a priority-ordered list. Folders contribute their
 // children in the order they appear inside the folder; loose items appear
@@ -22,6 +35,27 @@ function flattenQueue(items) {
     }
   }
   return out;
+}
+
+function CategoryIcon({ iconKey, color }) {
+  if (iconKey === 'work') return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <rect x="1.5" y="4.5" width="9" height="6" rx="1.2" stroke={color} strokeWidth="1.2"/>
+      <path d="M4 4.5V3.5a2 2 0 0 1 4 0v1" stroke={color} strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  );
+  if (iconKey === 'personal') return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <circle cx="6" cy="4" r="2" stroke={color} strokeWidth="1.2"/>
+      <path d="M1.5 11c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke={color} strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  );
+  // health = heart
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <path d="M6 9.5C4 8 1.5 6.5 1.5 4.5A2.2 2.2 0 0 1 6 3.2 2.2 2.2 0 0 1 10.5 4.5C10.5 6.5 8 8 6 9.5z" stroke={color} strokeWidth="1.2" strokeLinejoin="round"/>
+    </svg>
+  );
 }
 
 function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
@@ -111,9 +145,10 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   );
 }
 
-function AssistPills({ onAction, historyDisabled, generateDisabled }) {
-  const pills = [
-    { id: 'generate', icon: '✨', label: 'Generate', disabled: !!generateDisabled },
+function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCategoryTap }) {
+  const accent = activeCat?.accent || T.cyan;
+  const stdPills = [
+    { id: 'generate', icon: '✨', label: 'Generate', dimmed: !!generateEmpty },
     { id: 'history',  icon: '↺',  label: 'History',  disabled: !!historyDisabled },
   ];
   return (
@@ -122,12 +157,40 @@ function AssistPills({ onAction, historyDisabled, generateDisabled }) {
       display: 'flex', justifyContent: 'center', gap: 8,
       position: 'relative', zIndex: 2,
     }}>
-      {pills.map(p => (
+      {/* Category cycling pill */}
+      <button
+        onClick={onCategoryTap}
+        style={{
+          all: 'unset', cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 12px', borderRadius: 99,
+          background: hexToRgba(accent, 0.12),
+          border: `1px solid ${hexToRgba(accent, 0.45)}`,
+          fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
+          color: accent, letterSpacing: '0.005em', whiteSpace: 'nowrap',
+          boxShadow: `0 0 10px ${hexToRgba(accent, 0.18)}`,
+          transition: 'all 200ms ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = hexToRgba(accent, 0.22);
+          e.currentTarget.style.boxShadow = `0 0 18px ${hexToRgba(accent, 0.38)}`;
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = hexToRgba(accent, 0.12);
+          e.currentTarget.style.boxShadow = `0 0 10px ${hexToRgba(accent, 0.18)}`;
+        }}
+      >
+        <CategoryIcon iconKey={activeCat?.iconKey || 'work'} color={accent} />
+        {activeCat?.name || 'Work'}
+      </button>
+
+      {/* Generate & History pills */}
+      {stdPills.map(p => (
         <button
           key={p.id}
           onClick={() => { if (!p.disabled) onAction(p.id); }}
           disabled={p.disabled}
-          aria-disabled={p.disabled || undefined}
+          aria-disabled={p.disabled || p.dimmed || undefined}
           style={{
             all: 'unset',
             cursor: p.disabled ? 'not-allowed' : 'pointer',
@@ -136,9 +199,9 @@ function AssistPills({ onAction, historyDisabled, generateDisabled }) {
             background: 'rgba(255,255,255,0.04)',
             border: `1px solid ${T.hairlineSoft}`,
             fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
-            color: p.disabled ? T.text3 : T.text2, letterSpacing: '0.005em',
+            color: (p.disabled || p.dimmed) ? T.text3 : T.text2, letterSpacing: '0.005em',
             whiteSpace: 'nowrap',
-            opacity: p.disabled ? 0.42 : 1,
+            opacity: (p.disabled || p.dimmed) ? 0.42 : 1,
             transition: 'all 200ms ease',
           }}
           onMouseEnter={e => {
@@ -471,12 +534,30 @@ function ReactorCore({ state, intensity, onLaunch }) {
 export function HomeScreen({
   mission, setMission, onLaunch,
   currentItemIdx, setCurrentItemIdx,
+  folders,
 }) {
+  const resolvedFolders = folders?.length ? folders : DEFAULT_FOLDERS;
   const [inputFocused, setInputFocused] = useState(false);
   const [flatItems, setFlatItems] = useState([]);
+  const [selectedCatIdx, setSelectedCatIdx] = useState(0);
+  const [toastMsg, setToastMsg] = useState('');
+  const toastTimerRef = useRef(null);
 
-  // Refresh the priority list every time the home screen mounts so changes
-  // made in the Checklists tab show up immediately.
+  const activeCat = resolvedFolders[selectedCatIdx] || resolvedFolders[0];
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  const handleCategoryTap = () => {
+    const nextIdx = (selectedCatIdx + 1) % resolvedFolders.length;
+    setSelectedCatIdx(nextIdx);
+    setCurrentItemIdx(-1);
+  };
+
+  // Refresh items for the active category. Re-runs whenever selectedCatIdx changes.
   useEffect(() => {
     let cancelled = false;
     const canCallAPI = typeof window !== 'undefined'
@@ -484,7 +565,8 @@ export function HomeScreen({
     if (!canCallAPI) return;
     (async () => {
       try {
-        const res = await fetch('/api/queue', { cache: 'no-store' });
+        const folderId = encodeURIComponent(activeCat.id);
+        const res = await fetch(`/api/queue?folder=${folderId}`, { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         setFlatItems(flattenQueue(data?.items));
@@ -493,18 +575,21 @@ export function HomeScreen({
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedCatIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trimmed = mission.trim();
   const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
   const intensity = Math.min(1, trimmed.length / 18);
 
   const historyDisabled = currentItemIdx <= 0;
-  const generateDisabled = flatItems.length === 0;
+  const generateEmpty = flatItems.length === 0;
 
   const handleAssist = (id) => {
     if (id === 'generate') {
-      if (!flatItems.length) return;
+      if (!flatItems.length) {
+        showToast(`No items in ${activeCat.name} yet`);
+        return;
+      }
       const nextIdx = (currentItemIdx + 1) % flatItems.length;
       setCurrentItemIdx(nextIdx);
       const item = flatItems[nextIdx];
@@ -520,7 +605,7 @@ export function HomeScreen({
 
   const handleLaunch = () => {
     if (!trimmed) return;
-    onLaunch && onLaunch(trimmed);
+    onLaunch && onLaunch(trimmed, activeCat.id);
   };
 
   return (
@@ -536,13 +621,36 @@ export function HomeScreen({
 
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <EnergyBeam energy={intensity} state={reactorState} />
-        <AssistPills onAction={handleAssist} historyDisabled={historyDisabled} generateDisabled={generateDisabled} />
+        <AssistPills
+          onAction={handleAssist}
+          historyDisabled={historyDisabled}
+          generateEmpty={generateEmpty}
+          activeCat={activeCat}
+          onCategoryTap={handleCategoryTap}
+        />
         <ReactorCore
           state={reactorState}
           intensity={intensity}
           onLaunch={handleLaunch}
         />
       </div>
+
+      {toastMsg && (
+        <div style={{
+          position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(10, 14, 22, 0.92)',
+          border: `1px solid ${T.hairline}`,
+          borderRadius: 99, padding: '7px 16px',
+          fontFamily: T.mono, fontSize: 11, color: T.text2,
+          letterSpacing: '0.02em', whiteSpace: 'nowrap',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 100,
+          pointerEvents: 'none',
+        }}>
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 }
