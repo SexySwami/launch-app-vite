@@ -14,6 +14,7 @@ export function MissionInput({
   folderId = 'work',
   folder = null,
   onBack = null,
+  refetchKey = 0,
 }) {
   // Per-folder API base. Every queue mutation includes ?folder=<id> so the
   // backend can route to the right Redis key (launch:queue:<id>).
@@ -201,7 +202,10 @@ export function MissionInput({
   };
 
   // Load on mount.
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => { fetchItems(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch when a parent signals stale data (e.g. after a Dailies reset).
+  useEffect(() => { if (refetchKey) fetchItems(); }, [refetchKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refetch when the tab becomes visible again — keeps devices roughly in sync
   // without needing real-time websockets.

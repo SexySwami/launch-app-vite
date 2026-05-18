@@ -42,6 +42,12 @@ const ICONS = {
       <path d="M4 12h3l2-4 2.5 8 2-5 1.5 1H20"/>
     </g>
   ),
+  dailies: (color) => (
+    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+    </g>
+  ),
 };
 
 function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
@@ -202,7 +208,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
   );
 }
 
-export function RootFolderScreen({ folders, onOpen }) {
+export function RootFolderScreen({ folders, onOpen, resetKey = 0 }) {
   // Per-folder leaf counts fetched from /api/queue?folder=ID. Re-fetches when
   // the tab becomes visible so counts reflect changes made elsewhere.
   const [counts, setCounts] = useState(() => ({}));
@@ -234,7 +240,7 @@ export function RootFolderScreen({ folders, onOpen }) {
     const onVisible = () => { if (document.visibilityState === 'visible') load(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => { cancelled = true; document.removeEventListener('visibilitychange', onVisible); };
-  }, [folders]);
+  }, [folders, resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{

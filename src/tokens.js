@@ -12,6 +12,7 @@ export const T = {
   blue: '#3D7FFF',
   purple: '#A876FF',
   teal: '#4FE3C1',
+  amber: '#FFC048',
   warn: '#FFB347',
   display: '"Space Grotesk", -apple-system, system-ui, sans-serif',
   mono: '"JetBrains Mono", ui-monospace, "SF Mono", monospace',

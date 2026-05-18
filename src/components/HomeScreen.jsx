@@ -50,10 +50,16 @@ function CategoryIcon({ iconKey, color }) {
       <path d="M1.5 11c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke={color} strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
   );
-  // health = heart
-  return (
+  if (iconKey === 'health') return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
       <path d="M6 9.5C4 8 1.5 6.5 1.5 4.5A2.2 2.2 0 0 1 6 3.2 2.2 2.2 0 0 1 10.5 4.5C10.5 6.5 8 8 6 9.5z" stroke={color} strokeWidth="1.2" strokeLinejoin="round"/>
+    </svg>
+  );
+  // dailies = sun
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <circle cx="6" cy="6" r="2" stroke={color} strokeWidth="1.2"/>
+      <path d="M6 1v1.2M6 9.8V11M1 6h1.2M9.8 6H11M2.4 2.4l.85.85M8.75 8.75l.85.85M9.6 2.4l-.85.85M3.25 8.75l-.85.85" stroke={color} strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
   );
 }
