@@ -29,6 +29,8 @@ export function MissionInput({
   const [addingItem, setAddingItem] = useState(false);
   const [newItemDraft, setNewItemDraft] = useState('');
   const newItemInputRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef(null);
 
   // Drag-to-reorder state
   const [drag, setDrag] = useState(null);
@@ -1338,6 +1340,8 @@ export function MissionInput({
   const handleRowPointerDown = (e, item, idx) => {
     if (e.button !== undefined && e.button !== 0) return;
     if (dragRef.current) return;
+    // Filtered indices don't line up with the queue, so disable reorder while searching.
+    if (searchQuery.trim()) return;
     pressedItemRef.current = {
       id: item.id, idx,
       startX: e.clientX, startY: e.clientY,
@@ -1351,6 +1355,7 @@ export function MissionInput({
   const handleChildPointerDown = (e, child, folderId) => {
     if (e.button !== undefined && e.button !== 0) return;
     if (dragRef.current) return;
+    if (searchQuery.trim()) return;
     e.stopPropagation();
     pressedItemRef.current = {
       id: child.id, idx: -1,
@@ -1475,6 +1480,33 @@ export function MissionInput({
     : 'MC-04 / READY';
   const accent = folder?.accent || T.cyan;
 
+  // Search filter: match top-level items by text/description; for folders,
+  // match by folder name (include all children) OR by any child matching
+  // (include just the matching children). Folders with matches render as
+  // expanded without mutating item.expanded — that state is preserved for
+  // when the query clears.
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const isSearching = trimmedQuery.length > 0;
+  const matchesText = (s) => (s || '').toLowerCase().includes(trimmedQuery);
+  const displayItems = !isSearching ? items : items.flatMap(item => {
+    if (item.type === 'folder') {
+      if (matchesText(item.name)) {
+        return [{ ...item, expanded: true }];
+      }
+      const matchingChildren = (item.children || []).filter(
+        c => matchesText(c.text) || matchesText(c.description)
+      );
+      if (matchingChildren.length > 0) {
+        return [{ ...item, expanded: true, children: matchingChildren }];
+      }
+      return [];
+    }
+    if (matchesText(item.text) || matchesText(item.description)) {
+      return [item];
+    }
+    return [];
+  });
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 0 24px', minHeight: 0 }}>
       <div style={{ paddingTop: 8 }}>
@@ -1521,6 +1553,60 @@ export function MissionInput({
         </h1>
 
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {items.length > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(255,255,255,0.03)',
+              border: `1px solid ${isSearching ? 'rgba(0,229,255,0.42)' : T.hairlineSoft}`,
+              borderRadius: 14, padding: '8px 10px 8px 12px',
+              marginBottom: 8, flexShrink: 0,
+              boxShadow: isSearching
+                ? '0 0 0 3px rgba(0,229,255,0.08), 0 0 18px rgba(0,229,255,0.10)'
+                : 'none',
+              transition: 'border-color 200ms ease, box-shadow 200ms ease',
+            }}>
+              <svg
+                width="14" height="14" viewBox="0 0 14 14"
+                aria-hidden="true"
+                style={{ color: isSearching ? T.cyan : T.text3, flexShrink: 0 }}
+              >
+                <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                <path d="M9 9l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search this checklist"
+                aria-label="Search checklist"
+                style={{
+                  all: 'unset',
+                  flex: 1, minWidth: 0,
+                  fontFamily: T.display, fontSize: 14, color: T.text,
+                  lineHeight: 1.45, padding: '4px 0',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+                  aria-label="Clear search"
+                  style={{
+                    all: 'unset', cursor: 'pointer', flexShrink: 0,
+                    width: 24, height: 24, borderRadius: 99,
+                    background: 'rgba(255,255,255,0.06)',
+                    color: T.text2,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 10 10">
+                    <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
           {items.length > 0 && (
             <button
               onClick={handleLazyLaunch}
@@ -1732,7 +1818,16 @@ export function MissionInput({
               }
               return null;
             })()}
-            {items.map((item, idx) => {
+            {isSearching && displayItems.length === 0 && (
+              <div style={{
+                fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
+                color: T.text3, textTransform: 'uppercase',
+                textAlign: 'center', padding: '24px 0',
+              }}>
+                No items found
+              </div>
+            )}
+            {displayItems.map((item, idx) => {
               const isDragging = drag?.id === item.id;
               const others = drag ? items.filter(i => i.id !== drag.id) : [];
               const othersIdx = drag && !isDragging
