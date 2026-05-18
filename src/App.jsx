@@ -263,9 +263,6 @@ export default function App() {
     setScreen('input');
   };
 
-  const FLOW_SCREENS = new Set(['countdown', 'step', 'reward', 'nextphase']);
-  const showTabBar = !FLOW_SCREENS.has(screen);
-
   // Render the Checklists tab as a layered stack: the root folder selection
   // takes layout, and each lazily-mounted folder MissionInput overlays it
   // (absolutely positioned). Switching folders hides via visibility:hidden
@@ -390,11 +387,7 @@ export default function App() {
         {body}
       </div>
 
-      {/* Tab bar — hidden during launch flow */}
-      {showTabBar && <BottomNav screen={screen} onNav={handleNav} />}
-
-      {/* Bottom safe-area pad — only needed when tab bar is absent (tab bar handles its own) */}
-      {!showTabBar && <div style={{ height: 'max(12px, env(safe-area-inset-bottom))', flexShrink: 0 }} />}
+      <BottomNav screen={screen} onNav={handleNav} />
     </div>
   );
 }
