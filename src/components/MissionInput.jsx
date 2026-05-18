@@ -26,11 +26,13 @@ export function MissionInput({
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState(null);
   const [savingItem, setSavingItem] = useState(false);
-  const [addingItem, setAddingItem] = useState(false);
+  const [activePanel, setActivePanel] = useState(null); // null | 'search' | 'add'
   const [newItemDraft, setNewItemDraft] = useState('');
   const newItemInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
+  const panelRef = useRef(null);
+  const iconRowRef = useRef(null);
 
   // Drag-to-reorder state
   const [drag, setDrag] = useState(null);
@@ -211,11 +213,31 @@ export function MissionInput({
   }, []);
 
   useEffect(() => {
-    if (addingItem) {
-      const t = setTimeout(() => newItemInputRef.current?.focus(), 0);
+    if (activePanel === 'add') {
+      const t = setTimeout(() => newItemInputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
-  }, [addingItem]);
+    if (activePanel === 'search') {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [activePanel]);
+
+  // Close expanded panel when tapping outside the icon row + panel area.
+  useEffect(() => {
+    if (!activePanel) return;
+    const handler = (e) => {
+      if (
+        panelRef.current && !panelRef.current.contains(e.target) &&
+        iconRowRef.current && !iconRowRef.current.contains(e.target)
+      ) {
+        if (activePanel === 'search') setSearchQuery('');
+        setActivePanel(null);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [activePanel]);
 
   const autoResizeTextarea = (el) => {
     if (!el) return;
@@ -228,7 +250,7 @@ export function MissionInput({
   // Auto-resize on the queue's inline Add-Item textarea.
   useEffect(() => {
     if (newItemInputRef.current) autoResizeTextarea(newItemInputRef.current);
-  }, [newItemDraft, addingItem]);
+  }, [newItemDraft, activePanel]);
 
   // Shared: parse a block (or accept single line) and add to the cloud queue.
   // Returns the added items array on success, or null on failure.
@@ -328,7 +350,7 @@ export function MissionInput({
   const handleAddItem = async () => {
     const text = newItemDraft.trim();
     if (!text) {
-      setAddingItem(false);
+      setActivePanel(null);
       setNewItemDraft('');
       return;
     }
@@ -350,7 +372,7 @@ export function MissionInput({
     const next = [folder, ...itemsRef.current];
     setItems(next);
     setNamingFolderId(folderId);
-    setAddingItem(false);
+    setActivePanel(null);
     setNewItemDraft('');
     if (canCallAPI) {
       try {
@@ -1553,219 +1575,263 @@ export function MissionInput({
         </h1>
 
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          {items.length > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(255,255,255,0.03)',
-              border: `1px solid ${isSearching ? 'rgba(0,229,255,0.42)' : T.hairlineSoft}`,
-              borderRadius: 14, padding: '8px 10px 8px 12px',
-              marginBottom: 8, flexShrink: 0,
-              boxShadow: isSearching
-                ? '0 0 0 3px rgba(0,229,255,0.08), 0 0 18px rgba(0,229,255,0.10)'
-                : 'none',
-              transition: 'border-color 200ms ease, box-shadow 200ms ease',
-            }}>
-              <svg
-                width="14" height="14" viewBox="0 0 14 14"
-                aria-hidden="true"
-                style={{ color: isSearching ? T.cyan : T.text3, flexShrink: 0 }}
-              >
-                <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.4" fill="none"/>
-                <path d="M9 9l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-              </svg>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search this checklist"
-                aria-label="Search checklist"
-                style={{
-                  all: 'unset',
-                  flex: 1, minWidth: 0,
-                  fontFamily: T.display, fontSize: 14, color: T.text,
-                  lineHeight: 1.45, padding: '4px 0',
-                }}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
-                  aria-label="Clear search"
-                  style={{
-                    all: 'unset', cursor: 'pointer', flexShrink: 0,
-                    width: 24, height: 24, borderRadius: 99,
-                    background: 'rgba(255,255,255,0.06)',
-                    color: T.text2,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="9" height="9" viewBox="0 0 10 10">
-                    <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-          )}
-          {items.length > 0 && (
+          {/* ── Icon row ─────────────────────────────────────── */}
+          <div ref={iconRowRef} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36,
+            marginBottom: 10, flexShrink: 0,
+          }}>
+            {/* Search */}
             <button
-              onClick={handleLazyLaunch}
-              disabled={!!drag}
+              onClick={() => setActivePanel(p => {
+                if (p === 'search') { setSearchQuery(''); return null; }
+                return 'search';
+              })}
+              aria-label="Search checklist"
+              disabled={items.length === 0}
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                width: '100%',
-                padding: '14px 16px',
-                background: `linear-gradient(180deg, rgba(0,229,255,0.20), rgba(79,227,193,0.12))`,
-                border: `1px solid rgba(0,229,255,0.5)`,
-                borderRadius: 14,
-                fontFamily: T.display, fontSize: 14, fontWeight: 600,
-                color: T.text,
-                letterSpacing: '0.04em', textTransform: 'uppercase',
-                cursor: drag ? 'default' : 'pointer',
+                all: 'unset', cursor: items.length === 0 ? 'default' : 'pointer',
+                width: 40, height: 40, borderRadius: 99,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: activePanel === 'search' ? T.cyan : T.text2,
+                background: activePanel === 'search' ? 'rgba(0,229,255,0.10)' : 'transparent',
+                boxShadow: activePanel === 'search' ? '0 0 12px rgba(0,229,255,0.22)' : 'none',
                 transition: 'all 200ms ease',
                 WebkitTapHighlightColor: 'transparent',
-                WebkitAppearance: 'none', appearance: 'none',
-                marginBottom: 8, flexShrink: 0,
-                boxShadow: `0 0 0 1px rgba(0,229,255,0.15) inset, 0 4px 24px rgba(0,229,255,0.18)`,
+                opacity: items.length === 0 ? 0.3 : 1,
               }}
-              onTouchStart={e => e.currentTarget.style.transform = 'scale(0.985)'}
-              onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
-              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.985)'}
-              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" style={{ color: T.cyan, filter: `drop-shadow(0 0 6px ${T.cyan})` }}>
-                <path d="M7 1l-3 7h3l-2 5L11 6H8l2-5z" fill="currentColor"/>
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.6" fill="none"/>
+                <path d="M13 13l4.5 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
               </svg>
-              I'm Lazy, Help Me
             </button>
-          )}
 
-          {addingItem ? (
-            <div style={{
-              display: 'flex', alignItems: 'flex-end', gap: 6,
-              background: 'rgba(255,255,255,0.04)',
-              border: `1px solid rgba(0,229,255,0.42)`,
-              borderRadius: 14, padding: '8px 8px 8px 14px',
-              boxShadow: '0 0 0 3px rgba(0,229,255,0.08), 0 0 24px rgba(0,229,255,0.10)',
-              marginBottom: 8, flexShrink: 0,
-              transition: 'border-color 200ms ease, box-shadow 200ms ease',
-            }}>
-              <textarea
-                ref={newItemInputRef}
-                className="scroll-thin"
-                value={newItemDraft}
-                onChange={e => {
-                  setNewItemDraft(e.target.value);
-                  autoResizeTextarea(e.target);
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAddItem();
-                  } else if (e.key === 'Escape') {
-                    setAddingItem(false);
-                    setNewItemDraft('');
-                  }
-                }}
-                placeholder="Type or paste one or more tasks. Shift+Enter for newline."
-                rows={1}
-                style={{
-                  all: 'unset',
-                  display: 'block', boxSizing: 'border-box',
-                  flex: 1, minWidth: 0, width: '100%',
-                  fontFamily: T.display, fontSize: 14, color: T.text,
-                  lineHeight: 1.45, padding: '6px 0',
-                  minHeight: 22, maxHeight: 240,
-                  resize: 'none',
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                  overflowY: 'hidden',
-                }}
-              />
-              <button
-                onClick={handleAddItem}
-                disabled={!newItemDraft.trim() || savingItem}
-                aria-label={savingItem ? 'Saving' : 'Save'}
-                style={{
-                  all: 'unset', flexShrink: 0,
-                  cursor: (newItemDraft.trim() && !savingItem) ? 'pointer' : 'default',
-                  width: 30, height: 30, borderRadius: 99,
-                  background: newItemDraft.trim()
-                    ? `linear-gradient(180deg, ${T.cyan}, ${T.blue})`
-                    : 'rgba(255,255,255,0.05)',
-                  color: newItemDraft.trim() ? '#001018' : T.text3,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: newItemDraft.trim() ? `0 0 12px ${T.cyan}88` : 'none',
-                  transition: 'all 200ms ease',
-                  opacity: savingItem ? 0.7 : 1,
-                }}
-              >
-                {savingItem ? (
-                  <svg width="12" height="12" viewBox="0 0 12 12" style={{ animation: 'spin360 800ms linear infinite' }}>
-                    <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                ) : (
-                  <svg width="13" height="13" viewBox="0 0 13 13">
-                    <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-              </button>
-              <button
-                onClick={handleCreateFolderFromInput}
-                aria-label="Create folder"
-                title="Create folder"
-                style={{
-                  all: 'unset', cursor: 'pointer', flexShrink: 0,
-                  width: 30, height: 30, borderRadius: 99,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${T.hairlineSoft}`,
-                  color: T.text2,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
-                  <path d="M1 3.5C1 2.67 1.67 2 2.5 2H5.38l1.25 1.5H11.5C12.33 3.5 13 4.17 13 5v5.5C13 11.33 12.33 12 11.5 12h-9C1.67 12 1 11.33 1 10.5V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <button
-                onClick={() => { setAddingItem(false); setNewItemDraft(''); }}
-                aria-label="Cancel"
-                style={{
-                  all: 'unset', cursor: 'pointer', flexShrink: 0,
-                  width: 30, height: 30, borderRadius: 99,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${T.hairlineSoft}`,
-                  color: T.text2,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <svg width="9" height="9" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
-              </button>
-            </div>
-          ) : (
+            {/* Plus / Add Item */}
             <button
-              onClick={() => setAddingItem(true)}
+              onClick={() => setActivePanel(p => p === 'add' ? null : 'add')}
+              aria-label="Add item"
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                background: 'rgba(79,227,193,0.07)',
-                border: `1px solid rgba(79,227,193,0.30)`,
-                borderRadius: 14, padding: '12px 14px',
-                fontFamily: T.display, fontSize: 14, fontWeight: 500,
-                color: T.teal,
-                cursor: 'pointer', textAlign: 'left',
-                transition: 'all 150ms',
-                WebkitAppearance: 'none', appearance: 'none',
+                all: 'unset', cursor: 'pointer',
+                width: 46, height: 46, borderRadius: 99,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: activePanel === 'add' ? '#001018' : T.teal,
+                background: activePanel === 'add'
+                  ? `linear-gradient(180deg, ${T.cyan}, ${T.blue})`
+                  : 'rgba(79,227,193,0.10)',
+                border: `1px solid ${activePanel === 'add' ? 'transparent' : 'rgba(79,227,193,0.35)'}`,
+                boxShadow: activePanel === 'add' ? `0 0 16px rgba(0,229,255,0.45)` : 'none',
+                transition: 'all 200ms ease',
                 WebkitTapHighlightColor: 'transparent',
-                marginBottom: 8, flexShrink: 0,
-                letterSpacing: '0.02em',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14">
-                <path d="M7 1.5v11M1.5 7h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path d="M9 2v14M2 9h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              Add Item
             </button>
-          )}
+
+            {/* Lightning bolt / I'm Lazy */}
+            <button
+              onClick={handleLazyLaunch}
+              disabled={!!drag || items.length === 0}
+              aria-label="I'm Lazy, Help Me"
+              style={{
+                all: 'unset',
+                cursor: (drag || items.length === 0) ? 'default' : 'pointer',
+                width: 40, height: 40, borderRadius: 99,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: items.length === 0 ? T.text3 : T.cyan,
+                transition: 'all 200ms ease',
+                WebkitTapHighlightColor: 'transparent',
+                opacity: (drag || items.length === 0) ? 0.3 : 1,
+              }}
+              onTouchStart={e => { if (!drag && items.length > 0) e.currentTarget.style.transform = 'scale(0.88)'; }}
+              onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              onMouseDown={e => { if (!drag && items.length > 0) e.currentTarget.style.transform = 'scale(0.88)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"
+                style={{ filter: items.length > 0 ? `drop-shadow(0 0 5px ${T.cyan})` : 'none' }}
+              >
+                <path d="M9 1l-4 9h4l-3 7L15 8h-4l3-7z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* ── Expandable panels ────────────────────────────── */}
+          <div ref={panelRef}>
+            {/* Search panel */}
+            <div style={{
+              overflow: 'hidden',
+              maxHeight: activePanel === 'search' ? '200px' : '0px',
+              opacity: activePanel === 'search' ? 1 : 0,
+              pointerEvents: activePanel === 'search' ? 'auto' : 'none',
+              transition: 'max-height 220ms ease, opacity 180ms ease',
+              marginBottom: activePanel === 'search' ? 8 : 0,
+              flexShrink: 0,
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'rgba(255,255,255,0.03)',
+                border: `1px solid ${isSearching ? 'rgba(0,229,255,0.42)' : T.hairlineSoft}`,
+                borderRadius: 14, padding: '8px 10px 8px 12px',
+                boxShadow: isSearching
+                  ? '0 0 0 3px rgba(0,229,255,0.08), 0 0 18px rgba(0,229,255,0.10)'
+                  : 'none',
+                transition: 'border-color 200ms ease, box-shadow 200ms ease',
+              }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"
+                  style={{ color: isSearching ? T.cyan : T.text3, flexShrink: 0 }}
+                >
+                  <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                  <path d="M9 9l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search this checklist"
+                  aria-label="Search checklist"
+                  style={{
+                    all: 'unset',
+                    flex: 1, minWidth: 0,
+                    fontFamily: T.display, fontSize: 14, color: T.text,
+                    lineHeight: 1.45, padding: '4px 0',
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+                    aria-label="Clear search"
+                    style={{
+                      all: 'unset', cursor: 'pointer', flexShrink: 0,
+                      width: 24, height: 24, borderRadius: 99,
+                      background: 'rgba(255,255,255,0.06)',
+                      color: T.text2,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 10 10">
+                      <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Add Item panel */}
+            <div style={{
+              overflow: 'hidden',
+              maxHeight: activePanel === 'add' ? '360px' : '0px',
+              opacity: activePanel === 'add' ? 1 : 0,
+              pointerEvents: activePanel === 'add' ? 'auto' : 'none',
+              transition: 'max-height 220ms ease, opacity 180ms ease',
+              marginBottom: activePanel === 'add' ? 8 : 0,
+              flexShrink: 0,
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'flex-end', gap: 6,
+                background: 'rgba(255,255,255,0.04)',
+                border: `1px solid rgba(0,229,255,0.42)`,
+                borderRadius: 14, padding: '8px 8px 8px 14px',
+                boxShadow: '0 0 0 3px rgba(0,229,255,0.08), 0 0 24px rgba(0,229,255,0.10)',
+                transition: 'border-color 200ms ease, box-shadow 200ms ease',
+              }}>
+                <textarea
+                  ref={newItemInputRef}
+                  className="scroll-thin"
+                  value={newItemDraft}
+                  onChange={e => {
+                    setNewItemDraft(e.target.value);
+                    autoResizeTextarea(e.target);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddItem();
+                    } else if (e.key === 'Escape') {
+                      setActivePanel(null);
+                      setNewItemDraft('');
+                    }
+                  }}
+                  placeholder="Type or paste one or more tasks. Shift+Enter for newline."
+                  rows={1}
+                  style={{
+                    all: 'unset',
+                    display: 'block', boxSizing: 'border-box',
+                    flex: 1, minWidth: 0, width: '100%',
+                    fontFamily: T.display, fontSize: 14, color: T.text,
+                    lineHeight: 1.45, padding: '6px 0',
+                    minHeight: 22, maxHeight: 240,
+                    resize: 'none',
+                    whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    overflowY: 'hidden',
+                  }}
+                />
+                <button
+                  onClick={handleAddItem}
+                  disabled={!newItemDraft.trim() || savingItem}
+                  aria-label={savingItem ? 'Saving' : 'Save'}
+                  style={{
+                    all: 'unset', flexShrink: 0,
+                    cursor: (newItemDraft.trim() && !savingItem) ? 'pointer' : 'default',
+                    width: 30, height: 30, borderRadius: 99,
+                    background: newItemDraft.trim()
+                      ? `linear-gradient(180deg, ${T.cyan}, ${T.blue})`
+                      : 'rgba(255,255,255,0.05)',
+                    color: newItemDraft.trim() ? '#001018' : T.text3,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: newItemDraft.trim() ? `0 0 12px ${T.cyan}88` : 'none',
+                    transition: 'all 200ms ease',
+                    opacity: savingItem ? 0.7 : 1,
+                  }}
+                >
+                  {savingItem ? (
+                    <svg width="12" height="12" viewBox="0 0 12 12" style={{ animation: 'spin360 800ms linear infinite' }}>
+                      <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    <svg width="13" height="13" viewBox="0 0 13 13">
+                      <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+                <button
+                  onClick={handleCreateFolderFromInput}
+                  aria-label="Create folder"
+                  title="Create folder"
+                  style={{
+                    all: 'unset', cursor: 'pointer', flexShrink: 0,
+                    width: 30, height: 30, borderRadius: 99,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${T.hairlineSoft}`,
+                    color: T.text2,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
+                    <path d="M1 3.5C1 2.67 1.67 2 2.5 2H5.38l1.25 1.5H11.5C12.33 3.5 13 4.17 13 5v5.5C13 11.33 12.33 12 11.5 12h-9C1.67 12 1 11.33 1 10.5V3.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => { setActivePanel(null); setNewItemDraft(''); }}
+                  aria-label="Cancel"
+                  style={{
+                    all: 'unset', cursor: 'pointer', flexShrink: 0,
+                    width: 30, height: 30, borderRadius: 99,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${T.hairlineSoft}`,
+                    color: T.text2,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
 
           {itemsError && (
             <div style={{
