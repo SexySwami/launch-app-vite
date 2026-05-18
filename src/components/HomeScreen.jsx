@@ -513,7 +513,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
                 : 'none',
             transition: 'all 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
-            INITIATE
+            LAUNCH
           </div>
 
           <div style={{
