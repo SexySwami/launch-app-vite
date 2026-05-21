@@ -641,6 +641,7 @@ export function HomeScreen({
   };
 
   const handleLazy = () => {
+    if (lazyMission) { setLazyMission(''); return; }
     if (!workTopItem) {
       showToast('No items in Work yet');
       return;
