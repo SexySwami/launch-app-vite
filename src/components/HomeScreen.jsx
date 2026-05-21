@@ -84,17 +84,21 @@ function CategoryIcon({ iconKey, color }) {
   );
 }
 
-function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
+function MissionField({ mission, setMission, inputFocused, setInputFocused, isLazy }) {
   const [phIdx, setPhIdx] = useState(0);
   const [listening, setListening] = useState(false);
 
   useEffect(() => {
-    if (mission) return;
+    if (mission || isLazy) return;
     const id = setInterval(() => setPhIdx(i => (i + 1) % EXAMPLES.length), 2600);
     return () => clearInterval(id);
-  }, [mission]);
+  }, [mission, isLazy]);
 
-  const hot = inputFocused || mission.length > 0;
+  const hot = inputFocused || mission.length > 0 || isLazy;
+  const borderColor = isLazy
+    ? hexToRgba(LAZY_ACCENT, 0.65)
+    : hot ? 'rgba(0,229,255,0.65)' : T.hairline;
+  const glowColor = isLazy ? LAZY_ACCENT : '0,229,255';
 
   return (
     <div style={{ padding: '20px 24px 0', position: 'relative' }}>
@@ -111,40 +115,53 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
       <div style={{
         position: 'relative',
         background: hot
-          ? 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,229,255,0.04) 60%, rgba(255,255,255,0.02))'
+          ? `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(${isLazy ? '196,109,0' : '0,229,255'},0.04) 60%, rgba(255,255,255,0.02))`
           : 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-        border: `1px solid ${hot ? 'rgba(0,229,255,0.65)' : T.hairline}`,
+        border: `1px solid ${borderColor}`,
         borderRadius: 18, padding: '14px 12px 14px 18px',
         display: 'flex', alignItems: 'center', gap: 10,
         transition: 'all 300ms ease',
         boxShadow: hot
-          ? `0 0 0 4px rgba(0,229,255,0.14),
-             0 0 50px rgba(0,229,255,0.28),
-             0 0 100px rgba(61,127,255,0.18),
-             inset 0 0 40px rgba(0,229,255,0.08),
+          ? `0 0 0 4px rgba(${isLazy ? '196,109,0' : '0,229,255'},0.14),
+             0 0 50px rgba(${isLazy ? '196,109,0' : '0,229,255'},0.22),
+             0 0 100px rgba(61,127,255,0.12),
+             inset 0 0 40px rgba(${isLazy ? '196,109,0' : '0,229,255'},0.06),
              inset 0 1px 0 rgba(255,255,255,0.12)`
           : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 0 20px rgba(0,229,255,0.04)',
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: 99,
-          background: hot ? T.cyan : T.text3,
-          boxShadow: hot ? `0 0 10px ${T.cyan}` : 'none',
+          background: isLazy ? LAZY_ACCENT : (hot ? T.cyan : T.text3),
+          boxShadow: isLazy ? `0 0 10px ${LAZY_ACCENT}` : (hot ? `0 0 10px ${T.cyan}` : 'none'),
           flexShrink: 0,
           animation: hot ? 'pulse 1.6s ease-in-out infinite' : 'none',
         }} />
-        <input
-          value={mission}
-          onChange={e => setMission(e.target.value)}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
-          placeholder={EXAMPLES[phIdx]}
-          style={{
-            flex: 1, background: 'transparent', border: 'none', outline: 'none',
-            fontFamily: T.display, fontSize: 17, fontWeight: 500,
-            color: T.text, letterSpacing: '-0.005em', padding: 0,
-            minWidth: 0,
-          }}
-        />
+        <div style={{ flex: 1, position: 'relative', minWidth: 0, display: 'flex', alignItems: 'center' }}>
+          <input
+            value={mission}
+            onChange={e => setMission(e.target.value)}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
+            placeholder={isLazy ? '' : EXAMPLES[phIdx]}
+            style={{
+              width: '100%', background: 'transparent', border: 'none', outline: 'none',
+              fontFamily: T.display, fontSize: 17, fontWeight: 500,
+              color: T.text, letterSpacing: '-0.005em', padding: 0,
+              minWidth: 0, opacity: isLazy ? 0 : 1,
+            }}
+          />
+          {isLazy && (
+            <span style={{
+              position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+              fontFamily: T.display, fontSize: 20, fontWeight: 800,
+              color: LAZY_ACCENT, letterSpacing: '0.1em',
+              pointerEvents: 'none',
+              textShadow: `0 0 18px ${hexToRgba(LAZY_ACCENT, 0.55)}`,
+            }}>
+              LAZY
+            </span>
+          )}
+        </div>
         <button
           aria-label="Voice input"
           onClick={() => setListening(l => !l)}
@@ -641,11 +658,11 @@ export function HomeScreen({
   };
 
   const handleLazy = () => {
-    if (lazyMission) { setLazyMission(''); return; }
     if (!workTopItem) {
       showToast('No items in Work yet');
       return;
     }
+    setMission('');
     setLazyMission(workTopItem.text);
   };
 
@@ -741,7 +758,7 @@ export function HomeScreen({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trimmed = mission.trim();
-  const lazyArmed = !!lazyMission && trimmed.length === 0;
+  const lazyArmed = !!lazyMission;
   const reactorState = lazyArmed ? 'armed' : (trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed');
   const intensity = lazyArmed ? 1 : Math.min(1, trimmed.length / 18);
 
@@ -758,6 +775,7 @@ export function HomeScreen({
       setCurrentItemIdx(nextIdx);
       const item = flatItems[nextIdx];
       setMission((item?.text || '').toString());
+      setLazyMission('');
     } else if (id === 'history') {
       if (historyDisabled) return;
       const nextIdx = currentItemIdx - 1;
@@ -768,9 +786,9 @@ export function HomeScreen({
   };
 
   const handleLaunch = () => {
-    const effectiveMission = trimmed || lazyMission;
+    const effectiveMission = lazyMission || trimmed;
     if (!effectiveMission) return;
-    const catId = trimmed ? activeCat.id : 'work';
+    const catId = lazyMission ? 'work' : activeCat.id;
     onLaunch && onLaunch(effectiveMission, catId);
     setLazyMission('');
   };
@@ -784,6 +802,7 @@ export function HomeScreen({
       <MissionField
         mission={mission} setMission={handleSetMission}
         inputFocused={inputFocused} setInputFocused={setInputFocused}
+        isLazy={lazyArmed}
       />
 
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
