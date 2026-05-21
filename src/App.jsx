@@ -45,7 +45,7 @@ export default function App() {
 
   // On Break toggle — persisted across sessions.
   const [onBreak, setOnBreak] = useState(() => {
-    try { return localStorage.getItem('onBreak') === 'true'; } catch { return false; }
+    try { return localStorage.getItem('onBreak') !== 'false'; } catch { return true; }
   });
   useEffect(() => {
     try { localStorage.setItem('onBreak', onBreak); } catch {}
