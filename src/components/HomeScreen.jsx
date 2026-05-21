@@ -37,6 +37,24 @@ function flattenQueue(items) {
   return out;
 }
 
+function flattenQueueWithMeta(items, categoryName) {
+  const out = [];
+  if (!Array.isArray(items)) return out;
+  for (const item of items) {
+    if (!item) continue;
+    if (item.type === 'folder') {
+      for (const child of (item.children || [])) {
+        if (child && typeof child.text === 'string' && child.text.trim()) {
+          out.push({ ...child, categoryName, folderName: item.text });
+        }
+      }
+    } else if (typeof item.text === 'string' && item.text.trim()) {
+      out.push({ ...item, categoryName, folderName: null });
+    }
+  }
+  return out;
+}
+
 function CategoryIcon({ iconKey, color }) {
   if (iconKey === 'work') return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
@@ -550,6 +568,13 @@ export function HomeScreen({
   const [toastMsg, setToastMsg] = useState('');
   const toastTimerRef = useRef(null);
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allSearchItems, setAllSearchItems] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [hoveredResultIdx, setHoveredResultIdx] = useState(-1);
+  const searchInputRef = useRef(null);
+
   const activeCat = resolvedFolders[selectedCatIdx] || resolvedFolders[0];
 
   const showToast = (msg) => {
@@ -563,6 +588,56 @@ export function HomeScreen({
     setSelectedCatIdx(nextIdx);
     setCurrentItemIdx(-1);
   };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setHoveredResultIdx(-1);
+  };
+
+  const openSearch = async () => {
+    if (searchOpen) { closeSearch(); return; }
+    setSearchOpen(true);
+    setSearchQuery('');
+    setHoveredResultIdx(-1);
+    const canCallAPI = typeof window !== 'undefined'
+      && /^https?:$/.test(window.location?.protocol || '');
+    if (!canCallAPI) return;
+    setSearchLoading(true);
+    try {
+      const results = await Promise.all(
+        resolvedFolders.map(async (cat) => {
+          try {
+            const res = await fetch(`/api/queue?folder=${encodeURIComponent(cat.id)}`, { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            return flattenQueueWithMeta(data?.items, cat.name);
+          } catch { return []; }
+        })
+      );
+      setAllSearchItems(results.flat());
+    } catch {
+      setAllSearchItems([]);
+    }
+    setSearchLoading(false);
+  };
+
+  const handleSearchSelect = (item) => {
+    setMission(item.text);
+    closeSearch();
+  };
+
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [searchOpen]);
+
+  const searchResults = searchQuery.trim()
+    ? allSearchItems.filter(item =>
+        item.text.toLowerCase().includes(searchQuery.toLowerCase().trim())
+      )
+    : [];
 
   // Refresh items for the active category. Re-runs whenever selectedCatIdx changes.
   useEffect(() => {
@@ -642,41 +717,166 @@ export function HomeScreen({
         />
       </div>
 
-      {/* Search + On Break icons */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 16, paddingBottom: 8,
-      }}>
-        {/* Search icon */}
-        <button
-          aria-label="Search"
-          style={{
-            all: 'unset', cursor: 'pointer',
-            width: 44, height: 44, borderRadius: 99,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.04)',
-            border: `1px solid ${T.hairlineSoft}`,
-            color: T.text3,
-            transition: 'all 200ms ease',
-          }}
-          onPointerEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            e.currentTarget.style.color = T.text2;
-            e.currentTarget.style.borderColor = T.hairline;
-          }}
-          onPointerLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-            e.currentTarget.style.color = T.text3;
-            e.currentTarget.style.borderColor = T.hairlineSoft;
-          }}
-        >
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </button>
+      {/* Search panel + icon row */}
+      <div style={{ position: 'relative' }}>
+        {/* Backdrop — tap outside to close */}
+        {searchOpen && (
+          <div
+            onClick={closeSearch}
+            style={{ position: 'fixed', inset: 0, zIndex: 48 }}
+          />
+        )}
 
-        {/* On Break toggle */}
+        {/* Search input + drop-up results */}
+        {searchOpen && (
+          <div style={{
+            padding: '0 20px 10px',
+            position: 'relative', zIndex: 50,
+            animation: 'searchPanelIn 180ms ease',
+          }}>
+            {/* Results drop-up */}
+            {searchQuery.trim() && (
+              <div style={{
+                background: 'rgba(6,10,18,0.98)',
+                border: '1px solid rgba(255,192,72,0.28)',
+                borderRadius: 16,
+                marginBottom: 8,
+                overflow: 'hidden',
+                maxHeight: 260,
+                overflowY: 'auto',
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,192,72,0.08)',
+              }}>
+                {searchLoading ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    fontFamily: T.mono, fontSize: 11, color: T.text3,
+                  }}>
+                    Searching…
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    fontFamily: T.mono, fontSize: 11, color: T.text3,
+                  }}>
+                    No items found.
+                  </div>
+                ) : (
+                  searchResults.map((item, i) => (
+                    <button
+                      key={item.id || i}
+                      onClick={() => handleSearchSelect(item)}
+                      onPointerEnter={() => setHoveredResultIdx(i)}
+                      onPointerLeave={() => setHoveredResultIdx(-1)}
+                      style={{
+                        all: 'unset',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                        padding: '11px 16px',
+                        width: '100%', boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        background: hoveredResultIdx === i ? 'rgba(255,192,72,0.10)' : 'transparent',
+                        borderLeft: `3px solid ${hoveredResultIdx === i ? T.amber : 'transparent'}`,
+                        borderBottom: i < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        transition: 'background 120ms, border-color 120ms',
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: T.display, fontSize: 14, fontWeight: 500, color: T.text,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {item.text}
+                      </span>
+                      <span style={{
+                        fontFamily: T.mono, fontSize: 10.5, color: T.text3, letterSpacing: '0.02em',
+                      }}>
+                        {item.categoryName}{item.folderName ? ` — ${item.folderName}` : ''}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Search input bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(255,192,72,0.06)',
+              border: '1px solid rgba(255,192,72,0.50)',
+              borderRadius: 14,
+              padding: '11px 14px',
+              boxShadow: '0 0 0 4px rgba(255,192,72,0.07), 0 0 20px rgba(255,192,72,0.10)',
+            }}>
+              <svg width="15" height="15" viewBox="0 0 17 17" fill="none" style={{ flexShrink: 0, color: T.amber }}>
+                <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search all checklists…"
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                  fontFamily: T.display, fontSize: 15, fontWeight: 500,
+                  color: T.text, letterSpacing: '-0.005em', padding: 0, minWidth: 0,
+                }}
+              />
+              <button
+                onClick={closeSearch}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  width: 22, height: 22, borderRadius: 99,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  color: T.text3, fontSize: 13,
+                  background: 'rgba(255,255,255,0.06)',
+                  flexShrink: 0,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Icon row */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 16, paddingBottom: 8,
+          position: 'relative', zIndex: 50,
+        }}>
+          {/* Search icon */}
+          <button
+            aria-label={searchOpen ? 'Close search' : 'Search'}
+            onClick={searchOpen ? closeSearch : openSearch}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              width: 44, height: 44, borderRadius: 99,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: searchOpen ? 'rgba(255,192,72,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${searchOpen ? 'rgba(255,192,72,0.55)' : T.hairlineSoft}`,
+              color: searchOpen ? T.amber : T.text3,
+              boxShadow: searchOpen ? '0 0 16px rgba(255,192,72,0.22)' : 'none',
+              transition: 'all 200ms ease',
+            }}
+            onPointerEnter={e => {
+              if (searchOpen) return;
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+              e.currentTarget.style.color = T.text2;
+              e.currentTarget.style.borderColor = T.hairline;
+            }}
+            onPointerLeave={e => {
+              if (searchOpen) return;
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              e.currentTarget.style.color = T.text3;
+              e.currentTarget.style.borderColor = T.hairlineSoft;
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+              <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          {/* On Break toggle */}
         <button
           aria-label={onBreak ? 'Disable On Break' : 'Enable On Break'}
           onClick={() => setOnBreak && setOnBreak(b => !b)}
@@ -718,6 +918,7 @@ export function HomeScreen({
             On Break
           </span>
         </button>
+        </div>
       </div>
 
       {toastMsg && (

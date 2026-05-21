@@ -105,6 +105,10 @@ button, [role="button"], input {
 .new-item-highlight {
   animation: greenPulse 1s ease-out;
 }
+@keyframes searchPanelIn {
+  from { opacity: 0; transform: translateY(6px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
 @keyframes toastIn {
   0%   { transform: translateY(24px); opacity: 0 }
   100% { transform: translateY(0);    opacity: 1 }
