@@ -23,6 +23,7 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
   const [confirming, setConfirming] = useState(false);
   const taRef = useRef(null);
   const descRef = useRef(null);
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0 });
 
   // Auto-resize the textarea like the rest of the app's auto-resize inputs.
   const autoResize = (el) => {
@@ -69,6 +70,34 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
     else onCancel();
   };
 
+  // Track drags at the document level so we catch gestures that start inside
+  // the popup (e.g. text-selection in the textarea) and end on the backdrop.
+  // The backdrop's onClick only closes when no drag movement was detected.
+  useEffect(() => {
+    const onDown = (e) => {
+      const p = e.touches?.[0] ?? e;
+      dragRef.current = { dragging: false, startX: p.clientX, startY: p.clientY };
+    };
+    const onMove = (e) => {
+      const d = dragRef.current;
+      if (d.dragging) return;
+      const p = e.touches?.[0] ?? e;
+      if (Math.abs(p.clientX - d.startX) > 4 || Math.abs(p.clientY - d.startY) > 4) {
+        d.dragging = true;
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchstart', onDown, { passive: true });
+    document.addEventListener('touchmove', onMove, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchstart', onDown);
+      document.removeEventListener('touchmove', onMove);
+    };
+  }, []);
+
   // Esc tries to dismiss (showing the confirm panel if needed).
   useEffect(() => {
     const h = (e) => {
@@ -93,7 +122,10 @@ export function EditItemOverlay({ item, saving, onCancel, onSave, startMode = 'e
 
   return (
     <div
-      onClick={attemptDismiss}
+      onClick={() => {
+        if (dragRef.current.dragging) { dragRef.current.dragging = false; return; }
+        attemptDismiss();
+      }}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
