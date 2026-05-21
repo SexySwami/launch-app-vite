@@ -3,6 +3,8 @@ import { T } from '../tokens.js';
 
 const EXAMPLES = ['Finish WSI proposal', 'Send client follow-up', 'Start workout'];
 
+const LAZY_ACCENT = '#C46D00';
+
 const DEFAULT_FOLDERS = [
   { id: 'work',     name: 'Work',     accent: T.cyan,   iconKey: 'work' },
   { id: 'personal', name: 'Personal', accent: T.purple, iconKey: 'personal' },
@@ -169,84 +171,126 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   );
 }
 
-function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCategoryTap }) {
+function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCategoryTap, onLazy, lazyArmed }) {
   const accent = activeCat?.accent || T.cyan;
   const stdPills = [
     { id: 'generate', icon: '✨', label: 'Generate', dimmed: !!generateEmpty },
     { id: 'history',  icon: '↺',  label: 'History',  disabled: !!historyDisabled },
   ];
   return (
-    <div style={{
-      padding: '10px 24px 0',
-      display: 'flex', justifyContent: 'center', gap: 8,
+    <div className="assist-pills-scroll" style={{
+      paddingTop: 10,
       position: 'relative', zIndex: 2,
+      overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      scrollbarWidth: 'none',
     }}>
-      {/* Category cycling pill */}
-      <button
-        onClick={onCategoryTap}
-        style={{
-          all: 'unset', cursor: 'pointer',
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '6px 12px', borderRadius: 99,
-          background: hexToRgba(accent, 0.12),
-          border: `1px solid ${hexToRgba(accent, 0.45)}`,
-          fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
-          color: accent, letterSpacing: '0.005em', whiteSpace: 'nowrap',
-          boxShadow: `0 0 10px ${hexToRgba(accent, 0.18)}`,
-          transition: 'all 200ms ease',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = hexToRgba(accent, 0.22);
-          e.currentTarget.style.boxShadow = `0 0 18px ${hexToRgba(accent, 0.38)}`;
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = hexToRgba(accent, 0.12);
-          e.currentTarget.style.boxShadow = `0 0 10px ${hexToRgba(accent, 0.18)}`;
-        }}
-      >
-        <CategoryIcon iconKey={activeCat?.iconKey || 'work'} color={accent} />
-        {activeCat?.name || 'Work'}
-      </button>
-
-      {/* Generate & History pills */}
-      {stdPills.map(p => (
+      <div style={{
+        display: 'flex', gap: 8,
+        width: 'max-content',
+        margin: '0 auto',
+        padding: '0 24px',
+      }}>
+        {/* Lazy pill */}
         <button
-          key={p.id}
-          onClick={() => { if (!p.disabled) onAction(p.id); }}
-          disabled={p.disabled}
-          aria-disabled={p.disabled || p.dimmed || undefined}
+          onClick={onLazy}
           style={{
-            all: 'unset',
-            cursor: p.disabled ? 'not-allowed' : 'pointer',
+            all: 'unset', cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '6px 12px', borderRadius: 99,
-            background: 'rgba(255,255,255,0.04)',
-            border: `1px solid ${T.hairlineSoft}`,
+            background: hexToRgba(LAZY_ACCENT, lazyArmed ? 0.22 : 0.10),
+            border: `1px solid ${hexToRgba(LAZY_ACCENT, lazyArmed ? 0.65 : 0.38)}`,
             fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
-            color: (p.disabled || p.dimmed) ? T.text3 : T.text2, letterSpacing: '0.005em',
-            whiteSpace: 'nowrap',
-            opacity: (p.disabled || p.dimmed) ? 0.42 : 1,
+            color: LAZY_ACCENT, letterSpacing: '0.005em', whiteSpace: 'nowrap',
+            boxShadow: lazyArmed
+              ? `0 0 18px ${hexToRgba(LAZY_ACCENT, 0.38)}`
+              : `0 0 10px ${hexToRgba(LAZY_ACCENT, 0.14)}`,
             transition: 'all 200ms ease',
           }}
           onMouseEnter={e => {
-            if (p.disabled) return;
-            e.currentTarget.style.background = 'rgba(0,229,255,0.08)';
-            e.currentTarget.style.borderColor = 'rgba(0,229,255,0.45)';
-            e.currentTarget.style.color = T.text;
-            e.currentTarget.style.boxShadow = '0 0 14px rgba(0,229,255,0.18)';
+            if (lazyArmed) return;
+            e.currentTarget.style.background = hexToRgba(LAZY_ACCENT, 0.22);
+            e.currentTarget.style.boxShadow = `0 0 18px ${hexToRgba(LAZY_ACCENT, 0.38)}`;
           }}
           onMouseLeave={e => {
-            if (p.disabled) return;
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-            e.currentTarget.style.borderColor = T.hairlineSoft;
-            e.currentTarget.style.color = T.text2;
-            e.currentTarget.style.boxShadow = 'none';
+            if (lazyArmed) return;
+            e.currentTarget.style.background = hexToRgba(LAZY_ACCENT, 0.10);
+            e.currentTarget.style.boxShadow = `0 0 10px ${hexToRgba(LAZY_ACCENT, 0.14)}`;
           }}
         >
-          <span style={{ fontSize: 12, filter: 'saturate(1.15)' }}>{p.icon}</span>
-          {p.label}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M7.5 2.5A3.5 3.5 0 1 0 7.5 9A2.6 2.6 0 0 1 7.5 2.5z" stroke={LAZY_ACCENT} strokeWidth="1.2" strokeLinejoin="round"/>
+          </svg>
+          Lazy
         </button>
-      ))}
+
+        {/* Category cycling pill */}
+        <button
+          onClick={onCategoryTap}
+          style={{
+            all: 'unset', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 99,
+            background: hexToRgba(accent, 0.12),
+            border: `1px solid ${hexToRgba(accent, 0.45)}`,
+            fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
+            color: accent, letterSpacing: '0.005em', whiteSpace: 'nowrap',
+            boxShadow: `0 0 10px ${hexToRgba(accent, 0.18)}`,
+            transition: 'all 200ms ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = hexToRgba(accent, 0.22);
+            e.currentTarget.style.boxShadow = `0 0 18px ${hexToRgba(accent, 0.38)}`;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = hexToRgba(accent, 0.12);
+            e.currentTarget.style.boxShadow = `0 0 10px ${hexToRgba(accent, 0.18)}`;
+          }}
+        >
+          <CategoryIcon iconKey={activeCat?.iconKey || 'work'} color={accent} />
+          {activeCat?.name || 'Work'}
+        </button>
+
+        {/* Generate & History pills */}
+        {stdPills.map(p => (
+          <button
+            key={p.id}
+            onClick={() => { if (!p.disabled) onAction(p.id); }}
+            disabled={p.disabled}
+            aria-disabled={p.disabled || p.dimmed || undefined}
+            style={{
+              all: 'unset',
+              cursor: p.disabled ? 'not-allowed' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', borderRadius: 99,
+              background: 'rgba(255,255,255,0.04)',
+              border: `1px solid ${T.hairlineSoft}`,
+              fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
+              color: (p.disabled || p.dimmed) ? T.text3 : T.text2, letterSpacing: '0.005em',
+              whiteSpace: 'nowrap',
+              opacity: (p.disabled || p.dimmed) ? 0.42 : 1,
+              transition: 'all 200ms ease',
+            }}
+            onMouseEnter={e => {
+              if (p.disabled) return;
+              e.currentTarget.style.background = 'rgba(0,229,255,0.08)';
+              e.currentTarget.style.borderColor = 'rgba(0,229,255,0.45)';
+              e.currentTarget.style.color = T.text;
+              e.currentTarget.style.boxShadow = '0 0 14px rgba(0,229,255,0.18)';
+            }}
+            onMouseLeave={e => {
+              if (p.disabled) return;
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              e.currentTarget.style.borderColor = T.hairlineSoft;
+              e.currentTarget.style.color = T.text2;
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span style={{ fontSize: 12, filter: 'saturate(1.15)' }}>{p.icon}</span>
+            {p.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -567,6 +611,8 @@ export function HomeScreen({
   const [selectedCatIdx, setSelectedCatIdx] = useState(0);
   const [toastMsg, setToastMsg] = useState('');
   const toastTimerRef = useRef(null);
+  const [lazyMission, setLazyMission] = useState('');
+  const [workTopItem, setWorkTopItem] = useState(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -587,6 +633,19 @@ export function HomeScreen({
     const nextIdx = (selectedCatIdx + 1) % resolvedFolders.length;
     setSelectedCatIdx(nextIdx);
     setCurrentItemIdx(-1);
+  };
+
+  const handleSetMission = (val) => {
+    setMission(val);
+    if (lazyMission) setLazyMission('');
+  };
+
+  const handleLazy = () => {
+    if (!workTopItem) {
+      showToast('No items in Work yet');
+      return;
+    }
+    setLazyMission(workTopItem.text);
   };
 
   const closeSearch = () => {
@@ -659,9 +718,31 @@ export function HomeScreen({
     return () => { cancelled = true; };
   }, [selectedCatIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch the top Work item for Lazy button (once on mount).
+  useEffect(() => {
+    let cancelled = false;
+    const canCallAPI = typeof window !== 'undefined'
+      && /^https?:$/.test(window.location?.protocol || '');
+    if (!canCallAPI) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/queue?folder=work', { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled) {
+          const items = flattenQueue(data?.items);
+          setWorkTopItem(items[0] || null);
+        }
+      } catch {
+        if (!cancelled) setWorkTopItem(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const trimmed = mission.trim();
-  const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
-  const intensity = Math.min(1, trimmed.length / 18);
+  const lazyArmed = !!lazyMission && trimmed.length === 0;
+  const reactorState = lazyArmed ? 'armed' : (trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed');
+  const intensity = lazyArmed ? 1 : Math.min(1, trimmed.length / 18);
 
   const historyDisabled = currentItemIdx <= 0;
   const generateEmpty = flatItems.length === 0;
@@ -686,8 +767,11 @@ export function HomeScreen({
   };
 
   const handleLaunch = () => {
-    if (!trimmed) return;
-    onLaunch && onLaunch(trimmed, activeCat.id);
+    const effectiveMission = trimmed || lazyMission;
+    if (!effectiveMission) return;
+    const catId = trimmed ? activeCat.id : 'work';
+    onLaunch && onLaunch(effectiveMission, catId);
+    setLazyMission('');
   };
 
   return (
@@ -697,7 +781,7 @@ export function HomeScreen({
       minHeight: 0,
     }}>
       <MissionField
-        mission={mission} setMission={setMission}
+        mission={mission} setMission={handleSetMission}
         inputFocused={inputFocused} setInputFocused={setInputFocused}
       />
 
@@ -709,6 +793,8 @@ export function HomeScreen({
           generateEmpty={generateEmpty}
           activeCat={activeCat}
           onCategoryTap={handleCategoryTap}
+          onLazy={handleLazy}
+          lazyArmed={lazyArmed}
         />
         <ReactorCore
           state={reactorState}

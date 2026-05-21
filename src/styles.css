@@ -109,6 +109,7 @@ button, [role="button"], input {
   from { opacity: 0; transform: translateY(6px) }
   to   { opacity: 1; transform: translateY(0) }
 }
+.assist-pills-scroll::-webkit-scrollbar { display: none; }
 @keyframes toastIn {
   0%   { transform: translateY(24px); opacity: 0 }
   100% { transform: translateY(0);    opacity: 1 }
