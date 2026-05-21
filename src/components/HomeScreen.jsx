@@ -629,6 +629,7 @@ export function HomeScreen({
   const [toastMsg, setToastMsg] = useState('');
   const toastTimerRef = useRef(null);
   const [lazyMission, setLazyMission] = useState('');
+  const [lazyPriorMission, setLazyPriorMission] = useState('');
   const [workTopItem, setWorkTopItem] = useState(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
@@ -655,13 +656,22 @@ export function HomeScreen({
   const handleSetMission = (val) => {
     setMission(val);
     if (lazyMission) setLazyMission('');
+    if (lazyPriorMission) setLazyPriorMission('');
   };
 
   const handleLazy = () => {
+    if (lazyMission) {
+      // Deselect: restore whatever was in the input before Lazy was armed.
+      setLazyMission('');
+      setMission(lazyPriorMission);
+      setLazyPriorMission('');
+      return;
+    }
     if (!workTopItem) {
       showToast('No items in Work yet');
       return;
     }
+    setLazyPriorMission(mission);
     setMission('');
     setLazyMission(workTopItem.text);
   };
@@ -791,6 +801,7 @@ export function HomeScreen({
     const catId = lazyMission ? 'work' : activeCat.id;
     onLaunch && onLaunch(effectiveMission, catId);
     setLazyMission('');
+    setLazyPriorMission('');
   };
 
   return (
