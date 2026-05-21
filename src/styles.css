@@ -138,6 +138,10 @@ button, [role="button"], input {
   0%   { transform: translateY(-100%) }
   100% { transform: translateY(800%)  }
 }
+@keyframes standUpPulse {
+  0%, 100% { text-shadow: 0 0 40px #FFC048, 0 0 90px rgba(255,192,72,0.45); }
+  50%       { text-shadow: 0 0 60px #FFC048, 0 0 130px rgba(255,192,72,0.70), 0 0 200px rgba(255,192,72,0.30); }
+}
 
 /* Hide native input clear/cancel chrome on iOS */
 input::-webkit-search-decoration,

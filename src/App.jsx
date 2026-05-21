@@ -9,6 +9,7 @@ import { Dashboard } from './components/Dashboard.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
 import { CompletedSteps } from './components/CompletedSteps.jsx';
 import { HomeScreen } from './components/HomeScreen.jsx';
+import { StandUp } from './components/StandUp.jsx';
 import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { RootFolderScreen } from './components/RootFolderScreen.jsx';
 import { generateSteps } from './lib/generateSteps.js';
@@ -41,6 +42,14 @@ export default function App() {
   const [sourceFolderId, setSourceFolderId] = useState(DEFAULT_FOLDER_ID);
   const [sourceDescription, setSourceDescription] = useState(null);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
+
+  // On Break toggle — persisted across sessions.
+  const [onBreak, setOnBreak] = useState(() => {
+    try { return localStorage.getItem('onBreak') === 'true'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('onBreak', onBreak); } catch {}
+  }, [onBreak]);
 
   // Home-screen Generate/History navigation.
   const [currentItemIdx, setCurrentItemIdx] = useState(-1);
@@ -219,7 +228,7 @@ export default function App() {
   const startExecution = () => {
     setStepIdx(0);
     setMomentumGained(0);
-    setScreen('step');
+    setScreen(onBreak ? 'standup' : 'step');
   };
 
   // `source` may include { id, index, folderId }. If no folderId is supplied
@@ -356,6 +365,8 @@ export default function App() {
         currentItemIdx={currentItemIdx}
         setCurrentItemIdx={setCurrentItemIdx}
         folders={FOLDERS}
+        onBreak={onBreak}
+        setOnBreak={setOnBreak}
       />
     );
   else if (screen === 'profile')
@@ -364,6 +375,8 @@ export default function App() {
     body = renderInputBranch();
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
+  else if (screen === 'standup')
+    body = <StandUp onDone={() => setScreen('step')} />;
   else if (screen === 'step')
     body = (
       <ExecutionStep
