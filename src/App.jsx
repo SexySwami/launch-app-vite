@@ -39,6 +39,7 @@ export default function App() {
   const [sourceItemId, setSourceItemId] = useState(null);
   const [sourceItemIndex, setSourceItemIndex] = useState(null);
   const [sourceFolderId, setSourceFolderId] = useState(DEFAULT_FOLDER_ID);
+  const [sourceDescription, setSourceDescription] = useState(null);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
 
   // Home-screen Generate/History navigation.
@@ -150,6 +151,7 @@ export default function App() {
           sourceItemIndex: typeof sourceItemIndex === 'number' ? sourceItemIndex : null,
           folderId: sourceFolderId,
           text: mission,
+          ...(sourceDescription ? { description: sourceDescription } : {}),
           microStep: {
             tag: step.tag || '',
             title: stepOverrides[stepIdx]?.title || step.title || '',
@@ -180,6 +182,7 @@ export default function App() {
             sourceItemIndex: typeof sourceItemIndex === 'number' ? sourceItemIndex : null,
             folderId: sourceFolderId,
             text: mission,
+            ...(sourceDescription ? { description: sourceDescription } : {}),
           }),
         });
         // Remove the original queue item from the *source* folder, not the
@@ -239,6 +242,7 @@ export default function App() {
     setSourceItemIndex(typeof source?.index === 'number' ? source.index : null);
     const launchFolderId = source?.folderId || DEFAULT_FOLDER_ID;
     setSourceFolderId(launchFolderId);
+    setSourceDescription(description ? description.toString().trim() : null);
     lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
     setScreen('countdown');
@@ -280,6 +284,7 @@ export default function App() {
     setMomentumGained(0);
     setStepOverrides({});
     setSteps([]);
+    setSourceDescription(null);
   };
   const handleKeepGoing = () => {
     resetMissionState();
