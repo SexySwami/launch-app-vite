@@ -10,6 +10,8 @@ import { BottomNav } from './components/BottomNav.jsx';
 import { CompletedSteps } from './components/CompletedSteps.jsx';
 import { HomeScreen } from './components/HomeScreen.jsx';
 import { StandUp } from './components/StandUp.jsx';
+import { ModeSelect } from './components/ModeSelect.jsx';
+import { SmallChunker } from './components/SmallChunker.jsx';
 import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { RootFolderScreen } from './components/RootFolderScreen.jsx';
 import { generateSteps } from './lib/generateSteps.js';
@@ -228,7 +230,7 @@ export default function App() {
   const startExecution = () => {
     setStepIdx(0);
     setMomentumGained(0);
-    setScreen(onBreak ? 'standup' : 'step');
+    setScreen(onBreak ? 'standup' : 'modeSelect');
   };
 
   // `source` may include { id, index, folderId }. If no folderId is supplied
@@ -376,7 +378,16 @@ export default function App() {
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
   else if (screen === 'standup')
-    body = <StandUp onDone={() => setScreen('step')} />;
+    body = <StandUp onDone={() => setScreen('modeSelect')} />;
+  else if (screen === 'modeSelect')
+    body = (
+      <ModeSelect
+        onSelectFourStep={() => setScreen('step')}
+        onSelectSmallChunker={() => setScreen('smallChunker')}
+      />
+    );
+  else if (screen === 'smallChunker')
+    body = <SmallChunker onBack={() => setScreen('modeSelect')} />;
   else if (screen === 'step')
     body = (
       <ExecutionStep
