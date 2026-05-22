@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { T } from '../tokens.js';
 import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
+import { EditMicroStepModal } from './EditMicroStepModal.jsx';
 
 const BATCH_SIZE = 4;
 
@@ -18,6 +19,7 @@ export function SmallChunker({
   firstStepNumber,
   inBatchIdx,
   loading,
+  allSteps,
   onAdvanceInBatch,
   onBatchComplete,
   onFinish,
@@ -26,6 +28,11 @@ export function SmallChunker({
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
   const [loggedCards, setLoggedCards] = useState(() => new Set()); // per-batch (resets on remount)
+  const [overrides, setOverrides] = useState({}); // per-batch (resets on remount): inBatchIdx -> { title }
+  const [editOpen, setEditOpen] = useState(false);
+
+  // Close the edit modal whenever the active card changes.
+  useEffect(() => { setEditOpen(false); }, [inBatchIdx]);
 
   // Re-trigger enter animation whenever the active card changes.
   useEffect(() => {
@@ -35,11 +42,23 @@ export function SmallChunker({
     return () => clearTimeout(t);
   }, [inBatchIdx]);
 
-  const step = Array.isArray(batchSteps) ? batchSteps[inBatchIdx] : null;
+  const baseStep = Array.isArray(batchSteps) ? batchSteps[inBatchIdx] : null;
+  const step = useMemo(() => {
+    if (!baseStep) return baseStep;
+    const ov = overrides[inBatchIdx];
+    return ov ? { ...baseStep, ...ov } : baseStep;
+  }, [baseStep, overrides, inBatchIdx]);
   const isFinalInBatch = inBatchIdx + 1 === BATCH_SIZE;
   const absoluteStepNumber = (firstStepNumber || 1) + inBatchIdx;
   const lastStepNumber = (firstStepNumber || 1) + BATCH_SIZE - 1;
   const progress = ((inBatchIdx + (exiting ? 1 : 0)) / BATCH_SIZE) * 100;
+
+  // For the regen modal: everything generated before the card being edited.
+  const previousStepsForEdit = useMemo(() => {
+    if (!Array.isArray(allSteps)) return [];
+    const absoluteIdx = (firstStepNumber || 1) - 1 + inBatchIdx;
+    return allSteps.slice(0, absoluteIdx);
+  }, [allSteps, firstStepNumber, inBatchIdx]);
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
@@ -351,10 +370,28 @@ export function SmallChunker({
               </div>
 
               <div style={{
-                display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.22em',
                 color: T.text3, textTransform: 'uppercase', position: 'relative', zIndex: 1,
               }}>
+                <button onClick={() => setEditOpen(true)} style={{
+                  all: 'unset', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '6px 9px', borderRadius: 99,
+                  background: 'rgba(168,118,255,0.08)',
+                  border: `1px solid rgba(168,118,255,0.32)`,
+                  color: T.purple,
+                  fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
+                  textTransform: 'uppercase', fontWeight: 600,
+                  transition: 'all 200ms ease',
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
+                    <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z" stroke="currentColor" strokeWidth="1" fill="none" strokeLinejoin="round"/>
+                  </svg>
+                  Edit
+                </button>
+
                 <button
                   onClick={handleLog}
                   disabled={stepLogged}
@@ -414,6 +451,20 @@ export function SmallChunker({
               : `${BATCH_SIZE - inBatchIdx - 1} more card${BATCH_SIZE - inBatchIdx - 1 === 1 ? '' : 's'} in batch`}
         </div>
       </div>
+
+      <EditMicroStepModal
+        open={editOpen}
+        step={step}
+        absoluteStepNumber={absoluteStepNumber}
+        mission={mission}
+        description={description}
+        previousSteps={previousStepsForEdit}
+        onClose={() => setEditOpen(false)}
+        onPick={(newTitle) => {
+          setOverrides(prev => ({ ...prev, [inBatchIdx]: { title: newTitle } }));
+          setEditOpen(false);
+        }}
+      />
     </div>
   );
 }

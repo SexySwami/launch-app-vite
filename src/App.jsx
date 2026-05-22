@@ -474,6 +474,7 @@ export default function App() {
         firstStepNumber={(microBatch - 1) * 4 + 1}
         inBatchIdx={microInBatchIdx}
         loading={microLoading}
+        allSteps={microSteps}
         onAdvanceInBatch={() => setMicroInBatchIdx(i => i + 1)}
         onBatchComplete={handleMicroBatchComplete}
         onFinish={handleMicroBatchComplete}

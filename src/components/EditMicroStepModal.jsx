@@ -1,0 +1,472 @@
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { T } from '../tokens.js';
+
+// Independent edit/regeneration modal for Small Chunker cards. Mirrors the
+// UX of EditStepModal (the 4-step regen modal) but calls the micro-step
+// regeneration endpoint and receives the full previously-generated step
+// history for AI continuity. Does not share code with EditStepModal.
+export function EditMicroStepModal({
+  open,
+  step,
+  absoluteStepNumber,
+  mission,
+  description,
+  previousSteps,
+  onClose,
+  onPick,
+}) {
+  const [currentAlts, setCurrentAlts] = useState([]);
+  const [seenOptions, setSeenOptions] = useState([]);
+  const [genError, setGenError] = useState('');
+  const [customDraft, setCustomDraft] = useState('');
+  const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [recError, setRecError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const recRef = useRef(null);
+
+  const micAvailable = useMemo(
+    () => typeof window !== 'undefined'
+      && !!navigator?.mediaDevices?.getUserMedia
+      && typeof window.MediaRecorder !== 'undefined',
+    []
+  );
+
+  const autoFetchedRef = useRef(false);
+
+  // Reset alt list and seen-options when the active step changes.
+  useEffect(() => {
+    if (!step) return;
+    setCurrentAlts([]);
+    setSeenOptions([]);
+    setGenError('');
+    autoFetchedRef.current = false;
+  }, [step]);
+
+  // Auto-fetch the first set of options when the modal opens.
+  useEffect(() => {
+    if (!open) {
+      autoFetchedRef.current = false;
+      return;
+    }
+    if (!step || autoFetchedRef.current || refreshing) return;
+    if (currentAlts.length > 0) {
+      autoFetchedRef.current = true;
+      return;
+    }
+    autoFetchedRef.current = true;
+    handleRegenerate();
+  }, [open, step, currentAlts.length, refreshing]);
+
+  useEffect(() => {
+    if (open) {
+      setCustomDraft('');
+      setListening(false);
+      setTranscribing(false);
+      setRecError('');
+      setRefreshing(false);
+    }
+  }, [open, absoluteStepNumber]);
+
+  // Tear down any in-flight recording when the modal closes.
+  useEffect(() => {
+    if (open) return;
+    const r = recRef.current;
+    if (r) {
+      r.cancelled = true;
+      try { r.recorder?.state === 'recording' && r.recorder.stop(); } catch {}
+      r.stream?.getTracks().forEach(t => { try { t.stop(); } catch {} });
+      recRef.current = null;
+    }
+  }, [open]);
+
+  const startRecording = async () => {
+    setRecError('');
+    if (!micAvailable) {
+      setRecError('Mic capture not supported in this browser');
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      setRecError(err.name === 'NotAllowedError'
+        ? 'Microphone permission denied'
+        : 'Could not access microphone: ' + (err.message || err.name));
+      return;
+    }
+
+    const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg'];
+    let mimeType = '';
+    for (const mt of candidates) {
+      if (window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(mt)) {
+        mimeType = mt;
+        break;
+      }
+    }
+
+    let recorder;
+    try {
+      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch (err) {
+      stream.getTracks().forEach(t => t.stop());
+      setRecError('Recorder init failed: ' + err.message);
+      return;
+    }
+
+    const chunks = [];
+    const ref = { recorder, stream, chunks, mimeType: mimeType || recorder.mimeType, cancelled: false };
+    recRef.current = ref;
+
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach(t => { try { t.stop(); } catch {} });
+      if (ref.cancelled) return;
+      if (chunks.length === 0) {
+        setRecError('No audio captured. Try holding closer to the mic.');
+        return;
+      }
+
+      const blob = new Blob(chunks, { type: ref.mimeType || 'audio/webm' });
+      const ext = (ref.mimeType.includes('mp4') ? 'mp4'
+                  : ref.mimeType.includes('ogg') ? 'ogg'
+                  : 'webm');
+
+      setTranscribing(true);
+      try {
+        const fd = new FormData();
+        fd.append('audio', blob, `audio.${ext}`);
+        const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (ref.cancelled) return;
+        if (!res.ok) {
+          setRecError(data.error || `Transcription failed (${res.status})`);
+        } else if (data.text) {
+          setCustomDraft(prev => (prev ? prev.trim() + ' ' : '') + data.text.trim());
+        } else {
+          setRecError('No transcription returned');
+        }
+      } catch (err) {
+        if (!ref.cancelled) setRecError('Network error: ' + err.message);
+      } finally {
+        if (!ref.cancelled) setTranscribing(false);
+        if (recRef.current === ref) recRef.current = null;
+      }
+    };
+
+    recorder.onerror = (e) => {
+      setRecError('Recorder error: ' + (e.error?.message || 'unknown'));
+      setListening(false);
+    };
+
+    recorder.start();
+    setListening(true);
+  };
+
+  const stopRecording = () => {
+    const r = recRef.current;
+    if (r && r.recorder.state === 'recording') {
+      try { r.recorder.stop(); } catch {}
+    }
+    setListening(false);
+  };
+
+  const toggleMic = () => {
+    if (listening) stopRecording();
+    else startRecording();
+  };
+
+  if (!open || !step) return null;
+
+  const handleRegenerate = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setGenError('');
+
+    const canCallAPI = typeof window !== 'undefined'
+      && /^https?:$/.test(window.location?.protocol || '');
+
+    try {
+      if (!canCallAPI) throw new Error('__skip_api__');
+      const res = await fetch('/api/generate-micro-options', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission: mission || '',
+          ...(description ? { description: description.toString() } : {}),
+          previousSteps: Array.isArray(previousSteps) ? previousSteps : [],
+          currentStep: step.title,
+          seenOptions: [...seenOptions, step.title],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(data.options) || data.options.length === 0) {
+        throw new Error(data.error || `Generator returned ${res.status}`);
+      }
+      const fresh = data.options.slice(0, 3);
+      setCurrentAlts(fresh);
+      setSeenOptions(prev => [...prev, ...fresh]);
+    } catch (err) {
+      if (err.message !== '__skip_api__') {
+        setGenError(err.message || 'Could not generate new options');
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleCustomSubmit = () => {
+    const t = customDraft.trim();
+    if (!t) return;
+    onPick(t);
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+        background: 'rgba(2,4,8,0.62)',
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        animation: 'backdropIn 220ms ease',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 360,
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025) 55%, rgba(0,229,255,0.05))',
+          border: `1px solid rgba(0,229,255,0.42)`,
+          borderRadius: 24,
+          padding: '18px 16px 16px',
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.05) inset,
+            0 30px 80px rgba(0,0,0,0.6),
+            0 0 60px rgba(0,229,255,0.18)
+          `,
+          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+          animation: 'modalIn 280ms cubic-bezier(0.2,0.8,0.2,1)',
+          position: 'relative', overflow: 'hidden',
+        }}
+      >
+        <div style={{
+          position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
+          width: 240, height: 160,
+          background: `radial-gradient(ellipse, rgba(0,229,255,0.28), transparent 70%)`,
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: 99, background: T.teal,
+              boxShadow: `0 0 8px ${T.teal}`,
+            }} />
+            <span style={{
+              fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.24em',
+              color: T.teal, textTransform: 'uppercase', fontWeight: 600,
+              textShadow: `0 0 8px ${T.teal}66`,
+            }}>Quick Edit</span>
+            <span style={{
+              fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.2em',
+              color: T.text3, textTransform: 'uppercase',
+            }}>· Step {absoluteStepNumber || 1}</span>
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{
+            all: 'unset', cursor: 'pointer',
+            width: 28, height: 28, borderRadius: 99,
+            background: 'rgba(255,255,255,0.05)',
+            border: `1px solid ${T.hairlineSoft}`,
+            color: T.text2,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="9" height="9" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${T.hairlineSoft}` }}>
+          <div style={{
+            fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em',
+            color: T.text3, textTransform: 'uppercase', marginBottom: 4,
+          }}>Currently</div>
+          <div style={{
+            fontFamily: T.display, fontSize: 14, color: T.text2, fontWeight: 500,
+            lineHeight: 1.3,
+          }}>{step.title}</div>
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 14 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
+            fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
+            color: T.cyan, textTransform: 'uppercase', fontWeight: 600,
+          }}>
+            <span style={{ width: 4, height: 4, borderRadius: 99, background: T.cyan, boxShadow: `0 0 6px ${T.cyan}` }} />
+            Better options
+          </div>
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 8,
+            opacity: refreshing ? 0.35 : 1,
+            transition: 'opacity 240ms ease',
+          }}>
+            {currentAlts.map((a, i) => (
+              <button
+                key={`${i}-${a}`}
+                onClick={() => onPick(a)}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  padding: '11px 14px',
+                  background: 'rgba(0,229,255,0.05)',
+                  border: `1px solid rgba(0,229,255,0.22)`,
+                  borderRadius: 12,
+                  fontFamily: T.display, fontSize: 14, fontWeight: 500, color: T.text,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                  transition: 'all 200ms ease',
+                  animation: `optionIn 280ms ${i * 60}ms cubic-bezier(0.2,0.8,0.2,1) backwards`,
+                }}
+              >
+                <span style={{ flex: 1 }}>{a}</span>
+                <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0, color: T.cyan }}>
+                  <path d="M2 6h7m0 0L6 3m3 3L6 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={handleRegenerate}
+          disabled={refreshing}
+          style={{
+            cursor: refreshing ? 'default' : 'pointer',
+            position: 'relative',
+            width: '100%', padding: '11px 14px',
+            boxSizing: 'border-box',
+            background: 'rgba(168,118,255,0.10)',
+            border: `1px solid rgba(168,118,255,0.34)`,
+            borderRadius: 12,
+            fontFamily: T.mono, fontSize: 10.5, letterSpacing: '0.18em',
+            color: T.purple, textTransform: 'uppercase', fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginBottom: 16,
+            WebkitAppearance: 'none', appearance: 'none',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" style={{
+            animation: refreshing ? 'spin360 800ms linear infinite' : 'none',
+          }}>
+            <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {refreshing ? 'Generating…' : 'Generate new options'}
+        </button>
+
+        {genError && (
+          <div style={{
+            fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.18em',
+            color: T.warn, textTransform: 'uppercase', marginTop: -8, marginBottom: 14,
+            textAlign: 'center', lineHeight: 1.4,
+          }}>
+            {genError}
+          </div>
+        )}
+
+        <div style={{
+          fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.22em',
+          color: T.text3, textTransform: 'uppercase', marginBottom: 8,
+          position: 'relative',
+        }}>Or write your own</div>
+        <div style={{
+          position: 'relative',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 8px 8px 12px',
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px solid ${listening ? T.teal : T.hairlineSoft}`,
+          borderRadius: 12,
+          boxShadow: listening ? `0 0 0 3px ${T.teal}33, 0 0 20px ${T.teal}55` : 'none',
+          transition: 'all 220ms ease',
+        }}>
+          <input
+            type="text"
+            value={customDraft}
+            onChange={e => setCustomDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit(); }}
+            placeholder="Type a different step…"
+            enterKeyHint="done"
+            style={{
+              all: 'unset',
+              flex: 1, minWidth: 0,
+              fontFamily: T.display, fontSize: 14, color: T.text,
+              padding: '4px 0',
+            }}
+          />
+          {!listening && !transcribing && customDraft.trim() ? (
+            <button onClick={handleCustomSubmit} aria-label="Submit" style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
+              width: 30, height: 30, borderRadius: 99,
+              background: `linear-gradient(180deg, ${T.cyan}, ${T.blue})`,
+              color: '#001018',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 0 12px ${T.cyan}99`,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 13 13">
+                <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : micAvailable ? (
+            <button
+              onClick={toggleMic}
+              disabled={transcribing}
+              aria-label={listening ? 'Stop voice input' : 'Voice input'}
+              style={{
+                all: 'unset', cursor: transcribing ? 'default' : 'pointer', flexShrink: 0,
+                width: 30, height: 30, borderRadius: 99,
+                background: listening
+                  ? `linear-gradient(180deg, ${T.teal}, ${T.cyan})`
+                  : transcribing ? 'rgba(168,118,255,0.18)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${listening ? 'transparent' : transcribing ? 'rgba(168,118,255,0.4)' : T.hairlineSoft}`,
+                color: listening ? '#001018' : transcribing ? T.purple : T.text2,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 220ms ease',
+                boxShadow: listening ? `0 0 12px ${T.teal}99` : 'none',
+              }}
+            >
+              {transcribing ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" style={{ animation: 'spin360 800ms linear infinite' }}>
+                  <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 14 14">
+                  <path d="M7 1.8a1.9 1.9 0 0 0-1.9 1.9v3.2a1.9 1.9 0 1 0 3.8 0V3.7A1.9 1.9 0 0 0 7 1.8z" fill="currentColor"/>
+                  <path d="M3.5 7a3.5 3.5 0 0 0 7 0M7 10.5V12.4M5 12.4h4" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+                </svg>
+              )}
+            </button>
+          ) : null}
+        </div>
+        {(listening || transcribing || recError) && (
+          <div style={{
+            fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
+            color: recError ? T.warn : transcribing ? T.purple : T.teal,
+            textTransform: 'uppercase', marginTop: 8, textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            lineHeight: 1.3,
+          }}>
+            {!recError && (
+              <span style={{
+                width: 5, height: 5, borderRadius: 99,
+                background: transcribing ? T.purple : T.teal,
+                boxShadow: `0 0 8px ${transcribing ? T.purple : T.teal}`,
+                animation: 'pulse 1.2s ease-in-out infinite',
+              }} />
+            )}
+            {recError ? recError : transcribing ? 'Transcribing…' : 'Listening…'}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
