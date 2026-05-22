@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { T } from '../tokens.js';
 import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
-import { generateMicroSteps } from '../lib/generateMicroSteps.js';
 
-const TOTAL_STEPS = 15;
+const BATCH_SIZE = 4;
 
 export function SmallChunker({
   mission,
@@ -14,80 +13,44 @@ export function SmallChunker({
   sourceItemId,
   sourceItemIndex,
   sourceFolderId,
-  onBack,
+  batchSteps,
+  batchNumber,
+  firstStepNumber,
+  inBatchIdx,
+  loading,
+  onAdvanceInBatch,
+  onBatchComplete,
   onFinish,
+  onBack,
 }) {
-  const [steps, setSteps] = useState([]);
-  const [stepsLoading, setStepsLoading] = useState(true);
-  const [stepIdx, setStepIdx] = useState(0);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
-  const [loggedSteps, setLoggedSteps] = useState(() => new Set());
-  const [pulseMomentum, setPulseMomentum] = useState(false);
-  const fetchedRef = useRef(false);
+  const [loggedCards, setLoggedCards] = useState(() => new Set()); // per-batch (resets on remount)
 
-  const canCallAPI = typeof window !== 'undefined'
-    && /^https?:$/.test(window.location?.protocol || '');
-
-  // One-shot fetch on mount. Falls back to the local generator if the API
-  // is unavailable so the screen always has 15 steps to render.
-  useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-
-    const load = async () => {
-      setStepsLoading(true);
-      try {
-        if (!canCallAPI) throw new Error('__skip_api__');
-        const res = await fetch('/api/generate-micro-steps', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            mission: (mission || '').toString(),
-            ...(description ? { description: description.toString() } : {}),
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !Array.isArray(data.steps) || data.steps.length !== TOTAL_STEPS) {
-          throw new Error(data.error || `Generator returned ${res.status}`);
-        }
-        setSteps(data.steps);
-      } catch {
-        setSteps(generateMicroSteps(mission));
-      } finally {
-        setStepsLoading(false);
-      }
-    };
-
-    load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Enter/exit animation reset when stepIdx changes.
+  // Re-trigger enter animation whenever the active card changes.
   useEffect(() => {
     setExiting(false);
     setEntering(true);
     const t = setTimeout(() => setEntering(false), 60);
     return () => clearTimeout(t);
-  }, [stepIdx]);
+  }, [inBatchIdx]);
 
-  // Pulse the momentum pill on every advance after the first.
-  useEffect(() => {
-    if (stepIdx === 0) return;
-    setPulseMomentum(true);
-    const t = setTimeout(() => setPulseMomentum(false), 900);
-    return () => clearTimeout(t);
-  }, [stepIdx]);
+  const step = Array.isArray(batchSteps) ? batchSteps[inBatchIdx] : null;
+  const isFinalInBatch = inBatchIdx + 1 === BATCH_SIZE;
+  const absoluteStepNumber = (firstStepNumber || 1) + inBatchIdx;
+  const lastStepNumber = (firstStepNumber || 1) + BATCH_SIZE - 1;
+  const progress = ((inBatchIdx + (exiting ? 1 : 0)) / BATCH_SIZE) * 100;
 
-  const step = steps[stepIdx];
-  const isFinalStep = stepIdx + 1 === TOTAL_STEPS;
-  const progress = ((stepIdx + (exiting ? 1 : 0)) / TOTAL_STEPS) * 100;
-  const momentumGained = stepIdx;
+  const canCallAPI = typeof window !== 'undefined'
+    && /^https?:$/.test(window.location?.protocol || '');
 
-  const handleNext = () => {
-    if (exiting || stepsLoading || !step) return;
-    if (isFinalStep) return;
+  const handleAdvance = () => {
+    if (exiting || loading || !step) return;
     setExiting(true);
-    setTimeout(() => setStepIdx(i => i + 1), 320);
+    setTimeout(() => {
+      if (isFinalInBatch) onBatchComplete && onBatchComplete();
+      else onAdvanceInBatch && onAdvanceInBatch();
+    }, 320);
   };
 
   const handleFinished = () => {
@@ -97,15 +60,10 @@ export function SmallChunker({
 
   const handleLog = async () => {
     if (!step) return;
-    if (loggedSteps.has(stepIdx)) return;
-    if (!completionGroupId) {
-      setLoggedSteps(prev => { const n = new Set(prev); n.add(stepIdx); return n; });
-      return;
-    }
+    if (loggedCards.has(inBatchIdx)) return;
+    setLoggedCards(prev => { const n = new Set(prev); n.add(inBatchIdx); return n; });
+    if (!completionGroupId || !canCallAPI) return;
 
-    setLoggedSteps(prev => { const n = new Set(prev); n.add(stepIdx); return n; });
-
-    if (!canCallAPI) return;
     try {
       await fetch('/api/completed?action=log-step', {
         method: 'POST',
@@ -125,18 +83,17 @@ export function SmallChunker({
         }),
       });
     } catch {
-      setLoggedSteps(prev => { const n = new Set(prev); n.delete(stepIdx); return n; });
+      setLoggedCards(prev => { const n = new Set(prev); n.delete(inBatchIdx); return n; });
     }
   };
 
-  const stepLogged = loggedSteps.has(stepIdx);
-  const remaining = TOTAL_STEPS - stepIdx - 1;
+  const stepLogged = loggedCards.has(inBatchIdx);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '8px 0 24px', overflow: 'hidden', minHeight: 0 }}>
       <Telemetry
-        time={`STEP ${String(stepIdx + 1).padStart(2, '0')}/${String(TOTAL_STEPS).padStart(2, '0')}`}
-        code="MICRO / CHUNKED"
+        time={`BATCH ${String(batchNumber || 1).padStart(2, '0')} · STEPS ${firstStepNumber || 1}–${lastStepNumber}`}
+        code="MICRO / ON-DEMAND"
         state="LIVE"
       />
 
@@ -166,13 +123,14 @@ export function SmallChunker({
                 fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
                 color: T.text3, textTransform: 'uppercase', marginBottom: 4,
               }}>
-                ▸ Micro Execution
+                ▸ Steps {firstStepNumber || 1}–{lastStepNumber}
               </div>
               <div style={{
                 fontFamily: T.display, fontSize: 18, fontWeight: 600,
                 color: T.text, letterSpacing: '-0.01em', lineHeight: 1.1,
               }}>
-                Step <span style={{ color: T.cyan }}>{stepIdx + 1}</span> of {TOTAL_STEPS}
+                Step <span style={{ color: T.cyan }}>{absoluteStepNumber}</span>
+                <span style={{ color: T.text3, fontWeight: 500 }}> · card {inBatchIdx + 1} of {BATCH_SIZE}</span>
               </div>
             </div>
           </div>
@@ -180,25 +138,19 @@ export function SmallChunker({
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '8px 12px', borderRadius: 99,
-            background: 'rgba(0,229,255,0.08)',
-            border: `1px solid rgba(0,229,255,0.32)`,
-            boxShadow: pulseMomentum
-              ? `0 0 0 6px rgba(0,229,255,0.18), 0 0 24px ${T.cyan}`
-              : `0 0 16px rgba(0,229,255,0.18)`,
-            transition: 'box-shadow 600ms ease',
+            background: 'rgba(168,118,255,0.08)',
+            border: `1px solid rgba(168,118,255,0.32)`,
+            boxShadow: `0 0 16px rgba(168,118,255,0.18)`,
           }}>
             <span style={{
-              width: 6, height: 6, borderRadius: 99, background: T.teal,
-              boxShadow: `0 0 8px ${T.teal}`,
+              width: 6, height: 6, borderRadius: 99, background: T.purple,
+              boxShadow: `0 0 8px ${T.purple}`,
             }} />
             <span style={{
               fontFamily: T.mono, fontSize: 11, letterSpacing: '0.16em',
               fontWeight: 600, color: T.text, fontVariantNumeric: 'tabular-nums',
-              transform: pulseMomentum ? 'scale(1.1)' : 'scale(1)',
-              transition: 'transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-              display: 'inline-block',
             }}>
-              +{momentumGained} <span style={{ color: T.cyan, marginLeft: 2 }}>Momentum</span>
+              Batch {batchNumber || 1}
             </span>
           </div>
         </div>
@@ -243,7 +195,7 @@ export function SmallChunker({
           pointerEvents: 'none',
         }} />
 
-        <div key={stepIdx} style={{
+        <div key={`${batchNumber}-${inBatchIdx}`} style={{
           position: 'relative', width: '100%', height: '100%',
           maxHeight: 460,
           background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 60%, rgba(0,229,255,0.04))',
@@ -287,7 +239,7 @@ export function SmallChunker({
             }} />
           ))}
 
-          {stepsLoading || !step ? (
+          {loading || !step ? (
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
@@ -304,7 +256,7 @@ export function SmallChunker({
                   boxShadow: `0 0 10px ${T.purple}`,
                   animation: 'pulse 1.4s ease-in-out infinite',
                 }} />
-                Generating with Claude
+                Generating batch {batchNumber || 1}
               </div>
 
               <h2 style={{
@@ -313,7 +265,9 @@ export function SmallChunker({
                 color: T.text, margin: 0, textAlign: 'center',
                 textShadow: `0 0 40px rgba(168,118,255,0.4)`,
               }}>
-                Chunking your mission<br/>into 15 tiny steps…
+                {(batchNumber || 1) === 1
+                  ? <>Chunking your mission<br/>into 4 tiny steps…</>
+                  : <>Generating 4 more<br/>tiny steps…</>}
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 260, marginTop: 4 }}>
@@ -334,7 +288,9 @@ export function SmallChunker({
                 letterSpacing: '0.22em', textTransform: 'uppercase',
                 margin: 0, marginTop: 4, textAlign: 'center',
               }}>
-                Tailoring 15 micro-steps to "{(mission || '').slice(0, 36)}{(mission || '').length > 36 ? '…' : ''}"
+                {(batchNumber || 1) === 1
+                  ? `Tailoring 4 micro-steps to "${(mission || '').slice(0, 36)}${(mission || '').length > 36 ? '…' : ''}"`
+                  : `Continuing from step ${(firstStepNumber || 1) - 1}`}
               </p>
             </div>
           ) : (
@@ -353,7 +309,7 @@ export function SmallChunker({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: '#001018',
                 }}>
-                  {stepIdx + 1}
+                  {absoluteStepNumber}
                 </span>
                 <MarqueeText
                   text={(mission || '').toString()}
@@ -433,38 +389,29 @@ export function SmallChunker({
       </div>
 
       <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {isFinalStep ? (
-          <GlowButton onClick={handleFinished} disabled={stepsLoading}>
-            Finished
+        <GlowButton onClick={handleAdvance} disabled={loading || !step}>
+          {loading || !step
+            ? `Generating batch ${batchNumber || 1}…`
+            : isFinalInBatch ? 'Complete Batch' : 'Next'}
+          {!loading && step && (
             <svg width="14" height="14" viewBox="0 0 14 14">
               <path d="M2 7.5l3 3 7-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </GlowButton>
-        ) : (
-          <>
-            <GlowButton onClick={handleNext} disabled={stepsLoading || !step}>
-              {stepsLoading || !step ? 'Generating Steps…' : 'Next'}
-              {!stepsLoading && step && (
-                <svg width="14" height="14" viewBox="0 0 14 14">
-                  <path d="M2 7.5l3 3 7-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </GlowButton>
-            <GlowButton onClick={handleFinished} variant="secondary" disabled={stepsLoading}>
-              Finished
-            </GlowButton>
-          </>
-        )}
+          )}
+        </GlowButton>
+        <GlowButton onClick={handleFinished} variant="secondary" disabled={loading}>
+          Finished
+        </GlowButton>
         <div style={{
           textAlign: 'center', marginTop: 4,
           fontFamily: T.mono, fontSize: 10, letterSpacing: '0.2em',
           color: T.text3, textTransform: 'uppercase',
         }}>
-          {stepsLoading || !step
-            ? 'Claude is chunking your task'
-            : isFinalStep
-              ? 'Final micro-step · tap finished to lock in'
-              : `${remaining} more micro-step${remaining === 1 ? '' : 's'} to go`}
+          {loading || !step
+            ? 'Claude is chunking your batch'
+            : isFinalInBatch
+              ? 'Final card in batch · keep going for more'
+              : `${BATCH_SIZE - inBatchIdx - 1} more card${BATCH_SIZE - inBatchIdx - 1 === 1 ? '' : 's'} in batch`}
         </div>
       </div>
     </div>

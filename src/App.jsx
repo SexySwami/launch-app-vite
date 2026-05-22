@@ -15,6 +15,7 @@ import { SmallChunker } from './components/SmallChunker.jsx';
 import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { RootFolderScreen } from './components/RootFolderScreen.jsx';
 import { generateSteps } from './lib/generateSteps.js';
+import { generateMicroSteps } from './lib/generateMicroSteps.js';
 
 // Root folders the Checklists tab can drill into. Order is preserved in the UI.
 const FOLDERS = [
@@ -44,6 +45,15 @@ export default function App() {
   const [sourceFolderId, setSourceFolderId] = useState(DEFAULT_FOLDER_ID);
   const [sourceDescription, setSourceDescription] = useState(null);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
+
+  // Small Chunker on-demand batch state. Each batch generates 4 steps via a
+  // fresh /api/generate-micro-steps call. microSteps accumulates across
+  // batches so subsequent calls can pass full history for AI continuity.
+  const [microMode, setMicroMode] = useState(false);
+  const [microSteps, setMicroSteps] = useState([]);
+  const [microBatch, setMicroBatch] = useState(0);          // 1-indexed batch number
+  const [microInBatchIdx, setMicroInBatchIdx] = useState(0); // 0-3 within current batch
+  const [microLoading, setMicroLoading] = useState(false);
 
   // On Break toggle — persisted across sessions.
   const [onBreak, setOnBreak] = useState(() => {
@@ -297,7 +307,69 @@ export default function App() {
     setSteps([]);
     setSourceDescription(null);
   };
+  // Small Chunker: fetch the next batch of 4. Appends to microSteps on success;
+  // falls back to the local generator if the API is unavailable so the screen
+  // never gets stuck on the loading state.
+  const fetchMicroBatch = async (batchNumber, accumulatedSteps) => {
+    setMicroLoading(true);
+    try {
+      if (!canCallAPI) throw new Error('__skip_api__');
+      const res = await fetch('/api/generate-micro-steps', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission,
+          ...(sourceDescription ? { description: sourceDescription } : {}),
+          previousSteps: accumulatedSteps,
+          batchNumber,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(data.steps) || data.steps.length !== 4) {
+        throw new Error(data.error || `Generator returned ${res.status}`);
+      }
+      setMicroSteps([...accumulatedSteps, ...data.steps]);
+    } catch {
+      const fallback = generateMicroSteps(mission, batchNumber, accumulatedSteps);
+      setMicroSteps([...accumulatedSteps, ...fallback]);
+    } finally {
+      setMicroLoading(false);
+    }
+  };
+
+  const resetMicroState = () => {
+    setMicroMode(false);
+    setMicroSteps([]);
+    setMicroBatch(0);
+    setMicroInBatchIdx(0);
+    setMicroLoading(false);
+  };
+
+  const startSmallChunker = () => {
+    setMicroMode(true);
+    setMicroSteps([]);
+    setMicroBatch(1);
+    setMicroInBatchIdx(0);
+    fetchMicroBatch(1, []);
+    setScreen('smallChunker');
+  };
+
+  const handleMicroBatchComplete = () => {
+    finalizeCompletion();
+    setMomentum(m => m + 15);
+    setLaunchesToday(n => n + 1);
+    setScreen('reward');
+  };
+
   const handleKeepGoing = () => {
+    if (microMode) {
+      const nextBatch = microBatch + 1;
+      setMicroBatch(nextBatch);
+      setMicroInBatchIdx(0);
+      fetchMicroBatch(nextBatch, microSteps);
+      setScreen('smallChunker');
+      return;
+    }
     resetMissionState();
     const target = lastLaunchedFolderIdRef.current;
     if (target) openFolder(target);
@@ -306,11 +378,13 @@ export default function App() {
   };
   const handleAllDone = () => {
     resetMissionState();
+    if (microMode) resetMicroState();
     setOpenFolderId(null);
     setScreen('input');
   };
   const handleNextTask = () => {
     resetMissionState();
+    if (microMode) resetMicroState();
     setOpenFolderId(null);
     setScreen('input');
   };
@@ -383,7 +457,7 @@ export default function App() {
     body = (
       <ModeSelect
         onSelectFourStep={() => setScreen('step')}
-        onSelectSmallChunker={() => setScreen('smallChunker')}
+        onSelectSmallChunker={startSmallChunker}
       />
     );
   else if (screen === 'smallChunker')
@@ -395,14 +469,15 @@ export default function App() {
         sourceItemId={sourceItemId}
         sourceItemIndex={sourceItemIndex}
         sourceFolderId={sourceFolderId}
-        onBack={() => setScreen('modeSelect')}
-        onFinish={() => {
-          finalizeCompletion();
-          setMomentum(m => m + 15);
-          setLaunchesToday(n => n + 1);
-          setStepIdx(0);
-          setScreen('reward');
-        }}
+        batchSteps={microSteps.slice((microBatch - 1) * 4, microBatch * 4)}
+        batchNumber={microBatch}
+        firstStepNumber={(microBatch - 1) * 4 + 1}
+        inBatchIdx={microInBatchIdx}
+        loading={microLoading}
+        onAdvanceInBatch={() => setMicroInBatchIdx(i => i + 1)}
+        onBatchComplete={handleMicroBatchComplete}
+        onFinish={handleMicroBatchComplete}
+        onBack={() => { resetMicroState(); setScreen('modeSelect'); }}
       />
     );
   else if (screen === 'step')
