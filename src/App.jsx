@@ -387,7 +387,24 @@ export default function App() {
       />
     );
   else if (screen === 'smallChunker')
-    body = <SmallChunker onBack={() => setScreen('modeSelect')} />;
+    body = (
+      <SmallChunker
+        mission={mission}
+        description={sourceDescription}
+        completionGroupId={completionGroupId}
+        sourceItemId={sourceItemId}
+        sourceItemIndex={sourceItemIndex}
+        sourceFolderId={sourceFolderId}
+        onBack={() => setScreen('modeSelect')}
+        onFinish={() => {
+          finalizeCompletion();
+          setMomentum(m => m + 15);
+          setLaunchesToday(n => n + 1);
+          setStepIdx(0);
+          setScreen('reward');
+        }}
+      />
+    );
   else if (screen === 'step')
     body = (
       <ExecutionStep
