@@ -46,6 +46,11 @@ export default function App() {
   const [sourceDescription, setSourceDescription] = useState(null);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
 
+  // Which mode the user picked on the ModeSelect screen. Read by the
+  // Countdown's onComplete to decide whether to land on the 4-step card
+  // flow or the Small Chunker card flow.
+  const [selectedMode, setSelectedMode] = useState(null); // 'fourStep' | 'smallChunker' | null
+
   // Small Chunker on-demand batch state. Each batch generates 4 steps via a
   // fresh /api/generate-micro-steps call. microSteps accumulates across
   // batches so subsequent calls can pass full history for AI continuity.
@@ -237,10 +242,13 @@ export default function App() {
     }
   };
 
+  // Countdown's onComplete handler. By the time the countdown fires, the
+  // user has already chosen a mode on ModeSelect, so we route straight to
+  // the matching card flow.
   const startExecution = () => {
     setStepIdx(0);
     setMomentumGained(0);
-    setScreen(onBreak ? 'standup' : 'modeSelect');
+    setScreen(selectedMode === 'smallChunker' ? 'smallChunker' : 'step');
   };
 
   // `source` may include { id, index, folderId }. If no folderId is supplied
@@ -266,7 +274,8 @@ export default function App() {
     setSourceDescription(description ? description.toString().trim() : null);
     lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
-    setScreen('countdown');
+    setSelectedMode(null);
+    setScreen(onBreak ? 'standup' : 'modeSelect');
 
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
@@ -346,12 +355,13 @@ export default function App() {
   };
 
   const startSmallChunker = () => {
+    setSelectedMode('smallChunker');
     setMicroMode(true);
     setMicroSteps([]);
     setMicroBatch(1);
     setMicroInBatchIdx(0);
     fetchMicroBatch(1, []);
-    setScreen('smallChunker');
+    setScreen('countdown');
   };
 
   const handleMicroBatchComplete = () => {
@@ -456,7 +466,7 @@ export default function App() {
   else if (screen === 'modeSelect')
     body = (
       <ModeSelect
-        onSelectFourStep={() => setScreen('step')}
+        onSelectFourStep={() => { setSelectedMode('fourStep'); setScreen('countdown'); }}
         onSelectSmallChunker={startSmallChunker}
       />
     );
