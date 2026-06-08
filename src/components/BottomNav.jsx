@@ -9,6 +9,17 @@ const ITEMS = [
     ),
   },
   {
+    id: 'break-set',
+    label: 'Break',
+    icon: (
+      <g stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M6 3h12M6 21h12"/>
+        <path d="M7.5 3v3.4L12 11l4.5-4.6V3"/>
+        <path d="M7.5 21v-3.4L12 13l4.5 4.6V21"/>
+      </g>
+    ),
+  },
+  {
     id: 'input',
     label: 'Checklists',
     icon: (
@@ -52,7 +63,8 @@ export function BottomNav({ screen, onNav }) {
       paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
     }}>
       {ITEMS.map(item => {
-        const active = item.id === screen;
+        const active = item.id === screen
+          || (item.id === 'break-set' && typeof screen === 'string' && screen.startsWith('break-'));
         return (
           <button
             key={item.id}

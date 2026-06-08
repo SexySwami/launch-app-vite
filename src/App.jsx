@@ -14,6 +14,11 @@ import { ModeSelect } from './components/ModeSelect.jsx';
 import { SmallChunker } from './components/SmallChunker.jsx';
 import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { RootFolderScreen } from './components/RootFolderScreen.jsx';
+import { SetBreak } from './components/SetBreak.jsx';
+import { BreakInProgress } from './components/BreakInProgress.jsx';
+import { BreakComplete } from './components/BreakComplete.jsx';
+import { BreakTransition } from './components/BreakTransition.jsx';
+import { primeBreakAudio, playBreakAlarm } from './lib/breakAlarm.js';
 import { generateSteps } from './lib/generateSteps.js';
 import { generateMicroSteps } from './lib/generateMicroSteps.js';
 
@@ -67,6 +72,41 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('onBreak', onBreak); } catch {}
   }, [onBreak]);
+
+  // Break Flow (tab-driven): the user picks a duration, the timer counts
+  // down, an alarm fires at zero, then they get a tiny-commitment prompt
+  // and a transition ritual before landing back home.
+  const [breakDurationMin, setBreakDurationMin] = useState(20);
+  const [breakEndsAt, setBreakEndsAt] = useState(null);
+  const [breakTotalSec, setBreakTotalSec] = useState(0);
+  const breakAudioCtxRef = useRef(null);
+
+  const startBreak = (mins) => {
+    const total = Math.max(1, Math.round(mins * 60));
+    setBreakTotalSec(total);
+    setBreakEndsAt(Date.now() + total * 1000);
+    primeBreakAudio(breakAudioCtxRef);
+    setScreen('break-progress');
+  };
+
+  const handleBreakComplete = () => {
+    playBreakAlarm(breakAudioCtxRef.current);
+    setScreen('break-complete');
+  };
+
+  const handleBreakFiveMore = () => {
+    const total = 5 * 60;
+    setBreakTotalSec(total);
+    setBreakEndsAt(Date.now() + total * 1000);
+    primeBreakAudio(breakAudioCtxRef);
+    setScreen('break-progress');
+  };
+
+  const handleBreakDone = () => {
+    setBreakEndsAt(null);
+    setBreakTotalSec(0);
+    setScreen('home');
+  };
 
   // Home-screen Generate/History navigation.
   const [currentItemIdx, setCurrentItemIdx] = useState(-1);
@@ -300,7 +340,9 @@ export default function App() {
   };
 
   // Tab nav: tapping Checklists always returns to the root folder screen
-  // (per spec). Other tabs are unchanged.
+  // (per spec). Other tabs are unchanged. Break tab always lands on the
+  // duration-picker; if the user re-taps it mid-countdown they'll get a
+  // fresh setup screen rather than rejoining the running timer.
   const handleNav = (id) => {
     if (id === 'input') setOpenFolderId(null);
     setScreen(id);
@@ -459,6 +501,33 @@ export default function App() {
     body = <ProfileScreen />;
   else if (screen === 'input')
     body = renderInputBranch();
+  else if (screen === 'break-set')
+    body = (
+      <SetBreak
+        duration={breakDurationMin}
+        onDurationChange={setBreakDurationMin}
+        onStart={() => startBreak(breakDurationMin)}
+        onQuick5={() => { setBreakDurationMin(5); startBreak(5); }}
+      />
+    );
+  else if (screen === 'break-progress')
+    body = (
+      <BreakInProgress
+        endsAt={breakEndsAt}
+        totalSec={breakTotalSec}
+        onComplete={handleBreakComplete}
+        onEndEarly={handleBreakDone}
+      />
+    );
+  else if (screen === 'break-complete')
+    body = (
+      <BreakComplete
+        onYes={() => setScreen('break-transition')}
+        onFiveMore={handleBreakFiveMore}
+      />
+    );
+  else if (screen === 'break-transition')
+    body = <BreakTransition onDone={handleBreakDone} />;
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
   else if (screen === 'standup')
