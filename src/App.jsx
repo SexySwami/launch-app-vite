@@ -516,7 +516,7 @@ export default function App() {
         endsAt={breakEndsAt}
         totalSec={breakTotalSec}
         onComplete={handleBreakComplete}
-        onEndEarly={handleBreakDone}
+        onEndEarly={handleBreakComplete}
       />
     );
   else if (screen === 'break-complete')
