@@ -2,23 +2,32 @@ import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
 import { CountdownRing } from './CountdownRing.jsx';
+import { AmbientField } from './AmbientField.jsx';
 
 const GOLD = '#FFD27A';
 
 export function BreakComplete({ onYes, onFiveMore }) {
   const rgba = (a) => hexToRgba(GOLD, a);
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ paddingTop: 8 }}>
+    <div style={{
+      flex: 1, position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', minHeight: 0,
+    }}>
+      <AmbientField seed={2} />
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
         <Telemetry time="BRK · TIME'S UP" code="BRK-01 / BREAK" state="COMPLETE" color={GOLD} />
       </div>
-      <div style={{ padding: '26px 24px 0', display: 'flex', justifyContent: 'center' }}>
+      <div style={{
+        padding: '26px 24px 0', display: 'flex', justifyContent: 'center',
+        position: 'relative', zIndex: 1,
+      }}>
         <Eyebrow color={GOLD}>Break Complete</Eyebrow>
       </div>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '0 28px', gap: 36,
+        position: 'relative', zIndex: 1,
       }}>
         <CountdownRing time="" fraction={1} accent={GOLD} done />
         <h1 style={{
@@ -31,6 +40,7 @@ export function BreakComplete({ onYes, onFiveMore }) {
       </div>
       <div style={{
         padding: '0 24px 22px', display: 'flex', flexDirection: 'column', gap: 12,
+        position: 'relative', zIndex: 1,
       }}>
         <button onClick={onYes} style={{
           all: 'unset', boxSizing: 'border-box', cursor: 'pointer',

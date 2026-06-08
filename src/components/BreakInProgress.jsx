@@ -3,6 +3,7 @@ import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
 import { CountdownRing } from './CountdownRing.jsx';
+import { AmbientField } from './AmbientField.jsx';
 
 export function BreakInProgress({ endsAt, totalSec, onComplete, onEndEarly }) {
   const [now, setNow] = useState(() => Date.now());
@@ -23,17 +24,25 @@ export function BreakInProgress({ endsAt, totalSec, onComplete, onEndEarly }) {
   const ss = String(remaining % 60).padStart(2, '0');
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ paddingTop: 8 }}>
+    <div style={{
+      flex: 1, position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', minHeight: 0,
+    }}>
+      <AmbientField seed={1} />
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
         <Telemetry time="BRK · LIVE" code="BRK-01 / BREAK" state="LIVE" color={T.cyan} />
       </div>
-      <div style={{ padding: '26px 24px 0', display: 'flex', justifyContent: 'center' }}>
+      <div style={{
+        padding: '26px 24px 0', display: 'flex', justifyContent: 'center',
+        position: 'relative', zIndex: 1,
+      }}>
         <Eyebrow>On Break</Eyebrow>
       </div>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '0 24px', gap: 30,
+        position: 'relative', zIndex: 1,
       }}>
         <CountdownRing time={`${mm}:${ss}`} fraction={fraction} accent={T.cyan} />
         <p style={{
@@ -43,7 +52,7 @@ export function BreakInProgress({ endsAt, totalSec, onComplete, onEndEarly }) {
           Rest up. Launch will fire when time's up.
         </p>
       </div>
-      <div style={{ padding: '0 24px 22px' }}>
+      <div style={{ padding: '0 24px 22px', position: 'relative', zIndex: 1 }}>
         <button onClick={onEndEarly} style={{
           all: 'unset', boxSizing: 'border-box', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

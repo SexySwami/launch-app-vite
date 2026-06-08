@@ -1,15 +1,20 @@
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
+import { AmbientField } from './AmbientField.jsx';
 
 export function BreakTransition({ onDone }) {
   const rgba = (a) => hexToRgba(T.teal, a);
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ paddingTop: 8 }}>
+    <div style={{
+      flex: 1, position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', minHeight: 0,
+    }}>
+      <AmbientField seed={3} />
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
         <Telemetry time="BRK · RITUAL" code="BRK-01 / RITUAL" state="ENGAGE" color={T.teal} />
       </div>
-      <div style={{ padding: '26px 28px 0', textAlign: 'center' }}>
+      <div style={{ padding: '26px 28px 0', textAlign: 'center', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'inline-block' }}>
           <Eyebrow color={T.teal} style={{ marginBottom: 18 }}>Transition</Eyebrow>
         </div>
@@ -21,11 +26,12 @@ export function BreakTransition({ onDone }) {
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center',
         padding: '0 24px', gap: 14,
+        position: 'relative', zIndex: 1,
       }}>
-        <RitualCard index="01" title="Stand up" />
-        <RitualCard index="02" title="Take a deep breath and sit forward in your chair" />
+        <RitualCard index="01" title="Stand up" delay={0} />
+        <RitualCard index="02" title="Take a deep breath and sit forward in your chair" delay={1.4} />
       </div>
-      <div style={{ padding: '0 24px 22px' }}>
+      <div style={{ padding: '0 24px 22px', position: 'relative', zIndex: 1 }}>
         <button onClick={onDone} style={{
           all: 'unset', boxSizing: 'border-box', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -45,16 +51,21 @@ export function BreakTransition({ onDone }) {
   );
 }
 
-function RitualCard({ index, title }) {
+function RitualCard({ index, title, delay = 0 }) {
   const rgba = (a) => hexToRgba(T.teal, a);
   return (
     <div style={{
+      position: 'relative',
       display: 'flex', alignItems: 'center', gap: 16,
       padding: '22px 20px', borderRadius: 22,
       background: `linear-gradient(155deg, ${rgba(0.12)} 0%, rgba(255,255,255,0.025) 50%, ${rgba(0.04)} 100%)`,
       border: `1px solid ${rgba(0.4)}`,
       boxShadow: `inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 30px rgba(0,0,0,0.4), 0 0 36px ${rgba(0.14)}`,
     }}>
+      <span aria-hidden="true" style={{
+        position: 'absolute', inset: 0, borderRadius: 22, pointerEvents: 'none',
+        animation: `greenPulse 2.8s ease-out ${delay}s infinite`,
+      }} />
       <div style={{
         flexShrink: 0, width: 44, height: 44, borderRadius: 14,
         background: `linear-gradient(180deg, ${rgba(0.22)}, ${rgba(0.06)})`,

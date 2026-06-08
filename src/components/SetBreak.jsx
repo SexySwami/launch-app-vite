@@ -1,6 +1,7 @@
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
+import { AmbientField } from './AmbientField.jsx';
 
 const MIN = 5, MAX = 60, TICKS = [5, 15, 30, 60];
 
@@ -10,13 +11,15 @@ export function SetBreak({ duration, onDurationChange, onStart, onQuick5 }) {
 
   return (
     <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0,
+      flex: 1, position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', minHeight: 0,
     }}>
-      <div style={{ paddingTop: 8 }}>
+      <AmbientField seed={0} />
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
         <Telemetry time="BRK · STANDBY" code="BRK-01 / BREAK" state="READY" color={T.cyan} />
       </div>
 
-      <div style={{ padding: '22px 24px 0' }}>
+      <div style={{ padding: '22px 24px 0', position: 'relative', zIndex: 1 }}>
         <Eyebrow style={{ marginBottom: 14 }}>Break Mode</Eyebrow>
         <h1 style={{
           fontFamily: T.display, fontWeight: 600, fontSize: 34, lineHeight: 1.04,
@@ -30,6 +33,7 @@ export function SetBreak({ duration, onDurationChange, onStart, onQuick5 }) {
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center',
         padding: '0 24px', minHeight: 0,
+        position: 'relative', zIndex: 1,
       }}>
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
           <span style={{
@@ -103,6 +107,7 @@ export function SetBreak({ duration, onDurationChange, onStart, onQuick5 }) {
 
       <div style={{
         padding: '0 24px 22px', display: 'flex', flexDirection: 'column', gap: 12,
+        position: 'relative', zIndex: 1,
       }}>
         <PrimaryButton accent={T.cyan} dark onClick={onStart}>Start Break</PrimaryButton>
         <GhostButton onClick={onQuick5}>Quick 5 Min</GhostButton>
