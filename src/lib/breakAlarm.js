@@ -4,6 +4,12 @@
 // via primeBreakAudio(), then call playBreakAlarm(ctx) when the timer
 // fires. Without the gesture priming, browser autoplay rules will
 // silently drop the scheduled buffers when the tab is in the background.
+//
+// One chime pattern is ~2.85s long. startBreakAlarmLoop() repeats the
+// pattern every PATTERN_MS until its returned stop() is invoked — used
+// to ring the BreakComplete screen until the user picks Yes / 5 More.
+
+const PATTERN_MS = 3000;
 
 export function primeBreakAudio(ref) {
   try {
@@ -46,4 +52,11 @@ export function playBreakAlarm(ctx) {
     ];
     pattern.forEach(([dt, f, d, p]) => beep(start + dt, f, d, p));
   } catch {}
+}
+
+export function startBreakAlarmLoop(ctxRef) {
+  primeBreakAudio(ctxRef);
+  playBreakAlarm(ctxRef.current);
+  const id = setInterval(() => playBreakAlarm(ctxRef.current), PATTERN_MS);
+  return () => clearInterval(id);
 }

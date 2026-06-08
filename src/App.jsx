@@ -18,7 +18,7 @@ import { SetBreak } from './components/SetBreak.jsx';
 import { BreakInProgress } from './components/BreakInProgress.jsx';
 import { BreakComplete } from './components/BreakComplete.jsx';
 import { BreakTransition } from './components/BreakTransition.jsx';
-import { primeBreakAudio, playBreakAlarm } from './lib/breakAlarm.js';
+import { primeBreakAudio, startBreakAlarmLoop } from './lib/breakAlarm.js';
 import { generateSteps } from './lib/generateSteps.js';
 import { generateMicroSteps } from './lib/generateMicroSteps.js';
 
@@ -90,9 +90,17 @@ export default function App() {
   };
 
   const handleBreakComplete = () => {
-    playBreakAlarm(breakAudioCtxRef.current);
     setScreen('break-complete');
   };
+
+  // Ring the alarm on a loop the entire time the BreakComplete screen
+  // is up. The cleanup fires when the screen changes (Yes, 5 More Min,
+  // tab nav) so the chime always stops once the user commits.
+  useEffect(() => {
+    if (screen !== 'break-complete') return undefined;
+    const stop = startBreakAlarmLoop(breakAudioCtxRef);
+    return stop;
+  }, [screen]);
 
   const handleBreakFiveMore = () => {
     const total = 5 * 60;
