@@ -18,6 +18,8 @@ import { SetBreak } from './components/SetBreak.jsx';
 import { BreakInProgress } from './components/BreakInProgress.jsx';
 import { BreakComplete } from './components/BreakComplete.jsx';
 import { BreakTransition } from './components/BreakTransition.jsx';
+import { WhatsNext } from './components/WhatsNext.jsx';
+import { ChooseTaskOverlay } from './components/ChooseTaskOverlay.jsx';
 import { primeBreakAudio, startBreakAlarmLoop } from './lib/breakAlarm.js';
 import { generateSteps } from './lib/generateSteps.js';
 import { generateMicroSteps } from './lib/generateMicroSteps.js';
@@ -81,12 +83,25 @@ export default function App() {
   const [breakTotalSec, setBreakTotalSec] = useState(0);
   const breakAudioCtxRef = useRef(null);
 
+  // Post-break landing task. Survives the entire break flow so the
+  // user can pick on `break-next` and have it pre-fill the home
+  // input the moment they return after the Transition Ritual.
+  const [preselectedTask, setPreselectedTask] = useState(null);
+  const [choosingTask, setChoosingTask] = useState(false);
+
   const startBreak = (mins) => {
     const total = Math.max(1, Math.round(mins * 60));
     setBreakTotalSec(total);
     setBreakEndsAt(Date.now() + total * 1000);
     primeBreakAudio(breakAudioCtxRef);
     setScreen('break-progress');
+  };
+
+  // SetBreak's Start / Quick5 land here so the user can pre-pick a
+  // post-break task before the timer starts.
+  const goToWhatsNext = (mins) => {
+    setBreakDurationMin(mins);
+    setScreen('break-next');
   };
 
   const handleBreakComplete = () => {
@@ -113,7 +128,16 @@ export default function App() {
   const handleBreakDone = () => {
     setBreakEndsAt(null);
     setBreakTotalSec(0);
-    setScreen('home');
+    // Seed the home mission input with the pre-selected task (if any)
+    // so the user lands ready to tap Launch. Cleared either way so the
+    // selection doesn't leak into the next break.
+    if (preselectedTask?.text) {
+      setMission(preselectedTask.text);
+      setScreen('home');
+    } else {
+      setScreen('home');
+    }
+    setPreselectedTask(null);
   };
 
   // Home-screen Generate/History navigation.
@@ -514,8 +538,17 @@ export default function App() {
       <SetBreak
         duration={breakDurationMin}
         onDurationChange={setBreakDurationMin}
+        onStart={() => goToWhatsNext(breakDurationMin)}
+        onQuick5={() => goToWhatsNext(5)}
+      />
+    );
+  else if (screen === 'break-next')
+    body = (
+      <WhatsNext
+        selectedTask={preselectedTask}
+        onChoose={() => setChoosingTask(true)}
+        onSkip={() => { setPreselectedTask(null); startBreak(breakDurationMin); }}
         onStart={() => startBreak(breakDurationMin)}
-        onQuick5={() => { setBreakDurationMin(5); startBreak(5); }}
       />
     );
   else if (screen === 'break-progress')
@@ -634,6 +667,14 @@ export default function App() {
       </div>
 
       <BottomNav screen={screen} onNav={handleNav} />
+
+      {choosingTask && (
+        <ChooseTaskOverlay
+          folders={FOLDERS}
+          onSelect={(task) => { setPreselectedTask(task); setChoosingTask(false); }}
+          onClose={() => setChoosingTask(false)}
+        />
+      )}
     </div>
   );
 }

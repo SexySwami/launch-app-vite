@@ -15,6 +15,12 @@ export function MissionInput({
   folder = null,
   onBack = null,
   refetchKey = 0,
+  // When true, per-item launch buttons render a checkmark and fire
+  // `onSelect(task)` instead of launching. Used by the Break Flow
+  // "Choose Task" overlay to pick a post-break task without leaving
+  // the modal or kicking off the launch sequence.
+  selectionMode = false,
+  onSelect = null,
 }) {
   // Per-folder API base. Every queue mutation includes ?folder=<id> so the
   // backend can route to the right Redis key (launch:queue:<id>).
@@ -554,6 +560,18 @@ export function MissionInput({
     if (drag) return; // ignore taps mid-drag
     setSelectedItemId(null);
     setEditingItemId(null);
+    if (selectionMode) {
+      // Route every launch path (per-item button, lazy-launch, search
+      // result, action-menu launch) into selection so the modal closes
+      // without ever firing the real launch sequence.
+      onSelect?.({
+        text,
+        id: source?.id ?? null,
+        folderId,
+        description: description || null,
+      });
+      return;
+    }
     setMission(text);
     onLaunch(text, { ...(source || {}), folderId }, description || null);
   };
@@ -2136,7 +2154,7 @@ export function MissionInput({
                             <button
                               onPointerDown={(e) => e.stopPropagation()}
                               onClick={(e) => { e.stopPropagation(); handleLaunchItem(child.text, { id: child.id, index: -1 }, child.description); }}
-                              aria-label={`Launch ${child.text}`}
+                              aria-label={selectionMode ? `Select ${child.text}` : `Launch ${child.text}`}
                               style={{
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
                                 width: 28, height: 28, borderRadius: 99,
@@ -2149,9 +2167,15 @@ export function MissionInput({
                                 WebkitTapHighlightColor: 'transparent',
                               }}
                             >
-                              <svg width="11" height="11" viewBox="0 0 14 14">
-                                <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
-                              </svg>
+                              {selectionMode ? (
+                                <svg width="12" height="12" viewBox="0 0 14 14">
+                                  <path d="M3 7.5l3 3 5-6" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              ) : (
+                                <svg width="11" height="11" viewBox="0 0 14 14">
+                                  <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
+                                </svg>
+                              )}
                             </button>
                           </div>
                           );
@@ -2291,7 +2315,7 @@ export function MissionInput({
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => { e.stopPropagation(); handleLaunchItem(item.text, { id: item.id, index: idx }, item.description); }}
-                      aria-label={`Launch ${item.text}`}
+                      aria-label={selectionMode ? `Select ${item.text}` : `Launch ${item.text}`}
                       style={{
                         all: 'unset', cursor: 'pointer', flexShrink: 0,
                         width: 32, height: 32, borderRadius: 99,
@@ -2304,9 +2328,15 @@ export function MissionInput({
                         WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 14 14">
-                        <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
-                      </svg>
+                      {selectionMode ? (
+                        <svg width="14" height="14" viewBox="0 0 14 14">
+                          <path d="M3 7.5l3 3 5-6" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 14 14">
+                          <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
+                        </svg>
+                      )}
                     </button>
                   </div>
                 </Fragment>
