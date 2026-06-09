@@ -166,8 +166,16 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
 function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCategoryTap }) {
   const accent = activeCat?.accent || T.cyan;
   const stdPills = [
-    { id: 'generate', icon: '✨', label: 'Generate', dimmed: !!generateEmpty },
-    { id: 'history',  icon: '↺',  label: 'History',  disabled: !!historyDisabled },
+    { id: 'generate', icon: (
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+        <path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ), dimmed: !!generateEmpty },
+    { id: 'history', icon: (
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+        <path d="M7.5 2.5L4 6L7.5 9.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ), disabled: !!historyDisabled },
   ];
   return (
     <div className="assist-pills-scroll" style={{
@@ -245,8 +253,7 @@ function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCa
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            <span style={{ fontSize: 12, filter: 'saturate(1.15)' }}>{p.icon}</span>
-            {p.label}
+            {p.icon}
           </button>
         ))}
       </div>
