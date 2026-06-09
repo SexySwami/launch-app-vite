@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 
-const EXAMPLES = ['Finish WSI proposal', 'Send client follow-up', 'Start workout'];
-
-const LAZY_ACCENT = '#C46D00';
-
 const DEFAULT_FOLDERS = [
   { id: 'work',     name: 'Work',     accent: T.cyan,   iconKey: 'work' },
   { id: 'personal', name: 'Personal', accent: T.purple, iconKey: 'personal' },
@@ -84,21 +80,11 @@ function CategoryIcon({ iconKey, color }) {
   );
 }
 
-function MissionField({ mission, setMission, inputFocused, setInputFocused, isLazy }) {
-  const [phIdx, setPhIdx] = useState(0);
+function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   const [listening, setListening] = useState(false);
 
-  useEffect(() => {
-    if (mission || isLazy) return;
-    const id = setInterval(() => setPhIdx(i => (i + 1) % EXAMPLES.length), 2600);
-    return () => clearInterval(id);
-  }, [mission, isLazy]);
-
-  const hot = inputFocused || mission.length > 0 || isLazy;
-  const borderColor = isLazy
-    ? hexToRgba(LAZY_ACCENT, 0.65)
-    : hot ? 'rgba(0,229,255,0.65)' : T.hairline;
-  const glowColor = isLazy ? LAZY_ACCENT : '0,229,255';
+  const hot = inputFocused || mission.length > 0;
+  const borderColor = hot ? 'rgba(0,229,255,0.65)' : T.hairline;
 
   return (
     <div style={{ padding: '20px 24px 0', position: 'relative' }}>
@@ -115,24 +101,24 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused, isLa
       <div style={{
         position: 'relative',
         background: hot
-          ? `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(${isLazy ? '196,109,0' : '0,229,255'},0.04) 60%, rgba(255,255,255,0.02))`
+          ? `linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,229,255,0.04) 60%, rgba(255,255,255,0.02))`
           : 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
         border: `1px solid ${borderColor}`,
         borderRadius: 18, padding: '14px 12px 14px 18px',
         display: 'flex', alignItems: 'center', gap: 10,
         transition: 'all 300ms ease',
         boxShadow: hot
-          ? `0 0 0 4px rgba(${isLazy ? '196,109,0' : '0,229,255'},0.14),
-             0 0 50px rgba(${isLazy ? '196,109,0' : '0,229,255'},0.22),
+          ? `0 0 0 4px rgba(0,229,255,0.14),
+             0 0 50px rgba(0,229,255,0.22),
              0 0 100px rgba(61,127,255,0.12),
-             inset 0 0 40px rgba(${isLazy ? '196,109,0' : '0,229,255'},0.06),
+             inset 0 0 40px rgba(0,229,255,0.06),
              inset 0 1px 0 rgba(255,255,255,0.12)`
           : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 0 20px rgba(0,229,255,0.04)',
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: 99,
-          background: isLazy ? LAZY_ACCENT : (hot ? T.cyan : T.text3),
-          boxShadow: isLazy ? `0 0 10px ${LAZY_ACCENT}` : (hot ? `0 0 10px ${T.cyan}` : 'none'),
+          background: hot ? T.cyan : T.text3,
+          boxShadow: hot ? `0 0 10px ${T.cyan}` : 'none',
           flexShrink: 0,
           animation: hot ? 'pulse 1.6s ease-in-out infinite' : 'none',
         }} />
@@ -142,25 +128,14 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused, isLa
             onChange={e => setMission(e.target.value)}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
-            placeholder={isLazy ? '' : EXAMPLES[phIdx]}
+            placeholder="Enter your mission"
             style={{
               width: '100%', background: 'transparent', border: 'none', outline: 'none',
               fontFamily: T.display, fontSize: 17, fontWeight: 500,
               color: T.text, letterSpacing: '-0.005em', padding: 0,
-              minWidth: 0, opacity: isLazy ? 0 : 1,
+              minWidth: 0,
             }}
           />
-          {isLazy && (
-            <span style={{
-              position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-              fontFamily: T.display, fontSize: 20, fontWeight: 800,
-              color: LAZY_ACCENT, letterSpacing: '0.1em',
-              pointerEvents: 'none',
-              textShadow: `0 0 18px ${hexToRgba(LAZY_ACCENT, 0.55)}`,
-            }}>
-              LAZY
-            </span>
-          )}
         </div>
         <button
           aria-label="Voice input"
@@ -188,7 +163,7 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused, isLa
   );
 }
 
-function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCategoryTap, onLazy, lazyArmed }) {
+function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCategoryTap }) {
   const accent = activeCat?.accent || T.cyan;
   const stdPills = [
     { id: 'generate', icon: '✨', label: 'Generate', dimmed: !!generateEmpty },
@@ -208,39 +183,6 @@ function AssistPills({ onAction, historyDisabled, generateEmpty, activeCat, onCa
         margin: '0 auto',
         padding: '0 24px',
       }}>
-        {/* Lazy pill */}
-        <button
-          onClick={onLazy}
-          style={{
-            all: 'unset', cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '6px 12px', borderRadius: 99,
-            background: hexToRgba(LAZY_ACCENT, lazyArmed ? 0.22 : 0.10),
-            border: `1px solid ${hexToRgba(LAZY_ACCENT, lazyArmed ? 0.65 : 0.38)}`,
-            fontFamily: T.display, fontSize: 11.5, fontWeight: 500,
-            color: LAZY_ACCENT, letterSpacing: '0.005em', whiteSpace: 'nowrap',
-            boxShadow: lazyArmed
-              ? `0 0 18px ${hexToRgba(LAZY_ACCENT, 0.38)}`
-              : `0 0 10px ${hexToRgba(LAZY_ACCENT, 0.14)}`,
-            transition: 'all 200ms ease',
-          }}
-          onMouseEnter={e => {
-            if (lazyArmed) return;
-            e.currentTarget.style.background = hexToRgba(LAZY_ACCENT, 0.22);
-            e.currentTarget.style.boxShadow = `0 0 18px ${hexToRgba(LAZY_ACCENT, 0.38)}`;
-          }}
-          onMouseLeave={e => {
-            if (lazyArmed) return;
-            e.currentTarget.style.background = hexToRgba(LAZY_ACCENT, 0.10);
-            e.currentTarget.style.boxShadow = `0 0 10px ${hexToRgba(LAZY_ACCENT, 0.14)}`;
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M7.5 2.5A3.5 3.5 0 1 0 7.5 9A2.6 2.6 0 0 1 7.5 2.5z" stroke={LAZY_ACCENT} strokeWidth="1.2" strokeLinejoin="round"/>
-          </svg>
-          Lazy
-        </button>
-
         {/* Category cycling pill */}
         <button
           onClick={onCategoryTap}
@@ -628,9 +570,6 @@ export function HomeScreen({
   const [selectedCatIdx, setSelectedCatIdx] = useState(0);
   const [toastMsg, setToastMsg] = useState('');
   const toastTimerRef = useRef(null);
-  const [lazyMission, setLazyMission] = useState('');
-  const [lazyPriorMission, setLazyPriorMission] = useState('');
-  const [workTopItem, setWorkTopItem] = useState(null);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -651,29 +590,6 @@ export function HomeScreen({
     const nextIdx = (selectedCatIdx + 1) % resolvedFolders.length;
     setSelectedCatIdx(nextIdx);
     setCurrentItemIdx(-1);
-  };
-
-  const handleSetMission = (val) => {
-    setMission(val);
-    if (lazyMission) setLazyMission('');
-    if (lazyPriorMission) setLazyPriorMission('');
-  };
-
-  const handleLazy = () => {
-    if (lazyMission) {
-      // Deselect: restore whatever was in the input before Lazy was armed.
-      setLazyMission('');
-      setMission(lazyPriorMission);
-      setLazyPriorMission('');
-      return;
-    }
-    if (!workTopItem) {
-      showToast('No items in Work yet');
-      return;
-    }
-    setLazyPriorMission(mission);
-    setMission('');
-    setLazyMission(workTopItem.text);
   };
 
   const closeSearch = () => {
@@ -746,7 +662,8 @@ export function HomeScreen({
     return () => { cancelled = true; };
   }, [selectedCatIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch the top Work item for Lazy button (once on mount).
+  // On mount, fetch the #1 item from the Work folder and pre-populate the
+  // mission input so the user sees their top task ready to launch.
   useEffect(() => {
     let cancelled = false;
     const canCallAPI = typeof window !== 'undefined'
@@ -756,21 +673,17 @@ export function HomeScreen({
       try {
         const res = await fetch('/api/queue?folder=work', { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
-        if (!cancelled) {
-          const items = flattenQueue(data?.items);
-          setWorkTopItem(items[0] || null);
-        }
-      } catch {
-        if (!cancelled) setWorkTopItem(null);
-      }
+        if (cancelled) return;
+        const items = flattenQueue(data?.items);
+        if (items[0]?.text) setMission(items[0].text);
+      } catch {}
     })();
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trimmed = mission.trim();
-  const lazyArmed = !!lazyMission;
-  const reactorState = lazyArmed ? 'armed' : (trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed');
-  const intensity = lazyArmed ? 1 : Math.min(1, trimmed.length / 18);
+  const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
+  const intensity = Math.min(1, trimmed.length / 18);
 
   const historyDisabled = currentItemIdx <= 0;
   const generateEmpty = flatItems.length === 0;
@@ -785,7 +698,6 @@ export function HomeScreen({
       setCurrentItemIdx(nextIdx);
       const item = flatItems[nextIdx];
       setMission((item?.text || '').toString());
-      setLazyMission('');
     } else if (id === 'history') {
       if (historyDisabled) return;
       const nextIdx = currentItemIdx - 1;
@@ -796,12 +708,8 @@ export function HomeScreen({
   };
 
   const handleLaunch = () => {
-    const effectiveMission = lazyMission || trimmed;
-    if (!effectiveMission) return;
-    const catId = lazyMission ? 'work' : activeCat.id;
-    onLaunch && onLaunch(effectiveMission, catId);
-    setLazyMission('');
-    setLazyPriorMission('');
+    if (!trimmed) return;
+    onLaunch && onLaunch(trimmed, activeCat.id);
   };
 
   return (
@@ -811,9 +719,8 @@ export function HomeScreen({
       minHeight: 0,
     }}>
       <MissionField
-        mission={mission} setMission={handleSetMission}
+        mission={mission} setMission={setMission}
         inputFocused={inputFocused} setInputFocused={setInputFocused}
-        isLazy={lazyArmed}
       />
 
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -824,8 +731,6 @@ export function HomeScreen({
           generateEmpty={generateEmpty}
           activeCat={activeCat}
           onCategoryTap={handleCategoryTap}
-          onLazy={handleLazy}
-          lazyArmed={lazyArmed}
         />
         <ReactorCore
           state={reactorState}
