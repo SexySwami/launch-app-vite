@@ -1075,6 +1075,7 @@ export function MissionInput({
           sourceItemIndex: topLevelIdx >= 0 ? topLevelIdx : -1,
           folderId,
           text: itemToCheck.text,
+          ...(itemToCheck.description ? { description: itemToCheck.description } : {}),
         }),
       });
     } catch {}
