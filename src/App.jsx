@@ -507,7 +507,12 @@ export default function App() {
     return (
       <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {!openFolderId && (
-          <RootFolderScreen folders={FOLDERS} onOpen={openFolder} resetKey={dailiesResetKey} />
+          <RootFolderScreen
+            folders={FOLDERS}
+            onOpen={openFolder}
+            resetKey={dailiesResetKey}
+            onSearchSelect={(item) => { setMission(item.text); setScreen('home'); }}
+          />
         )}
         {Array.from(mountedFolderIds).map(fid => {
           const folder = foldersById[fid];

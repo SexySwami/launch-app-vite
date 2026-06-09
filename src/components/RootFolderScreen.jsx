@@ -1,16 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
 
-// Hex (#RRGGBB) → rgba string. Inlined here so tiles can render their own
-// accent washes without a token table per folder.
 function toRGBA(hex, a) {
   const m = hex.replace('#', '');
   const r = parseInt(m.substring(0, 2), 16);
   const g = parseInt(m.substring(2, 4), 16);
   const b = parseInt(m.substring(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
+}
+
+function flattenQueueWithMeta(items, categoryName) {
+  const out = [];
+  if (!Array.isArray(items)) return out;
+  for (const item of items) {
+    if (!item) continue;
+    if (item.type === 'folder') {
+      for (const child of (item.children || [])) {
+        if (child && typeof child.text === 'string' && child.text.trim()) {
+          out.push({ ...child, categoryName, folderName: item.text });
+        }
+      }
+    } else if (typeof item.text === 'string' && item.text.trim()) {
+      out.push({ ...item, categoryName, folderName: null });
+    }
+  }
+  return out;
 }
 
 function countLeaves(items) {
@@ -208,10 +224,14 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
   );
 }
 
-export function RootFolderScreen({ folders, onOpen, resetKey = 0 }) {
-  // Per-folder leaf counts fetched from /api/queue?folder=ID. Re-fetches when
-  // the tab becomes visible so counts reflect changes made elsewhere.
+export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect }) {
   const [counts, setCounts] = useState(() => ({}));
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allSearchItems, setAllSearchItems] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [hoveredResultIdx, setHoveredResultIdx] = useState(-1);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,6 +262,56 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0 }) {
     return () => { cancelled = true; document.removeEventListener('visibilitychange', onVisible); };
   }, [folders, resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setHoveredResultIdx(-1);
+  };
+
+  const openSearch = async () => {
+    if (searchOpen) { closeSearch(); return; }
+    setSearchOpen(true);
+    setSearchQuery('');
+    setHoveredResultIdx(-1);
+    const canCallAPI = typeof window !== 'undefined'
+      && /^https?:$/.test(window.location?.protocol || '');
+    if (!canCallAPI) return;
+    setSearchLoading(true);
+    try {
+      const results = await Promise.all(
+        folders.map(async (cat) => {
+          try {
+            const res = await fetch(`/api/queue?folder=${encodeURIComponent(cat.id)}`, { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            return flattenQueueWithMeta(data?.items, cat.name);
+          } catch { return []; }
+        })
+      );
+      setAllSearchItems(results.flat());
+    } catch {
+      setAllSearchItems([]);
+    }
+    setSearchLoading(false);
+  };
+
+  const handleSearchSelect = (item) => {
+    onSearchSelect && onSearchSelect(item);
+    closeSearch();
+  };
+
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [searchOpen]);
+
+  const searchResults = searchQuery.trim()
+    ? allSearchItems.filter(item =>
+        item.text.toLowerCase().includes(searchQuery.toLowerCase().trim())
+      )
+    : [];
+
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
@@ -251,21 +321,142 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0 }) {
         <Telemetry time="04:32:11 UTC" code="MC-04 / ROOT" state="STANDBY" />
       </div>
 
-      <div style={{ padding: '20px 20px 6px' }}>
-        <Eyebrow style={{ marginBottom: 12 }}>Workspace</Eyebrow>
-        <h1 style={{
-          fontFamily: T.display, fontWeight: 600, fontSize: 30, lineHeight: 1.05,
-          letterSpacing: '-0.02em', color: T.text, margin: 0, marginBottom: 6,
-        }}>
-          Pick a checklist to launch from.
-        </h1>
-        <p style={{
-          fontFamily: T.display, fontSize: 13, color: T.text2,
-          margin: 0, letterSpacing: '-0.005em',
-        }}>
-          Every root folder holds an independent queue. Switch contexts, keep momentum.
-        </p>
+      <div style={{ padding: '20px 20px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+          <Eyebrow style={{ marginBottom: 12 }}>Workspace</Eyebrow>
+          <h1 style={{
+            fontFamily: T.display, fontWeight: 600, fontSize: 30, lineHeight: 1.05,
+            letterSpacing: '-0.02em', color: T.text, margin: 0, marginBottom: 6,
+          }}>
+            Pick a checklist to launch from.
+          </h1>
+          <p style={{
+            fontFamily: T.display, fontSize: 13, color: T.text2,
+            margin: 0, letterSpacing: '-0.005em',
+          }}>
+            Every root folder holds an independent queue. Switch contexts, keep momentum.
+          </p>
+        </div>
+        <button
+          aria-label={searchOpen ? 'Close search' : 'Search checklists'}
+          onClick={searchOpen ? closeSearch : openSearch}
+          style={{
+            all: 'unset', cursor: 'pointer', flexShrink: 0, marginTop: 4,
+            width: 40, height: 40, borderRadius: 99,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: searchOpen ? 'rgba(255,192,72,0.12)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${searchOpen ? 'rgba(255,192,72,0.55)' : T.hairlineSoft}`,
+            color: searchOpen ? T.amber : T.text3,
+            boxShadow: searchOpen ? '0 0 16px rgba(255,192,72,0.22)' : 'none',
+            transition: 'all 200ms ease',
+          }}
+        >
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
+
+      {searchOpen && (
+        <>
+          <div onClick={closeSearch} style={{ position: 'fixed', inset: 0, zIndex: 48 }} />
+          <div style={{ padding: '0 16px 8px', position: 'relative', zIndex: 50 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(255,192,72,0.06)',
+              border: '1px solid rgba(255,192,72,0.50)',
+              borderRadius: 14,
+              padding: '11px 14px',
+              boxShadow: '0 0 0 4px rgba(255,192,72,0.07), 0 0 20px rgba(255,192,72,0.10)',
+            }}>
+              <svg width="15" height="15" viewBox="0 0 17 17" fill="none" style={{ flexShrink: 0, color: T.amber }}>
+                <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search all checklists…"
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                  fontFamily: T.display, fontSize: 15, fontWeight: 500,
+                  color: T.text, letterSpacing: '-0.005em', padding: 0, minWidth: 0,
+                }}
+              />
+              <button
+                onClick={closeSearch}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  width: 22, height: 22, borderRadius: 99,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  color: T.text3, fontSize: 13,
+                  background: 'rgba(255,255,255,0.06)',
+                  flexShrink: 0,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {searchQuery.trim() && (
+              <div style={{
+                background: 'rgba(6,10,18,0.98)',
+                border: '1px solid rgba(255,192,72,0.28)',
+                borderRadius: 16,
+                marginTop: 8,
+                overflow: 'hidden',
+                maxHeight: 260,
+                overflowY: 'auto',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,192,72,0.08)',
+              }}>
+                {searchLoading ? (
+                  <div style={{ padding: '14px 16px', fontFamily: T.mono, fontSize: 11, color: T.text3 }}>
+                    Searching…
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div style={{ padding: '14px 16px', fontFamily: T.mono, fontSize: 11, color: T.text3 }}>
+                    No items found.
+                  </div>
+                ) : (
+                  searchResults.map((item, i) => (
+                    <button
+                      key={item.id || i}
+                      onClick={() => handleSearchSelect(item)}
+                      onPointerEnter={() => setHoveredResultIdx(i)}
+                      onPointerLeave={() => setHoveredResultIdx(-1)}
+                      style={{
+                        all: 'unset',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                        padding: '11px 16px',
+                        width: '100%', boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        background: hoveredResultIdx === i ? 'rgba(255,192,72,0.10)' : 'transparent',
+                        borderLeft: `3px solid ${hoveredResultIdx === i ? T.amber : 'transparent'}`,
+                        borderBottom: i < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        transition: 'background 120ms, border-color 120ms',
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: T.display, fontSize: 14, fontWeight: 500, color: T.text,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {item.text}
+                      </span>
+                      <span style={{
+                        fontFamily: T.mono, fontSize: 10.5, color: T.text3, letterSpacing: '0.02em',
+                      }}>
+                        {item.categoryName}{item.folderName ? ` — ${item.folderName}` : ''}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <div className="scroll-thin" style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
