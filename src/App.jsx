@@ -555,8 +555,6 @@ export default function App() {
         currentItemIdx={currentItemIdx}
         setCurrentItemIdx={setCurrentItemIdx}
         folders={FOLDERS}
-        onBreak={onBreak}
-        setOnBreak={setOnBreak}
       />
     );
   else if (screen === 'profile')

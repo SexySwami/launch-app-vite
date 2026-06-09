@@ -551,7 +551,6 @@ export function HomeScreen({
   mission, setMission, onLaunch,
   currentItemIdx, setCurrentItemIdx,
   folders,
-  onBreak, setOnBreak,
 }) {
   const resolvedFolders = folders?.length ? folders : DEFAULT_FOLDERS;
   const [inputFocused, setInputFocused] = useState(false);
@@ -669,52 +668,6 @@ export function HomeScreen({
           intensity={intensity}
           onLaunch={handleLaunch}
         />
-      </div>
-
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 8,
-      }}>
-        <button
-          aria-label={onBreak ? 'Disable On Break' : 'Enable On Break'}
-          onClick={() => setOnBreak && setOnBreak(b => !b)}
-          style={{
-            all: 'unset', cursor: 'pointer',
-            height: 44, borderRadius: 99,
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '0 18px',
-            background: onBreak ? 'rgba(255,192,72,0.14)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${onBreak ? 'rgba(255,192,72,0.55)' : T.hairlineSoft}`,
-            color: onBreak ? '#FFC048' : T.text3,
-            boxShadow: onBreak ? '0 0 16px rgba(255,192,72,0.22)' : 'none',
-            transition: 'all 220ms ease',
-          }}
-          onPointerEnter={e => {
-            if (onBreak) return;
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            e.currentTarget.style.color = T.text2;
-            e.currentTarget.style.borderColor = T.hairline;
-          }}
-          onPointerLeave={e => {
-            if (onBreak) return;
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-            e.currentTarget.style.color = T.text3;
-            e.currentTarget.style.borderColor = T.hairlineSoft;
-          }}
-        >
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-            <path d="M2.5 5h8v5.5a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V5z" stroke="currentColor" strokeWidth="1.3"/>
-            <path d="M10.5 6.5h1a1.5 1.5 0 0 1 0 3h-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            <path d="M5 2.5c0 0 .5 1-.5 1.5M7.5 2c0 0 .5 1-.5 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-          </svg>
-          <span style={{
-            fontFamily: T.mono, fontSize: 11, fontWeight: 600,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
-          }}>
-            On Break
-          </span>
-        </button>
       </div>
 
       {toastMsg && (
