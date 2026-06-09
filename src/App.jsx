@@ -128,16 +128,37 @@ export default function App() {
   const handleBreakDone = () => {
     setBreakEndsAt(null);
     setBreakTotalSec(0);
-    // Seed the home mission input with the pre-selected task (if any)
-    // so the user lands ready to tap Launch. Cleared either way so the
-    // selection doesn't leak into the next break.
-    if (preselectedTask?.text) {
-      setMission(preselectedTask.text);
-      setScreen('home');
-    } else {
-      setScreen('home');
-    }
+    const task = preselectedTask;
     setPreselectedTask(null);
+
+    if (!task?.text) {
+      // Nothing pre-selected: go home with a blank input.
+      setMission('');
+      setScreen('home');
+      return;
+    }
+
+    // Jump straight into the first execution card, skipping StandUp,
+    // ModeSelect, and Countdown entirely to reduce post-break friction.
+    // Use whichever mode the user last selected; fall back to fourStep.
+    const source = { id: task.id ?? null, folderId: task.folderId ?? null };
+
+    if (selectedMode === 'smallChunker') {
+      // Prime the Small Chunker micro-step state before calling launchMission
+      // so the screen is ready to render; pass the mission text explicitly
+      // since the React state update from launchMission won't flush until
+      // after this synchronous handler completes.
+      setMicroMode(true);
+      setMicroSteps([]);
+      setMicroBatch(1);
+      setMicroInBatchIdx(0);
+      fetchMicroBatch(1, [], task.text);
+      launchMission(task.text, source, task.description ?? null, 'smallChunker');
+    } else {
+      // fourStep (or first-ever launch with no prior mode): land on the
+      // step cards. ExecutionStep handles the loading state while steps arrive.
+      launchMission(task.text, source, task.description ?? null, 'step');
+    }
   };
 
   // Home-screen Generate/History navigation.
@@ -326,7 +347,7 @@ export default function App() {
   // `source` may include { id, index, folderId }. If no folderId is supplied
   // (e.g. Home-screen launches) we fall back to the default folder so the
   // queue DELETE on completion still hits a sensible Redis key.
-  const launchMission = async (missionText, source, description) => {
+  const launchMission = async (missionText, source, description, skipToScreen = null) => {
     const m = (missionText || '').trim();
     if (!m) return;
     setMission(m);
@@ -347,7 +368,7 @@ export default function App() {
     lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
     setSelectedMode(null);
-    setScreen(onBreak ? 'standup' : 'modeSelect');
+    setScreen(skipToScreen ?? (onBreak ? 'standup' : 'modeSelect'));
 
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
@@ -393,7 +414,11 @@ export default function App() {
   // Small Chunker: fetch the next batch of 4. Appends to microSteps on success;
   // falls back to the local generator if the API is unavailable so the screen
   // never gets stuck on the loading state.
-  const fetchMicroBatch = async (batchNumber, accumulatedSteps) => {
+  // missionOverride is used by the post-break direct-launch path so the
+  // correct mission text reaches the API before the mission state update
+  // from launchMission has been flushed through a React render.
+  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null) => {
+    const batchMission = missionOverride ?? mission;
     setMicroLoading(true);
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
@@ -401,7 +426,7 @@ export default function App() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          mission,
+          mission: batchMission,
           ...(sourceDescription ? { description: sourceDescription } : {}),
           previousSteps: accumulatedSteps,
           batchNumber,
@@ -413,7 +438,7 @@ export default function App() {
       }
       setMicroSteps([...accumulatedSteps, ...data.steps]);
     } catch {
-      const fallback = generateMicroSteps(mission, batchNumber, accumulatedSteps);
+      const fallback = generateMicroSteps(batchMission, batchNumber, accumulatedSteps);
       setMicroSteps([...accumulatedSteps, ...fallback]);
     } finally {
       setMicroLoading(false);

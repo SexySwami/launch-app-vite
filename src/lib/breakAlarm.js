@@ -3,11 +3,18 @@
 // Pre-create the AudioContext on a user gesture (Start Break / Quick 5)
 // via primeBreakAudio(), then call playBreakAlarm(ctx) when the timer
 // fires. Without the gesture priming, browser autoplay rules will
-// silently drop the scheduled buffers when the tab is in the background.
+// silently drop the scheduled buffers.
 //
-// One chime pattern is ~2.85s long. startBreakAlarmLoop() repeats the
-// pattern every PATTERN_MS until its returned stop() is invoked — used
-// to ring the BreakComplete screen until the user picks Yes / 5 More.
+// iOS-specific notes:
+//   1. primeBreakAudio() installs a silent looping BufferSource so iOS
+//      doesn't auto-suspend the AudioContext between the user gesture and
+//      the alarm firing (~30 s inactivity threshold without it).
+//   2. playBreakAlarm() awaits ctx.resume() before scheduling any nodes —
+//      iOS requires the resume Promise to settle before currentTime/start()
+//      are meaningful; fire-and-forget resume silently drops all notes.
+//
+// One chime pattern is ~2.85 s long. startBreakAlarmLoop() repeats the
+// pattern every PATTERN_MS until its returned stop() is invoked.
 
 const PATTERN_MS = 3000;
 
@@ -16,16 +23,37 @@ export function primeBreakAudio(ref) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     if (!ref.current) ref.current = new Ctx();
-    if (ref.current.state === 'suspended') ref.current.resume();
+    const ctx = ref.current;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    // Keep-alive: a silent (gain ≈ 0) looping BufferSource prevents iOS
+    // from suspending the AudioContext during a long break. Without an
+    // active audio node iOS suspends after ~30 s of inactivity and
+    // resume() called outside a user gesture is blocked.
+    if (ctx._keepAlive) return;
+    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); // 1 s silence
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.00001, ctx.currentTime); // inaudible but non-zero
+    src.connect(g);
+    g.connect(ctx.destination);
+    src.start();
+    ctx._keepAlive = src; // prevent GC + guard against double-init
   } catch {}
 }
 
-export function playBreakAlarm(ctx) {
+export async function playBreakAlarm(ctx) {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     const audio = ctx || new Ctx();
-    if (audio.state === 'suspended') audio.resume();
+
+    // Must await — iOS blocks scheduling on a suspended context and the
+    // resume Promise must settle before currentTime is reliable.
+    if (audio.state === 'suspended') await audio.resume();
+    if (audio.state !== 'running') return;
 
     const start = audio.currentTime + 0.05;
     const beep = (t, freq, dur, peak) => {
@@ -41,7 +69,7 @@ export function playBreakAlarm(ctx) {
       osc.stop(t + dur + 0.05);
     };
 
-    // Two rising 3-note chimes, ~3s total.
+    // Two rising 3-note chimes, ~3 s total.
     const pattern = [
       [0.00,  880, 0.32, 0.22],
       [0.30, 1108, 0.32, 0.22],

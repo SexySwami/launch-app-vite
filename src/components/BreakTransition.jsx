@@ -23,6 +23,8 @@ export function BreakTransition({ onDone }) {
           letterSpacing: '-0.02em', color: T.text, margin: 0,
         }}>First, do one of these.</h1>
       </div>
+
+      {/* Cards — all four items live here so the group stays centred */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center',
         padding: '0 24px', gap: 14,
@@ -30,7 +32,22 @@ export function BreakTransition({ onDone }) {
       }}>
         <RitualCard index="01" title="Stand up" delay={0} />
         <RitualCard index="02" title="Take a deep breath and sit forward in your chair" delay={1.4} />
+
+        {/* "and" divider */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '0 4px',
+        }}>
+          <div style={{ flex: 1, height: 1, background: rgba(0.22) }} />
+          <span style={{
+            fontFamily: T.mono, fontSize: 11, letterSpacing: '0.22em',
+            color: rgba(0.65), textTransform: 'uppercase',
+          }}>and</span>
+          <div style={{ flex: 1, height: 1, background: rgba(0.22) }} />
+        </div>
+
+        <RitualCard icon={<EyeIcon />} title="Visualize yourself doing the next step" delay={2.8} />
       </div>
+
       <div style={{ padding: '0 24px 22px', position: 'relative', zIndex: 1 }}>
         <button onClick={onDone} style={{
           all: 'unset', boxSizing: 'border-box', cursor: 'pointer',
@@ -51,7 +68,20 @@ export function BreakTransition({ onDone }) {
   );
 }
 
-function RitualCard({ index, title, delay = 0 }) {
+function EyeIcon() {
+  return (
+    <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+      <path
+        d="M1 7C3.5 2.5 6.8 1 10 1C13.2 1 16.5 2.5 19 7C16.5 11.5 13.2 13 10 13C6.8 13 3.5 11.5 1 7Z"
+        stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"
+      />
+      <circle cx="10" cy="7" r="2.6" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="10" cy="7" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function RitualCard({ index, icon, title, delay = 0 }) {
   const rgba = (a) => hexToRgba(T.teal, a);
   return (
     <div style={{
@@ -64,7 +94,7 @@ function RitualCard({ index, title, delay = 0 }) {
     }}>
       <span aria-hidden="true" style={{
         position: 'absolute', inset: 0, borderRadius: 22, pointerEvents: 'none',
-        animation: `greenPulse 2.8s ease-out ${delay}s infinite`,
+        animation: `greenPulse 4.2s ease-out ${delay}s infinite`,
       }} />
       <div style={{
         flexShrink: 0, width: 44, height: 44, borderRadius: 14,
@@ -74,7 +104,9 @@ function RitualCard({ index, title, delay = 0 }) {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: T.mono, fontSize: 15, fontWeight: 600, color: T.teal,
         textShadow: `0 0 10px ${rgba(0.6)}`,
-      }}>{index}</div>
+      }}>
+        {icon ?? index}
+      </div>
       <div style={{
         flex: 1, fontFamily: T.display, fontSize: 18, fontWeight: 600,
         color: T.text, letterSpacing: '-0.01em', lineHeight: 1.3,

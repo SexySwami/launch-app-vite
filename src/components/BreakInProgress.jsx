@@ -9,8 +9,16 @@ export function BreakInProgress({ endsAt, totalSec, onComplete, onEndEarly }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
+    // Poll every 250 ms for smooth UI, but also snap immediately when the
+    // tab becomes visible again (phone unlocked / app foregrounded) so the
+    // timer catches up instantly rather than waiting for the next tick.
+    const tick = () => setNow(Date.now());
+    const id = setInterval(tick, 250);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, []);
 
   const remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
