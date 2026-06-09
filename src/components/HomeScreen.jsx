@@ -72,7 +72,7 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
     el.style.height = 'auto';
     const scrollH = el.scrollHeight;
     const lineH = parseFloat(getComputedStyle(el).lineHeight) || 22;
-    el.style.height = (scrollH > lineH + 4 ? Math.min(scrollH, lineH * 2) : lineH) + 'px';
+    el.style.height = (scrollH > lineH + 4 ? scrollH : lineH) + 'px';
   }, [mission]);
 
   const hot = inputFocused || mission.length > 0;
