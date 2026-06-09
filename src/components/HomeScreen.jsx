@@ -64,6 +64,16 @@ function CategoryIcon({ iconKey, color }) {
 
 function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   const [listening, setListening] = useState(false);
+  const missionInputRef = useRef(null);
+
+  useEffect(() => {
+    const el = missionInputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const scrollH = el.scrollHeight;
+    const lineH = parseFloat(getComputedStyle(el).lineHeight) || 22;
+    el.style.height = (scrollH > lineH + 4 ? Math.min(scrollH, lineH * 2) : lineH) + 'px';
+  }, [mission]);
 
   const hot = inputFocused || mission.length > 0;
   const borderColor = hot ? 'rgba(0,229,255,0.65)' : T.hairline;
@@ -104,18 +114,23 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
           flexShrink: 0,
           animation: hot ? 'pulse 1.6s ease-in-out infinite' : 'none',
         }} />
-        <div style={{ flex: 1, position: 'relative', minWidth: 0, display: 'flex', alignItems: 'center' }}>
-          <input
+        <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+          <textarea
+            ref={missionInputRef}
             value={mission}
             onChange={e => setMission(e.target.value)}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
+            onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
             placeholder="Enter your mission"
+            rows={1}
             style={{
               width: '100%', background: 'transparent', border: 'none', outline: 'none',
               fontFamily: T.display, fontSize: 17, fontWeight: 500,
               color: T.text, letterSpacing: '-0.005em', padding: 0,
-              minWidth: 0,
+              minWidth: 0, display: 'block',
+              resize: 'none', overflow: 'hidden',
+              lineHeight: '1.3',
             }}
           />
         </div>
