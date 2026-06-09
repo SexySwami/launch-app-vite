@@ -12,6 +12,7 @@ export function CompletedSteps({ onBack }) {
   const [todayOpen, setTodayOpen] = useState(true);
   const [prevDaysOpen, setPrevDaysOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState(() => new Set());
+  const [detailItem, setDetailItem] = useState(null);
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
@@ -102,6 +103,7 @@ export function CompletedSteps({ onBack }) {
       }}>
         <div
           onClick={() => toggleExpand(entry.id)}
+          onDoubleClick={(e) => { e.stopPropagation(); setDetailItem(entry); }}
           role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(entry.id); } }}
           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 4px 12px 14px', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
@@ -205,6 +207,8 @@ export function CompletedSteps({ onBack }) {
         </div>
       )}
 
+      {detailItem && <ItemDetailOverlay item={detailItem} onClose={() => setDetailItem(null)} />}
+
       <div className="scroll-thin" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 24px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loading ? (
           <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em', color: T.text3, textTransform: 'uppercase', textAlign: 'center', padding: '24px 0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -253,6 +257,109 @@ export function CompletedSteps({ onBack }) {
             </DateFolder>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ItemDetailOverlay({ item, onClose }) {
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px 16px',
+        background: 'rgba(2,4,8,0.66)',
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        animation: 'backdropIn 220ms ease',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 380,
+          background: 'linear-gradient(160deg, rgba(79,227,193,0.10), rgba(255,255,255,0.025) 55%, rgba(79,227,193,0.04))',
+          border: `1px solid rgba(79,227,193,0.45)`,
+          borderRadius: 22,
+          padding: '18px 16px 14px',
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.05) inset,
+            0 30px 80px rgba(0,0,0,0.6),
+            0 0 60px rgba(79,227,193,0.18)
+          `,
+          backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+          animation: 'modalIn 280ms cubic-bezier(0.2,0.8,0.2,1)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: 99,
+            background: T.teal, boxShadow: `0 0 8px ${T.teal}`,
+          }} />
+          <span style={{
+            fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
+            color: T.teal, textTransform: 'uppercase', fontWeight: 600,
+            textShadow: `0 0 8px ${T.teal}66`,
+          }}>
+            Item Preview
+          </span>
+        </div>
+
+        <div style={{
+          width: '100%', boxSizing: 'border-box',
+          fontFamily: T.display, fontSize: 16, fontWeight: 500,
+          color: T.text, letterSpacing: '-0.005em', lineHeight: 1.45,
+          padding: '12px 14px',
+          background: 'rgba(255,255,255,0.025)',
+          border: `1px solid ${T.hairline}`,
+          borderRadius: 14,
+          marginBottom: item.description ? 12 : 14,
+          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {item.text}
+        </div>
+
+        {item.description && (
+          <div style={{
+            width: '100%', boxSizing: 'border-box',
+            fontFamily: T.display, fontSize: 14, fontWeight: 400,
+            color: T.text2, letterSpacing: '-0.003em', lineHeight: 1.45,
+            padding: '10px 14px',
+            background: 'rgba(79,227,193,0.04)',
+            border: `1px solid rgba(79,227,193,0.22)`,
+            borderRadius: 12,
+            marginBottom: 14,
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          }}>
+            {item.description}
+          </div>
+        )}
+
+        <button
+          onClick={onClose}
+          style={{
+            all: 'unset', boxSizing: 'border-box',
+            width: '100%', height: 50, borderRadius: 14,
+            background: T.surface,
+            border: `1px solid ${T.hairline}`,
+            color: T.text2,
+            fontFamily: T.display, fontSize: 13, fontWeight: 600,
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            cursor: 'pointer',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            WebkitTapHighlightColor: 'transparent',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          Close
+        </button>
       </div>
     </div>
   );
