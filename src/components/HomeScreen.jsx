@@ -80,14 +80,20 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
 
   return (
     <div style={{ padding: '20px 24px 0', position: 'relative' }}>
+      <div style={{
+        fontFamily: T.display, fontSize: 15, fontWeight: 500,
+        color: T.text3, letterSpacing: '0.01em', marginBottom: 8,
+      }}>
+        so what is it?
+      </div>
       <h1 style={{
-        fontFamily: T.display, fontSize: 26, fontWeight: 600,
+        fontFamily: T.display, fontSize: 42, fontWeight: 700,
         color: T.text, margin: '0 0 14px',
-        letterSpacing: '-0.02em', lineHeight: 1.1, textAlign: 'center',
-        textShadow: hot ? '0 0 24px rgba(0,229,255,0.3)' : 'none',
+        letterSpacing: '-0.03em', lineHeight: 0.98,
+        textShadow: hot ? '0 0 30px rgba(0,229,255,0.28)' : 'none',
         transition: 'text-shadow 400ms',
       }}>
-        What are we launching?
+        i don't<br />want to<span style={{ color: T.cyan, textShadow: '0 0 18px rgba(0,229,255,0.7)' }}>…</span>
       </h1>
 
       <div style={{
@@ -535,7 +541,8 @@ function ReactorCore({ state, intensity, onLaunch }) {
 
           <div style={{
             fontFamily: T.display, fontWeight: 700,
-            fontSize: armed ? 32 : 28, letterSpacing: '0.12em',
+            fontSize: 21, lineHeight: 1.08,
+            letterSpacing: '-0.01em', textAlign: 'center', maxWidth: 130,
             color: armed ? T.text : warming ? T.text2 : T.text3,
             textShadow: armed
               ? `0 0 16px ${T.cyan}, 0 0 44px rgba(0,229,255,0.55)`
@@ -544,7 +551,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
                 : 'none',
             transition: 'all 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
-            LAUNCH
+            OK fine<br />let's do it
           </div>
 
           <div style={{
@@ -561,6 +568,16 @@ function ReactorCore({ state, intensity, onLaunch }) {
     </div>
   );
 }
+
+// Generated once — stable across re-renders, different on each page load.
+const STARS = Array.from({ length: 46 }).map(() => ({
+  left: Math.random() * 100,
+  top: Math.random() * 100,
+  size: Math.random() * 1.4 + 0.6,
+  dur: Math.random() * 3 + 2.5,
+  delay: -(Math.random() * 6),
+  cyan: Math.random() > 0.76,
+}));
 
 export function HomeScreen({
   mission, setMission, onLaunch,
@@ -630,6 +647,8 @@ export function HomeScreen({
   const trimmed = mission.trim();
   const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
   const intensity = Math.min(1, trimmed.length / 18);
+  const gridAlpha = 0.03 + (0.25 + intensity * 0.75) * 0.2;
+  const gridDur = reactorState === 'armed' ? 2.6 : reactorState === 'warming' ? 3.4 : 4.6;
 
   const historyDisabled = currentItemIdx <= 0;
   const generateEmpty = flatItems.length === 0;
@@ -664,6 +683,44 @@ export function HomeScreen({
       padding: '24px 0 24px', position: 'relative',
       minHeight: 0,
     }}>
+      {/* Twinkling starfield */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {STARS.map((s, i) => (
+          <span key={i} style={{
+            position: 'absolute',
+            left: `${s.left}%`, top: `${s.top}%`,
+            width: s.size, height: s.size, borderRadius: 99,
+            background: s.cyan ? T.cyan : '#fff',
+            boxShadow: `0 0 ${s.size * 3}px ${s.cyan ? hexToRgba(T.cyan, 0.65) : 'rgba(255,255,255,0.5)'}`,
+            opacity: 0.3,
+            animation: `twinkle ${s.dur}s ease-in-out ${s.delay}s infinite`,
+          }} />
+        ))}
+      </div>
+
+      {/* Base engineering grid — faint, masked to centre */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5,
+        backgroundImage: 'linear-gradient(rgba(140,200,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(140,200,255,0.035) 1px, transparent 1px)',
+        backgroundSize: '32px 32px',
+        maskImage: 'radial-gradient(ellipse at 50% 55%, black 15%, transparent 68%)',
+        WebkitMaskImage: 'radial-gradient(ellipse at 50% 55%, black 15%, transparent 68%)',
+      }} />
+
+      {/* Reactive grid — brightens and breathes with orb charge */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        animation: `gridGlow ${gridDur}s ease-in-out infinite`,
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `linear-gradient(${hexToRgba(T.cyan, gridAlpha)} 1px, transparent 1px), linear-gradient(90deg, ${hexToRgba(T.cyan, gridAlpha)} 1px, transparent 1px)`,
+          backgroundSize: '32px 32px',
+          maskImage: 'radial-gradient(circle at 50% 60%, black 0%, rgba(0,0,0,0.45) 28%, transparent 58%)',
+          WebkitMaskImage: 'radial-gradient(circle at 50% 60%, black 0%, rgba(0,0,0,0.45) 28%, transparent 58%)',
+        }} />
+      </div>
+
       <MissionField
         mission={mission} setMission={setMission}
         inputFocused={inputFocused} setInputFocused={setInputFocused}
