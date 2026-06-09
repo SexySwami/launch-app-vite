@@ -88,7 +88,7 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
       </div>
       <h1 style={{
         fontFamily: T.display, fontSize: 42, fontWeight: 700,
-        color: T.text, margin: '0 0 14px',
+        color: T.text, margin: '0 0 22px',
         letterSpacing: '-0.03em', lineHeight: 0.98,
         textShadow: hot ? '0 0 30px rgba(0,229,255,0.28)' : 'none',
         transition: 'text-shadow 400ms',
