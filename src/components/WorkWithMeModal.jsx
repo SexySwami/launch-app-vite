@@ -14,22 +14,27 @@ function shuffle(arr) {
 
 // AI-classified body-doubling video picker for the Small Chunker. On open it
 // asks /api/classify-task which category the active task falls into, then maps
-// that to one of two video pools: a combined "computer" pool (computer_work +
-// studying + general merged together) and a separate "cleaning" pool. It cycles
-// a randomized, no-repeat-until-exhausted queue from the chosen pool, and the
-// play history persists across opens — so you won't see the same video again
-// until every video in that pool has been shown, then it reshuffles. Falls back
-// to the computer pool if classification fails.
+// that to one of three video pools: a combined "computer" pool (computer_work +
+// studying — desk/screen "work/study with me" videos), a separate "cleaning"
+// pool, and a "general" pool of neutral pomodoro/focus-timer sessions (just a
+// timer + ambient/lofi, no on-screen activity) for tasks done away from a
+// screen. It cycles a randomized, no-repeat-until-exhausted queue from the
+// chosen pool, and the play history persists across opens — so you won't see
+// the same video again until every video in that pool has been shown, then it
+// reshuffles. Falls back to the computer pool if classification fails.
 
-// Classifier categories that all share the one combined "computer" video pool.
-const COMPUTER_CATEGORIES = ['computer_work', 'studying', 'general'];
+// Classifier categories that share the combined "computer" video pool. Desk and
+// study sessions both read as "someone working at a screen," so they merge.
+const COMPUTER_CATEGORIES = ['computer_work', 'studying'];
 
 // Maps a classifier category to its pool: a stable key + the source categories
-// whose videos make up that pool. Cleaning stands alone; everything else merges.
+// whose videos make up that pool. Cleaning and general each stand alone (general
+// = neutral timer videos for non-screen tasks); everything else is the computer
+// pool, which is also the fallback for an unknown/failed classification.
 function poolFor(category) {
-  return category === 'cleaning'
-    ? { key: 'cleaning', cats: ['cleaning'] }
-    : { key: 'computer', cats: COMPUTER_CATEGORIES };
+  if (category === 'cleaning') return { key: 'cleaning', cats: ['cleaning'] };
+  if (category === 'general') return { key: 'general', cats: ['general'] };
+  return { key: 'computer', cats: COMPUTER_CATEGORIES };
 }
 
 export function WorkWithMeModal({ open, mission, description, onClose }) {
