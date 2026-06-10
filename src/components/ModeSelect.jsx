@@ -26,6 +26,16 @@ const ICONS = {
       <path d="M4 16.5l8 4 8-4"/>
     </g>
   ),
+  focus: (color) => (
+    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3.5"/>
+      <circle cx="12" cy="12" r="8"/>
+      <line x1="12" y1="2" x2="12" y2="6.5"/>
+      <line x1="12" y1="17.5" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="6.5" y2="12"/>
+      <line x1="17.5" y1="12" x2="22" y2="12"/>
+    </g>
+  ),
 };
 
 function ModeCard({ accent, eyebrow, title, description, iconKey, comingSoon, animationDelay, onTap }) {
@@ -174,7 +184,7 @@ function ModeCard({ accent, eyebrow, title, description, iconKey, comingSoon, an
   );
 }
 
-export function ModeSelect({ onSelectFourStep, onSelectSmallChunker }) {
+export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus }) {
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
@@ -219,6 +229,15 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker }) {
           comingSoon
           animationDelay={90}
           onTap={onSelectSmallChunker}
+        />
+        <ModeCard
+          accent={T.teal}
+          eyebrow="MD-03 · Deep"
+          title="Deep Focus"
+          description="Focused steps, unlimited depth."
+          iconKey="focus"
+          animationDelay={180}
+          onTap={onSelectDeepFocus}
         />
       </div>
     </div>

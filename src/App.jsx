@@ -12,6 +12,7 @@ import { HomeScreen } from './components/HomeScreen.jsx';
 import { StandUp } from './components/StandUp.jsx';
 import { ModeSelect } from './components/ModeSelect.jsx';
 import { SmallChunker } from './components/SmallChunker.jsx';
+import { DeepFocus } from './components/DeepFocus.jsx';
 import { ProfileScreen } from './components/ProfileScreen.jsx';
 import { RootFolderScreen } from './components/RootFolderScreen.jsx';
 import { SetBreak } from './components/SetBreak.jsx';
@@ -23,6 +24,7 @@ import { ChooseTaskOverlay } from './components/ChooseTaskOverlay.jsx';
 import { primeBreakAudio, startBreakAlarmLoop } from './lib/breakAlarm.js';
 import { generateSteps } from './lib/generateSteps.js';
 import { generateMicroSteps } from './lib/generateMicroSteps.js';
+import { generateDeepFocusSteps } from './lib/generateDeepFocusSteps.js';
 
 // Root folders the Checklists tab can drill into. Order is preserved in the UI.
 const FOLDERS = [
@@ -54,9 +56,8 @@ export default function App() {
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
 
   // Which mode the user picked on the ModeSelect screen. Read by the
-  // Countdown's onComplete to decide whether to land on the 4-step card
-  // flow or the Small Chunker card flow.
-  const [selectedMode, setSelectedMode] = useState(null); // 'fourStep' | 'smallChunker' | null
+  // Countdown's onComplete to decide which card flow to land on.
+  const [selectedMode, setSelectedMode] = useState(null); // 'fourStep' | 'smallChunker' | 'deepFocus' | null
 
   // Small Chunker on-demand batch state. Each batch generates 4 steps via a
   // fresh /api/generate-micro-steps call. microSteps accumulates across
@@ -66,6 +67,14 @@ export default function App() {
   const [microBatch, setMicroBatch] = useState(0);          // 1-indexed batch number
   const [microInBatchIdx, setMicroInBatchIdx] = useState(0); // 0-3 within current batch
   const [microLoading, setMicroLoading] = useState(false);
+
+  // Deep Focus on-demand batch state. Parallel to micro* — keeps the two
+  // modes fully independent so neither can interfere with the other.
+  const [deepMode, setDeepMode] = useState(false);
+  const [deepSteps, setDeepSteps] = useState([]);
+  const [deepBatch, setDeepBatch] = useState(0);
+  const [deepInBatchIdx, setDeepInBatchIdx] = useState(0);
+  const [deepLoading, setDeepLoading] = useState(false);
 
   // On Break toggle — persisted across sessions.
   const [onBreak, setOnBreak] = useState(() => {
@@ -143,7 +152,14 @@ export default function App() {
     // Use whichever mode the user last selected; fall back to fourStep.
     const source = { id: task.id ?? null, folderId: task.folderId ?? null };
 
-    if (selectedMode === 'smallChunker') {
+    if (selectedMode === 'deepFocus') {
+      setDeepMode(true);
+      setDeepSteps([]);
+      setDeepBatch(1);
+      setDeepInBatchIdx(0);
+      fetchDeepBatch(1, [], task.text);
+      launchMission(task.text, source, task.description ?? null, 'deepFocus');
+    } else if (selectedMode === 'smallChunker') {
       // Prime the Small Chunker micro-step state before calling launchMission
       // so the screen is ready to render; pass the mission text explicitly
       // since the React state update from launchMission won't flush until
@@ -341,7 +357,9 @@ export default function App() {
   const startExecution = () => {
     setStepIdx(0);
     setMomentumGained(0);
-    setScreen(selectedMode === 'smallChunker' ? 'smallChunker' : 'step');
+    if (selectedMode === 'smallChunker') setScreen('smallChunker');
+    else if (selectedMode === 'deepFocus') setScreen('deepFocus');
+    else setScreen('step');
   };
 
   // `source` may include { id, index, folderId }. If no folderId is supplied
@@ -470,7 +488,71 @@ export default function App() {
     setScreen('reward');
   };
 
+  // Deep Focus batch fetcher — calls /api/generate-deep-focus with the same
+  // batch context structure as the Small Chunker, but uses the Four Step
+  // Breakdown's style prompt. Falls back to local generator if API is down.
+  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null) => {
+    const batchMission = missionOverride ?? mission;
+    setDeepLoading(true);
+    try {
+      if (!canCallAPI) throw new Error('__skip_api__');
+      const res = await fetch('/api/generate-deep-focus', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission: batchMission,
+          ...(sourceDescription ? { description: sourceDescription } : {}),
+          previousSteps: accumulatedSteps,
+          batchNumber,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(data.steps) || data.steps.length !== 4) {
+        throw new Error(data.error || `Generator returned ${res.status}`);
+      }
+      setDeepSteps([...accumulatedSteps, ...data.steps]);
+    } catch {
+      const fallback = generateDeepFocusSteps(batchMission, batchNumber, accumulatedSteps);
+      setDeepSteps([...accumulatedSteps, ...fallback]);
+    } finally {
+      setDeepLoading(false);
+    }
+  };
+
+  const resetDeepState = () => {
+    setDeepMode(false);
+    setDeepSteps([]);
+    setDeepBatch(0);
+    setDeepInBatchIdx(0);
+    setDeepLoading(false);
+  };
+
+  const startDeepFocus = () => {
+    setSelectedMode('deepFocus');
+    setDeepMode(true);
+    setDeepSteps([]);
+    setDeepBatch(1);
+    setDeepInBatchIdx(0);
+    fetchDeepBatch(1, []);
+    setScreen('countdown');
+  };
+
+  const handleDeepBatchComplete = () => {
+    finalizeCompletion();
+    setMomentum(m => m + 15);
+    setLaunchesToday(n => n + 1);
+    setScreen('reward');
+  };
+
   const handleKeepGoing = () => {
+    if (deepMode) {
+      const nextBatch = deepBatch + 1;
+      setDeepBatch(nextBatch);
+      setDeepInBatchIdx(0);
+      fetchDeepBatch(nextBatch, deepSteps);
+      setScreen('deepFocus');
+      return;
+    }
     if (microMode) {
       const nextBatch = microBatch + 1;
       setMicroBatch(nextBatch);
@@ -488,12 +570,14 @@ export default function App() {
   const handleAllDone = () => {
     resetMissionState();
     if (microMode) resetMicroState();
+    if (deepMode) resetDeepState();
     setOpenFolderId(null);
     setScreen('input');
   };
   const handleNextTask = () => {
     resetMissionState();
     if (microMode) resetMicroState();
+    if (deepMode) resetDeepState();
     setOpenFolderId(null);
     setScreen('input');
   };
@@ -606,6 +690,7 @@ export default function App() {
       <ModeSelect
         onSelectFourStep={() => { setSelectedMode('fourStep'); setScreen('countdown'); }}
         onSelectSmallChunker={startSmallChunker}
+        onSelectDeepFocus={startDeepFocus}
       />
     );
   else if (screen === 'smallChunker')
@@ -627,6 +712,27 @@ export default function App() {
         onBatchComplete={handleMicroBatchComplete}
         onFinish={handleMicroBatchComplete}
         onBack={() => { resetMicroState(); setScreen('modeSelect'); }}
+      />
+    );
+  else if (screen === 'deepFocus')
+    body = (
+      <DeepFocus
+        mission={mission}
+        description={sourceDescription}
+        completionGroupId={completionGroupId}
+        sourceItemId={sourceItemId}
+        sourceItemIndex={sourceItemIndex}
+        sourceFolderId={sourceFolderId}
+        batchSteps={deepSteps.slice((deepBatch - 1) * 4, deepBatch * 4)}
+        batchNumber={deepBatch}
+        firstStepNumber={(deepBatch - 1) * 4 + 1}
+        inBatchIdx={deepInBatchIdx}
+        loading={deepLoading}
+        allSteps={deepSteps}
+        onAdvanceInBatch={() => setDeepInBatchIdx(i => i + 1)}
+        onBatchComplete={handleDeepBatchComplete}
+        onFinish={handleDeepBatchComplete}
+        onBack={() => { resetDeepState(); setScreen('modeSelect'); }}
       />
     );
   else if (screen === 'step')
