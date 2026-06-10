@@ -13,38 +13,49 @@ function shuffle(arr) {
 }
 
 // AI-classified body-doubling video picker for the Small Chunker. On open it
-// asks /api/classify-task which of four categories the active task falls into,
-// then cycles a randomized, no-repeat-until-exhausted queue of videos from
-// that category. Falls back to the `general` category if classification fails.
+// asks /api/classify-task which category the active task falls into, then maps
+// that to one of two video pools: a combined "computer" pool (computer_work +
+// studying + general merged together) and a separate "cleaning" pool. It cycles
+// a randomized, no-repeat-until-exhausted queue from the chosen pool, and the
+// play history persists across opens — so you won't see the same video again
+// until every video in that pool has been shown, then it reshuffles. Falls back
+// to the computer pool if classification fails.
+
+// Classifier categories that all share the one combined "computer" video pool.
+const COMPUTER_CATEGORIES = ['computer_work', 'studying', 'general'];
+
+// Maps a classifier category to its pool: a stable key + the source categories
+// whose videos make up that pool. Cleaning stands alone; everything else merges.
+function poolFor(category) {
+  return category === 'cleaning'
+    ? { key: 'cleaning', cats: ['cleaning'] }
+    : { key: 'computer', cats: COMPUTER_CATEGORIES };
+}
+
 export function WorkWithMeModal({ open, mission, description, onClose }) {
   const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState([]); // shuffled video queue for the category
+  const [order, setOrder] = useState([]); // shuffled queue for the active pool
   const [pos, setPos] = useState(0);
   const reqIdRef = useRef(0);
+  const poolRef = useRef(null); // pool `order` belongs to; persists across opens
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
 
-  // Classify on open; fully reset on close.
+  // Classify on open, then advance the pool's no-repeat queue. The queue and
+  // position survive close/reopen (the component stays mounted), so the played
+  // history is preserved until the pool is exhausted.
   useEffect(() => {
     if (!open) {
-      setLoading(true);
-      setOrder([]);
-      setPos(0);
+      setLoading(true); // arm loading for next open; keep order/pos/pool intact
       return;
     }
 
     const reqId = ++reqIdRef.current;
     setLoading(true);
-    setOrder([]);
-    setPos(0);
 
-    const pickFor = (category) => {
-      const byCat = (c) => VIDEOS.filter(v => v.category === c);
-      let list = byCat(category);
-      if (list.length === 0) list = byCat('general'); // spec fallback
-      return shuffle(list); // may be empty → graceful empty state
-    };
+    const buildQueue = (pool) =>
+      shuffle(VIDEOS.filter(v => pool.cats.includes(v.category)));
 
     const run = async () => {
       let category = 'general';
@@ -64,8 +75,30 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         category = 'general';
       }
       if (reqId !== reqIdRef.current) return; // superseded by a newer open/close
-      setOrder(pickFor(category));
-      setPos(0);
+
+      const pool = poolFor(category);
+
+      if (poolRef.current === pool.key && order.length > 0) {
+        // Same pool → continue the current pass to a not-yet-seen video.
+        // Only once the whole pass is exhausted do we reshuffle for a new one,
+        // avoiding an immediate repeat of the last video shown.
+        if (pos + 1 >= order.length) {
+          const last = order[pos];
+          const next = shuffle(order);
+          if (next.length > 1 && next[0]?.video_id === last?.video_id) {
+            [next[0], next[1]] = [next[1], next[0]];
+          }
+          setOrder(next);
+          setPos(0);
+        } else {
+          setPos(pos + 1);
+        }
+      } else {
+        // New pool (or first open) → start a fresh shuffled pass.
+        setOrder(buildQueue(pool));
+        setPos(0);
+      }
+      poolRef.current = pool.key;
       setLoading(false);
     };
     run();
