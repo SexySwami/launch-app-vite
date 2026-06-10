@@ -4,6 +4,7 @@ import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditMicroStepModal } from './EditMicroStepModal.jsx';
+import { WorkWithMeModal } from './WorkWithMeModal.jsx';
 
 const BATCH_SIZE = 4;
 
@@ -30,6 +31,7 @@ export function SmallChunker({
   const [loggedCards, setLoggedCards] = useState(() => new Set()); // per-batch (resets on remount)
   const [overrides, setOverrides] = useState({}); // per-batch (resets on remount): inBatchIdx -> { title }
   const [editOpen, setEditOpen] = useState(false);
+  const [workWithMeOpen, setWorkWithMeOpen] = useState(false);
 
   // Close the edit modal whenever the active card changes.
   useEffect(() => { setEditOpen(false); }, [inBatchIdx]);
@@ -154,24 +156,30 @@ export function SmallChunker({
             </div>
           </div>
 
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '8px 12px', borderRadius: 99,
-            background: 'rgba(168,118,255,0.08)',
-            border: `1px solid rgba(168,118,255,0.32)`,
-            boxShadow: `0 0 16px rgba(168,118,255,0.18)`,
-          }}>
+          <button
+            onClick={() => setWorkWithMeOpen(true)}
+            aria-label="Open Work With Me videos"
+            style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 13px', borderRadius: 99,
+              background: 'rgba(168,118,255,0.10)',
+              border: `1px solid rgba(168,118,255,0.42)`,
+              boxShadow: `0 0 16px rgba(168,118,255,0.18)`,
+              transition: 'all 180ms ease',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" style={{ flexShrink: 0, color: T.purple }}>
+              <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z" fill="currentColor"/>
+            </svg>
             <span style={{
-              width: 6, height: 6, borderRadius: 99, background: T.purple,
-              boxShadow: `0 0 8px ${T.purple}`,
-            }} />
-            <span style={{
-              fontFamily: T.mono, fontSize: 11, letterSpacing: '0.16em',
-              fontWeight: 600, color: T.text, fontVariantNumeric: 'tabular-nums',
+              fontFamily: T.mono, fontSize: 11, letterSpacing: '0.14em',
+              fontWeight: 600, color: T.text, textTransform: 'uppercase',
             }}>
-              Batch {batchNumber || 1}
+              Work With Me
             </span>
-          </div>
+          </button>
         </div>
 
         <div style={{
@@ -464,6 +472,13 @@ export function SmallChunker({
           setOverrides(prev => ({ ...prev, [inBatchIdx]: { title: newTitle } }));
           setEditOpen(false);
         }}
+      />
+
+      <WorkWithMeModal
+        open={workWithMeOpen}
+        mission={mission}
+        description={description}
+        onClose={() => setWorkWithMeOpen(false)}
       />
     </div>
   );
