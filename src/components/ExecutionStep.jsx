@@ -49,7 +49,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.options) && data.options.length > 0) {
-        setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options])));
+        setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options.map(o => o.title)])));
         onEditStep(data.options[0]);
       }
     } catch {}
@@ -410,8 +410,8 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         totalSteps={totalSteps}
         mission={mission}
         onClose={() => setEditOpen(false)}
-        onPick={(newTitle) => {
-          onEditStep(newTitle);
+        onPick={(picked) => {
+          onEditStep(picked);
           setEditOpen(false);
         }}
       />

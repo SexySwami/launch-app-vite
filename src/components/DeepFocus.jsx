@@ -83,13 +83,13 @@ export function DeepFocus({
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.options) && data.options.length > 0) {
         const picked = data.options[0];
-        setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options])));
+        setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options.map(o => o.title)])));
         setOverrides(prev => {
-          const next = { ...prev, [idx]: { title: picked } };
+          const next = { ...prev, [idx]: { title: picked.title, description: picked.description || '' } };
           for (let i = idx + 1; i < BATCH_SIZE; i++) delete next[i];
           return next;
         });
-        onStepEdited && onStepEdited(idx, picked);
+        onStepEdited && onStepEdited(idx, picked.title);
       }
     } catch {}
     finally { setRegenLoading(false); }
@@ -488,9 +488,11 @@ export function DeepFocus({
         description={description}
         previousSteps={previousStepsForEdit}
         onClose={() => setEditOpen(false)}
-        onPick={(newTitle) => {
+        onPick={(picked) => {
+          const newTitle = typeof picked === 'string' ? picked : picked.title;
+          const newDesc = typeof picked === 'string' ? '' : (picked.description || '');
           setOverrides(prev => {
-            const next = { ...prev, [inBatchIdx]: { title: newTitle } };
+            const next = { ...prev, [inBatchIdx]: { title: newTitle, description: newDesc } };
             for (let i = inBatchIdx + 1; i < BATCH_SIZE; i++) delete next[i];
             return next;
           });

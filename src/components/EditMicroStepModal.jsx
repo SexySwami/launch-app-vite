@@ -206,7 +206,7 @@ export function EditMicroStepModal({
       }
       const fresh = data.options.slice(0, 3);
       setCurrentAlts(fresh);
-      setSeenOptions(prev => [...prev, ...fresh]);
+      setSeenOptions(prev => [...prev, ...fresh.map(o => o.title)]);
     } catch (err) {
       if (err.message !== '__skip_api__') {
         setGenError(err.message || 'Could not generate new options');
@@ -219,7 +219,7 @@ export function EditMicroStepModal({
   const handleCustomSubmit = () => {
     const t = customDraft.trim();
     if (!t) return;
-    onPick(t);
+    onPick({ title: t, description: '' });
   };
 
   return (
@@ -314,7 +314,7 @@ export function EditMicroStepModal({
           }}>
             {currentAlts.map((a, i) => (
               <button
-                key={`${i}-${a}`}
+                key={`${i}-${typeof a === 'string' ? a : a.title}`}
                 onClick={() => onPick(a)}
                 style={{
                   all: 'unset', cursor: 'pointer',
@@ -328,7 +328,7 @@ export function EditMicroStepModal({
                   animation: `optionIn 280ms ${i * 60}ms cubic-bezier(0.2,0.8,0.2,1) backwards`,
                 }}
               >
-                <span style={{ flex: 1 }}>{a}</span>
+                <span style={{ flex: 1 }}>{typeof a === 'string' ? a : a.title}</span>
                 <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0, color: T.cyan }}>
                   <path d="M2 6h7m0 0L6 3m3 3L6 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
