@@ -10,8 +10,10 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
   const [entering, setEntering] = useState(true);
   const [pulseMomentum, setPulseMomentum] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [regenLoading, setRegenLoading] = useState(false);
+  const [regenSeen, setRegenSeen] = useState([]);
 
-  useEffect(() => { setEditOpen(false); }, [stepIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); }, [stepIdx]);
 
   useEffect(() => {
     setExiting(false);
@@ -26,6 +28,33 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
     const t = setTimeout(() => setPulseMomentum(false), 900);
     return () => clearTimeout(t);
   }, [stepIdx]);
+
+  const canCallAPI = typeof window !== 'undefined'
+    && /^https?:$/.test(window.location?.protocol || '');
+
+  const handleRegen = async () => {
+    if (regenLoading || !step) return;
+    const currentTitle = step.title;
+    setRegenLoading(true);
+    try {
+      const res = await fetch('/api/generate-options', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission: mission || '',
+          stepTag: step.tag,
+          currentStep: currentTitle,
+          seenOptions: [...regenSeen, currentTitle],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.options) && data.options.length > 0) {
+        setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options])));
+        onEditStep(data.options[0]);
+      }
+    } catch {}
+    finally { setRegenLoading(false); }
+  };
 
   const handleComplete = () => {
     if (exiting) return;
@@ -322,36 +351,28 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 </button>
 
                 <button
-                  onClick={onLogStep}
-                  disabled={stepLogged}
-                  aria-label={stepLogged ? 'Step logged' : 'Log completion'}
+                  onClick={handleRegen}
+                  disabled={regenLoading}
+                  aria-label="Regenerate step"
                   style={{
-                    all: 'unset', cursor: stepLogged ? 'default' : 'pointer',
+                    all: 'unset', cursor: regenLoading ? 'default' : 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '6px 10px', borderRadius: 99,
-                    background: stepLogged
-                      ? 'rgba(79,227,193,0.20)'
-                      : 'rgba(79,227,193,0.08)',
-                    border: `1px solid ${stepLogged ? 'rgba(79,227,193,0.6)' : 'rgba(79,227,193,0.32)'}`,
-                    color: T.teal,
+                    padding: '6px 9px', borderRadius: 99,
+                    background: 'rgba(0,229,255,0.08)',
+                    border: `1px solid rgba(0,229,255,0.32)`,
+                    color: T.cyan,
                     fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
-                    textTransform: 'uppercase', fontWeight: 700,
+                    textTransform: 'uppercase', fontWeight: 600,
                     transition: 'all 200ms ease',
                     WebkitTapHighlightColor: 'transparent',
-                    boxShadow: stepLogged
-                      ? `0 0 12px rgba(79,227,193,0.32)`
-                      : 'none',
                   }}
                 >
-                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
-                    <path d="M1 5l3 3 5-6" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg width="10" height="10" viewBox="0 0 12 12" style={{ flexShrink: 0, animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
+                    <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  {stepLogged ? 'Logged' : 'Log'}
+                  Regen
                 </button>
 
-                <span style={{ fontSize: 9, letterSpacing: '0.18em' }}>
-                  +{step.reward} on complete
-                </span>
               </div>
             </>
           )}

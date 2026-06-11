@@ -24,6 +24,7 @@ export function SmallChunker({
   onAdvanceInBatch,
   onBatchComplete,
   onFinish,
+  onStepEdited,
   onBack,
 }) {
   const [exiting, setExiting] = useState(false);
@@ -31,10 +32,12 @@ export function SmallChunker({
   const [loggedCards, setLoggedCards] = useState(() => new Set()); // per-batch (resets on remount)
   const [overrides, setOverrides] = useState({}); // per-batch (resets on remount): inBatchIdx -> { title }
   const [editOpen, setEditOpen] = useState(false);
+  const [regenLoading, setRegenLoading] = useState(false);
+  const [regenSeen, setRegenSeen] = useState([]);
   const [workWithMeOpen, setWorkWithMeOpen] = useState(false);
 
   // Close the edit modal whenever the active card changes.
-  useEffect(() => { setEditOpen(false); }, [inBatchIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); }, [inBatchIdx]);
 
   // Re-trigger enter animation whenever the active card changes.
   useEffect(() => {
@@ -64,6 +67,38 @@ export function SmallChunker({
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
+
+  const handleRegen = async () => {
+    if (regenLoading || !step) return;
+    const idx = inBatchIdx;
+    const currentTitle = step.title;
+    setRegenLoading(true);
+    try {
+      const res = await fetch('/api/generate-micro-options', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission: mission || '',
+          ...(description ? { description: description.toString() } : {}),
+          previousSteps: Array.isArray(previousStepsForEdit) ? previousStepsForEdit : [],
+          currentStep: currentTitle,
+          seenOptions: [...regenSeen, currentTitle],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.options) && data.options.length > 0) {
+        const picked = data.options[0];
+        setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options])));
+        setOverrides(prev => {
+          const next = { ...prev, [idx]: { title: picked } };
+          for (let i = idx + 1; i < BATCH_SIZE; i++) delete next[i];
+          return next;
+        });
+        onStepEdited && onStepEdited(idx, picked);
+      }
+    } catch {}
+    finally { setRegenLoading(false); }
+  };
 
   const handleAdvance = () => {
     if (exiting || loading || !step) return;
@@ -401,32 +436,28 @@ export function SmallChunker({
                 </button>
 
                 <button
-                  onClick={handleLog}
-                  disabled={stepLogged}
-                  aria-label={stepLogged ? 'Step logged' : 'Log completion'}
+                  onClick={handleRegen}
+                  disabled={regenLoading}
+                  aria-label="Regenerate step"
                   style={{
-                    all: 'unset', cursor: stepLogged ? 'default' : 'pointer',
+                    all: 'unset', cursor: regenLoading ? 'default' : 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '6px 10px', borderRadius: 99,
-                    background: stepLogged
-                      ? 'rgba(79,227,193,0.20)'
-                      : 'rgba(79,227,193,0.08)',
-                    border: `1px solid ${stepLogged ? 'rgba(79,227,193,0.6)' : 'rgba(79,227,193,0.32)'}`,
-                    color: T.teal,
+                    padding: '6px 9px', borderRadius: 99,
+                    background: 'rgba(0,229,255,0.08)',
+                    border: `1px solid rgba(0,229,255,0.32)`,
+                    color: T.cyan,
                     fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
-                    textTransform: 'uppercase', fontWeight: 700,
+                    textTransform: 'uppercase', fontWeight: 600,
                     transition: 'all 200ms ease',
                     WebkitTapHighlightColor: 'transparent',
-                    boxShadow: stepLogged
-                      ? `0 0 12px rgba(79,227,193,0.32)`
-                      : 'none',
                   }}
                 >
-                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
-                    <path d="M1 5l3 3 5-6" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg width="10" height="10" viewBox="0 0 12 12" style={{ flexShrink: 0, animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
+                    <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  {stepLogged ? 'Logged' : 'Log'}
+                  Regen
                 </button>
+
               </div>
             </>
           )}
@@ -469,8 +500,13 @@ export function SmallChunker({
         previousSteps={previousStepsForEdit}
         onClose={() => setEditOpen(false)}
         onPick={(newTitle) => {
-          setOverrides(prev => ({ ...prev, [inBatchIdx]: { title: newTitle } }));
+          setOverrides(prev => {
+            const next = { ...prev, [inBatchIdx]: { title: newTitle } };
+            for (let i = inBatchIdx + 1; i < BATCH_SIZE; i++) delete next[i];
+            return next;
+          });
           setEditOpen(false);
+          onStepEdited && onStepEdited(inBatchIdx, newTitle);
         }}
       />
 
