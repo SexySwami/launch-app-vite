@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
+import { Telemetry } from './Telemetry.jsx';
 
 const DEFAULT_FOLDERS = [
   { id: 'work',     name: 'Work',     accent: T.cyan,   iconKey: 'work' },
@@ -84,7 +85,7 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
         fontFamily: T.display, fontSize: 15, fontWeight: 500,
         color: T.text3, letterSpacing: '0.01em', marginBottom: 8,
       }}>
-        so what is it?
+        Getting started is hard...
       </div>
       <h1 style={{
         fontFamily: T.display, fontSize: 42, fontWeight: 700,
@@ -93,7 +94,7 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
         textShadow: hot ? '0 0 30px rgba(0,229,255,0.28)' : 'none',
         transition: 'text-shadow 400ms',
       }}>
-        i don't<br />want to<span style={{ color: T.cyan, textShadow: '0 0 18px rgba(0,229,255,0.7)' }}>…</span>
+        Help me<br />start<span style={{ color: T.cyan, textShadow: '0 0 18px rgba(0,229,255,0.7)' }}>.</span>
       </h1>
 
       <div style={{
@@ -551,7 +552,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
                 : 'none',
             transition: 'all 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}>
-            OK fine<br />let's do it
+            Help me start
           </div>
 
           <div style={{
@@ -680,7 +681,7 @@ export function HomeScreen({
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
-      padding: '24px 0 24px', position: 'relative',
+      padding: '0 0 24px', position: 'relative',
       minHeight: 0,
     }}>
       {/* Twinkling starfield */}
@@ -719,6 +720,10 @@ export function HomeScreen({
           maskImage: 'radial-gradient(circle at 50% 60%, black 0%, rgba(0,0,0,0.45) 28%, transparent 58%)',
           WebkitMaskImage: 'radial-gradient(circle at 50% 60%, black 0%, rgba(0,0,0,0.45) 28%, transparent 58%)',
         }} />
+      </div>
+
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
+        <Telemetry code="MC-01 / LAUNCH" state="READY" time="MC · STANDBY" color={T.cyan} />
       </div>
 
       <MissionField

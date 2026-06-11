@@ -1,245 +1,232 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { T } from '../tokens.js';
-import { Eyebrow } from './Eyebrow.jsx';
 
-function toRGBA(hex, a) {
+const rgba = (hex, a) => {
   const m = hex.replace('#', '');
-  const r = parseInt(m.substring(0, 2), 16);
-  const g = parseInt(m.substring(2, 4), 16);
-  const b = parseInt(m.substring(4, 6), 16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-const ICONS = {
-  grid: (color) => (
-    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4.5" y="4.5" width="6" height="6" rx="1.2"/>
-      <rect x="13.5" y="4.5" width="6" height="6" rx="1.2"/>
-      <rect x="4.5" y="13.5" width="6" height="6" rx="1.2"/>
-      <rect x="13.5" y="13.5" width="6" height="6" rx="1.2"/>
-    </g>
-  ),
-  layers: (color) => (
-    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.5l8 4-8 4-8-4 8-4z"/>
-      <path d="M4 12l8 4 8-4"/>
-      <path d="M4 16.5l8 4 8-4"/>
-    </g>
-  ),
-  focus: (color) => (
-    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3.5"/>
-      <circle cx="12" cy="12" r="8"/>
-      <line x1="12" y1="2" x2="12" y2="6.5"/>
-      <line x1="12" y1="17.5" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="6.5" y2="12"/>
-      <line x1="17.5" y1="12" x2="22" y2="12"/>
-    </g>
-  ),
+  return `rgba(${parseInt(m.slice(0, 2), 16)},${parseInt(m.slice(2, 4), 16)},${parseInt(m.slice(4, 6), 16)},${a})`;
 };
 
-function ModeCard({ accent, eyebrow, title, description, iconKey, comingSoon, animationDelay, onTap }) {
-  const [pressed, setPressed] = useState(false);
-  const dim = comingSoon;
+// ─────────────────────────────────────────────────────────────
+// The three moods — a spectrum of readiness, each calibrating how
+// hard the mission gets broken down:
+//   Good  → four-step breakdown (full guided mission)
+//   Foggy → deep focus          (single-thread, focused depth)
+//   Stuck → small chunker       (one tiny step at a time)
+// Each carries its own accent + a hand-drawn line-art face glyph
+// (Launch icon style: 24×24, 1.6px stroke, accent-colored + glow).
+// ─────────────────────────────────────────────────────────────
+const MOODS = [
+  {
+    id: 'good', name: 'Good', mode: 'Four-step breakdown', accent: T.teal, handlerKey: 'fourStep',
+    icon: (c) => (
+      <g fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9.2" />
+        <path d="M8.4 10.6h.01" />
+        <path d="M15.6 10.6h.01" />
+        <path d="M7.8 14c1.1 1.5 2.6 2.3 4.2 2.3s3.1-.8 4.2-2.3" />
+      </g>
+    ),
+  },
+  {
+    id: 'foggy', name: 'Foggy', mode: 'Deep focus', accent: T.purple, handlerKey: 'deepFocus',
+    icon: (c) => (
+      <g fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9.2" />
+        <path d="M7.7 11h1.7" />
+        <path d="M14.6 11h1.7" />
+        <path d="M8.3 15.1c.95-1.1 1.9 1.1 2.85 0s1.9-1.1 2.85 0" />
+      </g>
+    ),
+  },
+  {
+    id: 'stuck', name: 'Stuck', mode: 'Small chunker', accent: T.amber, handlerKey: 'smallChunker',
+    icon: (c) => (
+      <g fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9.2" />
+        <path d="M8.4 11h.01" />
+        <path d="M15.6 11h.01" />
+        <path d="M8.6 15.4h6.8" />
+        <path d="M7.4 8.3l1.7.9" />
+        <path d="M16.6 8.3l-1.7.9" />
+      </g>
+    ),
+  },
+];
 
+// ─────────────────────────────────────────────────────────────
+// Telemetry strip — mono status read-out at the top of the screen.
+// ─────────────────────────────────────────────────────────────
+function Telemetry({ state, color }) {
   return (
-    <button
-      onClick={onTap}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerCancel={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-      style={{
-        all: 'unset', display: 'block', cursor: 'pointer', boxSizing: 'border-box',
-        width: '100%', flex: 1, minHeight: 0, position: 'relative',
-        borderRadius: 24,
-        padding: '26px 24px',
-        background: `linear-gradient(155deg, ${toRGBA(accent, 0.16)} 0%, rgba(255,255,255,0.025) 45%, ${toRGBA(accent, 0.06)} 100%)`,
-        border: `1px solid ${toRGBA(accent, dim ? 0.28 : 0.5)}`,
-        boxShadow: pressed
-          ? `0 0 0 1px ${toRGBA(accent, 0.10)} inset, 0 6px 16px rgba(0,0,0,0.45), 0 0 24px ${toRGBA(accent, 0.18)}`
-          : `0 0 0 1px ${toRGBA(accent, 0.06)} inset, 0 18px 40px rgba(0,0,0,0.55), 0 0 48px ${toRGBA(accent, dim ? 0.10 : 0.20)}`,
-        transform: pressed ? 'translateY(1px) scale(0.992)' : 'translateY(0) scale(1)',
-        transition: 'transform 160ms ease, box-shadow 220ms ease, opacity 200ms ease',
-        overflow: 'hidden',
-        opacity: dim ? 0.72 : 1,
-        animation: `tileIn 480ms cubic-bezier(0.2,0.8,0.2,1) ${animationDelay}ms both`,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      <span aria-hidden="true" style={{
-        position: 'absolute', top: -40, right: -40,
-        width: 200, height: 200, borderRadius: '50%',
-        background: `radial-gradient(circle, ${toRGBA(accent, 0.45)} 0%, transparent 65%)`,
-        pointerEvents: 'none',
-        animation: 'glowDrift 6s ease-in-out infinite',
-      }} />
-
-      <span aria-hidden="true" style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `
-          linear-gradient(${toRGBA(accent, 0.06)} 1px, transparent 1px),
-          linear-gradient(90deg, ${toRGBA(accent, 0.06)} 1px, transparent 1px)`,
-        backgroundSize: '24px 24px',
-        maskImage: 'radial-gradient(ellipse at 100% 0%, black 0%, transparent 70%)',
-        WebkitMaskImage: 'radial-gradient(ellipse at 100% 0%, black 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      <span aria-hidden="true" style={{
-        position: 'absolute', left: 0, right: 0, height: 1,
-        background: `linear-gradient(90deg, transparent, ${toRGBA(accent, 0.55)}, transparent)`,
-        boxShadow: `0 0 8px ${toRGBA(accent, 0.6)}`,
-        animation: 'scanline 7s linear infinite',
-        pointerEvents: 'none',
-        opacity: 0.5,
-      }} />
-
-      {comingSoon && (
-        <span style={{
-          position: 'absolute', top: 14, right: 14,
-          fontFamily: T.mono, fontSize: 9, letterSpacing: '0.22em',
-          textTransform: 'uppercase', color: accent,
-          padding: '4px 8px', borderRadius: 99,
-          background: toRGBA(accent, 0.12),
-          border: `1px solid ${toRGBA(accent, 0.45)}`,
-          textShadow: `0 0 8px ${toRGBA(accent, 0.5)}`,
-        }}>
-          Coming Soon
-        </span>
-      )}
-
-      <div style={{
-        position: 'relative', height: '100%',
-        display: 'flex', flexDirection: 'column',
-        gap: 14,
-      }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: 18,
-          background: `
-            linear-gradient(180deg, ${toRGBA(accent, 0.22)}, ${toRGBA(accent, 0.05)}),
-            radial-gradient(ellipse at 30% 20%, ${toRGBA(accent, 0.20)}, transparent 70%)`,
-          border: `1px solid ${toRGBA(accent, 0.55)}`,
-          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 0 22px ${toRGBA(accent, 0.34)}`,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width="30" height="30" viewBox="0 0 24 24"
-            style={{ filter: `drop-shadow(0 0 6px ${toRGBA(accent, 0.7)})` }}>
-            {ICONS[iconKey](accent)}
-          </svg>
-        </div>
-
-        <div style={{
-          fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
-          textTransform: 'uppercase', color: accent,
-          textShadow: `0 0 8px ${toRGBA(accent, 0.5)}`,
-          display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          <span style={{
-            width: 5, height: 5, borderRadius: 99, background: accent,
-            boxShadow: `0 0 8px ${accent}`,
-          }} />
-          {eyebrow}
-        </div>
-
-        <div style={{
-          fontFamily: T.display, fontSize: 28, fontWeight: 600,
-          color: T.text, letterSpacing: '-0.02em', lineHeight: 1.05,
-        }}>
-          {title}
-        </div>
-
-        <div style={{
-          fontFamily: T.display, fontSize: 14, color: T.text2,
-          letterSpacing: '-0.005em', lineHeight: 1.35,
-        }}>
-          {description}
-        </div>
-
-        <div style={{ flex: 1 }} />
-
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <span style={{
-            fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em',
-            textTransform: 'uppercase', color: T.text3,
-          }}>
-            Tap to select
-          </span>
-          <span style={{
-            width: 34, height: 34, borderRadius: 99,
-            background: toRGBA(accent, 0.14),
-            border: `1px solid ${toRGBA(accent, 0.4)}`,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            color: accent,
-          }}>
-            <svg width="11" height="11" viewBox="0 0 11 11">
-              <path d="M3.5 1.5L7.5 5.5L3.5 9.5" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-        </div>
-      </div>
-    </button>
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em', color: T.text3, padding: '0 24px',
+    }}>
+      <span>MC-05 / CREW · {state}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 5, height: 5, borderRadius: 99, background: color, boxShadow: `0 0 8px ${color}`, animation: 'pulse 1.6s ease-in-out infinite' }} />
+        CREW CHECK
+      </span>
+    </div>
   );
 }
 
-export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus }) {
+// ─────────────────────────────────────────────────────────────
+// Mood button — a rich, tappable card: glowing icon medallion +
+// the mood name + a chevron that flips to a check once selected.
+// The entrance animation lives on a wrapper so the button keeps
+// its own press/select scale transform.
+// ─────────────────────────────────────────────────────────────
+function MoodButton({ mood, index, selected, anySelected, onSelect }) {
+  const [hover, setHover] = useState(false);
+  const [press, setPress] = useState(false);
+  const a = mood.accent;
+  const dimmed = anySelected && !selected; // dim the un-chosen cards once a choice is made
+  const lit = hover || selected;
+
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column',
-      padding: '0 0 16px', minHeight: 0,
-    }}>
-      <div style={{ padding: '8px 20px 6px' }}>
-        <Eyebrow style={{ marginBottom: 12 }}>Execution Mode</Eyebrow>
-        <h1 style={{
-          fontFamily: T.display, fontWeight: 600, fontSize: 28, lineHeight: 1.05,
-          letterSpacing: '-0.02em', color: T.text, margin: 0, marginBottom: 6,
+    <div style={{ animation: `moodCardIn 560ms cubic-bezier(0.2,0.8,0.2,1) ${0.12 + index * 0.09}s both` }}>
+      <button
+        onPointerEnter={() => setHover(true)}
+        onPointerLeave={() => { setHover(false); setPress(false); }}
+        onPointerDown={() => setPress(true)}
+        onPointerUp={() => setPress(false)}
+        onClick={() => onSelect(mood)}
+        style={{
+          all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%',
+          display: 'flex', alignItems: 'center', gap: 18,
+          padding: '18px 22px', borderRadius: 20, position: 'relative',
+          background: `linear-gradient(155deg, ${rgba(a, lit ? 0.20 : 0.11)} 0%, rgba(255,255,255,0.025) 52%, ${rgba(a, lit ? 0.06 : 0.03)} 100%)`,
+          border: `1px solid ${selected ? rgba(a, 0.82) : lit ? rgba(a, 0.58) : rgba(a, 0.34)}`,
+          boxShadow: selected
+            ? `inset 0 1px 0 rgba(255,255,255,0.10), 0 18px 40px rgba(0,0,0,0.5), 0 0 0 4px ${rgba(a, 0.12)}, 0 0 54px ${rgba(a, 0.4)}`
+            : lit
+              ? `inset 0 1px 0 rgba(255,255,255,0.09), 0 16px 36px rgba(0,0,0,0.46), 0 0 40px ${rgba(a, 0.26)}`
+              : `inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 28px rgba(0,0,0,0.4), 0 0 22px ${rgba(a, 0.12)}`,
+          opacity: dimmed ? 0.5 : 1,
+          transform: `scale(${press ? 0.98 : selected ? 1.01 : 1}) translateY(${press ? 1 : 0}px)`,
+          transition: 'all 320ms cubic-bezier(0.2,0.8,0.2,1)',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        {/* Icon medallion — hand-drawn line glyph, accent-colored */}
+        <div style={{ position: 'relative', flexShrink: 0, width: 54, height: 54 }}>
+          <svg width="54" height="54" viewBox="0 0 54 54" style={{ position: 'absolute', inset: 0, animation: selected ? 'spinR 7s linear infinite' : 'none', opacity: lit ? 1 : 0.7 }}>
+            <circle cx="27" cy="27" r="25" fill="none" stroke={rgba(a, 0.5)} strokeWidth="1" strokeDasharray="3 6" />
+          </svg>
+          <div style={{
+            position: 'absolute', inset: 4, borderRadius: '50%',
+            background: `radial-gradient(circle at 50% 36%, ${rgba(a, 0.32)}, ${rgba(a, 0.06)} 70%, transparent)`,
+            border: `1px solid ${rgba(a, lit ? 0.6 : 0.4)}`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), 0 0 ${lit ? 22 : 12}px ${rgba(a, lit ? 0.45 : 0.25)}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'box-shadow 320ms ease',
+          }}>
+            <svg width="27" height="27" viewBox="0 0 24 24" style={{ filter: `drop-shadow(0 0 ${lit ? 7 : 3}px ${rgba(a, 0.7)})`, transition: 'filter 320ms ease' }}>{mood.icon(a)}</svg>
+          </div>
+        </div>
+
+        {/* Name only */}
+        <span style={{
+          flex: 1, fontFamily: T.display, fontSize: 25, fontWeight: 600, letterSpacing: '-0.02em', color: T.text,
+          textShadow: lit ? `0 0 22px ${rgba(a, 0.5)}` : 'none', transition: 'text-shadow 300ms',
+        }}>{mood.name}</span>
+
+        {/* Trailing chevron / check */}
+        <div style={{
+          flexShrink: 0, width: 30, height: 30, borderRadius: 99,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: selected ? rgba(a, 0.2) : 'transparent',
+          border: `1px solid ${selected ? rgba(a, 0.6) : T.hairlineSoft}`,
+          color: selected ? a : T.text3, transition: 'all 280ms ease',
         }}>
-          Choose how to break it down.
+          {selected
+            ? <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7.5l3 3 7-7" stroke="currentColor" strokeWidth="1.9" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            : <svg width="12" height="12" viewBox="0 0 14 14"><path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Mood Check screen — the execution-mode picker, reframed as an
+// honest "how are you, really?" mood check. Picking a mood
+// calibrates the screen to that mood's accent, shows a brief
+// confirmation toast, then routes into the matching breakdown:
+//   Good → four-step · Foggy → deep focus · Stuck → small chunker.
+// Keeps the original ModeSelect prop signature so App wiring is
+// unchanged.
+// ─────────────────────────────────────────────────────────────
+export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus }) {
+  const [selected, setSelected] = useState(null);
+  const [toast, setToast] = useState(null);
+  const committed = useRef(false);
+
+  const handlers = {
+    fourStep: onSelectFourStep,
+    deepFocus: onSelectDeepFocus,
+    smallChunker: onSelectSmallChunker,
+  };
+
+  const choose = (mood) => {
+    if (committed.current) return; // ignore further taps once a mood is locked in
+    committed.current = true;
+    setSelected(mood.id);
+    setToast(mood);
+    const fn = handlers[mood.handlerKey];
+    // Let the calibration tint + toast play before routing into the flow.
+    setTimeout(() => { if (fn) fn(); }, 620);
+  };
+
+  const active = MOODS.find(m => m.id === selected);
+  const accent = active ? active.accent : T.cyan;
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{ paddingTop: 8 }}>
+        <Telemetry state={active ? 'CALIBRATED' : 'PRE-FLIGHT'} color={active ? active.accent : T.teal} />
+      </div>
+
+      {/* Title block — intimate, lowercase voice */}
+      <div style={{ padding: '26px 24px 0', animation: 'moodTitleIn 520ms cubic-bezier(0.2,0.8,0.2,1) both' }}>
+        <div style={{ fontFamily: T.display, fontSize: 16, fontWeight: 500, color: T.text3, marginBottom: 10 }}>
+          before we launch
+        </div>
+        <h1 style={{ fontFamily: T.display, fontSize: 44, fontWeight: 700, color: T.text, margin: 0, letterSpacing: '-0.03em', lineHeight: 0.98 }}>
+          how are you,<br />really<span style={{ color: accent, textShadow: `0 0 18px ${rgba(accent, 0.7)}`, transition: 'color 320ms, text-shadow 320ms' }}>?</span>
         </h1>
-        <p style={{
-          fontFamily: T.display, fontSize: 13, color: T.text2,
-          margin: 0, letterSpacing: '-0.005em',
-        }}>
-          Pick the pacing that matches your energy right now.
+        <p style={{ fontFamily: T.display, fontSize: 14, fontWeight: 400, color: T.text3, margin: '14px 0 0', lineHeight: 1.45, letterSpacing: '-0.005em', maxWidth: 300 }}>
+          No wrong answer. We&rsquo;ll match the launch to wherever you actually are.
         </p>
       </div>
 
-      <div style={{
-        flex: 1, minHeight: 0,
-        padding: '16px 16px 8px',
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
-        <ModeCard
-          accent={T.cyan}
-          eyebrow="MD-01 · Standard"
-          title="4 Step Breakdown"
-          description="Four focused execution steps."
-          iconKey="grid"
-          animationDelay={0}
-          onTap={onSelectFourStep}
-        />
-        <ModeCard
-          accent={T.amber}
-          eyebrow="MD-02 · Granular"
-          title="Small Chunker"
-          description="Coming soon — smaller, more detailed steps."
-          iconKey="layers"
-          comingSoon
-          animationDelay={90}
-          onTap={onSelectSmallChunker}
-        />
-        <ModeCard
-          accent={T.teal}
-          eyebrow="MD-03 · Deep"
-          title="Deep Focus"
-          description="Focused steps, unlimited depth."
-          iconKey="focus"
-          animationDelay={180}
-          onTap={onSelectDeepFocus}
-        />
+      {/* Mood buttons */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13, padding: '20px 24px' }}>
+        {MOODS.map((m, i) => (
+          <MoodButton key={m.id} mood={m} index={i}
+            selected={selected === m.id} anySelected={!!selected}
+            onSelect={choose} />
+        ))}
       </div>
+
+      {/* Confirmation toast */}
+      {toast && (
+        <div style={{
+          position: 'absolute', bottom: 24, left: 0, right: 0,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 150,
+        }}>
+          <div key={toast.id} style={{
+            padding: '10px 16px', borderRadius: 99, background: 'rgba(11,16,24,0.94)',
+            border: `1px solid ${rgba(toast.accent, 0.45)}`, color: toast.accent,
+            fontFamily: T.mono, fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase',
+            boxShadow: `0 12px 32px rgba(0,0,0,0.55), 0 0 24px ${rgba(toast.accent, 0.3)}`,
+            whiteSpace: 'nowrap', animation: 'toastIn 320ms cubic-bezier(0.2,0.8,0.2,1)',
+          }}>
+            ▸ Calibrating · {toast.mode}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
