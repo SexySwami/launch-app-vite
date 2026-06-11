@@ -158,9 +158,7 @@ function MoodButton({ mood, index, selected, anySelected, onSelect }) {
 // Keeps the original ModeSelect prop signature so App wiring is
 // unchanged.
 // ─────────────────────────────────────────────────────────────
-export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus }) {
-  const [selected, setSelected] = useState(null);
-  const [toast, setToast] = useState(null);
+export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus, onBack }) {
   const committed = useRef(false);
 
   const handlers = {
@@ -170,28 +168,46 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
   };
 
   const choose = (mood) => {
-    if (committed.current) return; // ignore further taps once a mood is locked in
+    if (committed.current) return;
     committed.current = true;
-    setSelected(mood.id);
-    setToast(mood);
     const fn = handlers[mood.handlerKey];
-    // Let the calibration tint + toast play before routing into the flow.
-    setTimeout(() => { if (fn) fn(); }, 620);
+    if (fn) fn();
   };
 
-  const active = MOODS.find(m => m.id === selected);
-  const accent = active ? active.accent : T.cyan;
+  const accent = T.cyan;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div style={{ paddingTop: 8 }}>
-        <Telemetry state={active ? 'CALIBRATED' : 'PRE-FLIGHT'} color={active ? active.accent : T.teal} />
+        <Telemetry state="PRE-FLIGHT" color={T.teal} />
       </div>
 
       {/* Title block — intimate, lowercase voice */}
       <div style={{ padding: '26px 24px 0', animation: 'moodTitleIn 520ms cubic-bezier(0.2,0.8,0.2,1) both' }}>
-        <div style={{ fontFamily: T.display, fontSize: 16, fontWeight: 500, color: T.text3, marginBottom: 10 }}>
-          before we launch
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label="Go back"
+              style={{
+                all: 'unset', cursor: 'pointer', flexShrink: 0,
+                width: 36, height: 36, borderRadius: 99,
+                background: T.surface,
+                border: `1px solid ${T.hairlineSoft}`,
+                color: T.text2,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 150ms ease',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14">
+                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
+          <div style={{ fontFamily: T.display, fontSize: 16, fontWeight: 500, color: T.text3 }}>
+            before we launch
+          </div>
         </div>
         <h1 style={{ fontFamily: T.display, fontSize: 44, fontWeight: 700, color: T.text, margin: 0, letterSpacing: '-0.03em', lineHeight: 0.98 }}>
           how are you,<br />really<span style={{ color: accent, textShadow: `0 0 18px ${rgba(accent, 0.7)}`, transition: 'color 320ms, text-shadow 320ms' }}>?</span>
@@ -205,28 +221,11 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13, padding: '20px 24px' }}>
         {MOODS.map((m, i) => (
           <MoodButton key={m.id} mood={m} index={i}
-            selected={selected === m.id} anySelected={!!selected}
+            selected={false} anySelected={false}
             onSelect={choose} />
         ))}
       </div>
 
-      {/* Confirmation toast */}
-      {toast && (
-        <div style={{
-          position: 'absolute', bottom: 24, left: 0, right: 0,
-          display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 150,
-        }}>
-          <div key={toast.id} style={{
-            padding: '10px 16px', borderRadius: 99, background: 'rgba(11,16,24,0.94)',
-            border: `1px solid ${rgba(toast.accent, 0.45)}`, color: toast.accent,
-            fontFamily: T.mono, fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase',
-            boxShadow: `0 12px 32px rgba(0,0,0,0.55), 0 0 24px ${rgba(toast.accent, 0.3)}`,
-            whiteSpace: 'nowrap', animation: 'toastIn 320ms cubic-bezier(0.2,0.8,0.2,1)',
-          }}>
-            ▸ Calibrating · {toast.mode}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,1 +1,8 @@
-{}
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://launch-app-kohl.vercel.app/api/:path*"
+    }
+  ]
+}
