@@ -32,10 +32,10 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
     const initial = [];
     for (const v of pool) {
       if (initial.length >= 3) break;
-      if (v && v !== step.title && !initial.includes(v)) initial.push(v);
+      if (v && v !== step.title && !initial.find(o => o.title === v)) initial.push({ title: v, hint: '' });
     }
     setCurrentAlts(initial);
-    setSeenOptions(initial.slice());
+    setSeenOptions(initial.map(o => o.title));
     setGenError('');
     autoFetchedRef.current = false;
   }, [step]);
@@ -205,7 +205,7 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
       }
       const fresh = data.options.slice(0, 3);
       setCurrentAlts(fresh);
-      setSeenOptions(prev => [...prev, ...fresh]);
+      setSeenOptions(prev => [...prev, ...fresh.map(o => o.title)]);
     } catch (err) {
       // Fall back to the local altPool — pick 3 unseen entries.
       const pool = step.altPool || [];
@@ -213,11 +213,11 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
       const fallback = [];
       for (const v of pool) {
         if (fallback.length >= 3) break;
-        if (v && !seen.has(v)) fallback.push(v);
+        if (v && !seen.has(v)) fallback.push({ title: v, hint: '' });
       }
       if (fallback.length > 0) {
         setCurrentAlts(fallback);
-        setSeenOptions(prev => [...prev, ...fallback]);
+        setSeenOptions(prev => [...prev, ...fallback.map(o => o.title)]);
       }
       if (err.message !== '__skip_api__') {
         setGenError(err.message || 'Could not generate new options');
@@ -230,7 +230,7 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
   const handleCustomSubmit = () => {
     const t = customDraft.trim();
     if (!t) return;
-    onPick(t);
+    onPick({ title: t, hint: '' });
   };
 
   return (
@@ -325,7 +325,7 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
           }}>
             {currentAlts.map((a, i) => (
               <button
-                key={`${i}-${a}`}
+                key={`${i}-${typeof a === 'string' ? a : a.title}`}
                 onClick={() => onPick(a)}
                 style={{
                   all: 'unset', cursor: 'pointer',
@@ -339,7 +339,7 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
                   animation: `optionIn 280ms ${i * 60}ms cubic-bezier(0.2,0.8,0.2,1) backwards`,
                 }}
               >
-                <span style={{ flex: 1 }}>{a}</span>
+                <span style={{ flex: 1 }}>{typeof a === 'string' ? a : a.title}</span>
                 <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0, color: T.cyan }}>
                   <path d="M2 6h7m0 0L6 3m3 3L6 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

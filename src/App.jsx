@@ -244,8 +244,12 @@ export default function App() {
     return ov ? { ...base, ...ov } : base;
   }, [steps, stepIdx, stepOverrides]);
 
-  const handleEditStep = async (newTitle) => {
-    setStepOverrides(prev => ({ ...prev, [stepIdx]: { title: newTitle } }));
+  const handleEditStep = async (stepUpdate) => {
+    const newTitle = typeof stepUpdate === 'string' ? stepUpdate : stepUpdate.title;
+    const overrideFields = typeof stepUpdate === 'string'
+      ? { title: stepUpdate }
+      : { title: stepUpdate.title, ...(typeof stepUpdate.hint === 'string' ? { hint: stepUpdate.hint } : {}) };
+    setStepOverrides(prev => ({ ...prev, [stepIdx]: overrideFields }));
 
     const total = steps.length;
     if (stepIdx >= total - 1 || !canCallAPI) return;
