@@ -173,6 +173,7 @@ export default function App() {
     } else {
       // fourStep (or first-ever launch with no prior mode): land on the
       // step cards. ExecutionStep handles the loading state while steps arrive.
+      stepReturnScreenRef.current = 'home';
       launchMission(task.text, source, task.description ?? null, 'step');
     }
   };
@@ -224,6 +225,7 @@ export default function App() {
   const [openFolderId, setOpenFolderId] = useState(null);
   const [mountedFolderIds, setMountedFolderIds] = useState(() => new Set());
   const lastLaunchedFolderIdRef = useRef(DEFAULT_FOLDER_ID);
+  const stepReturnScreenRef = useRef('home');
 
   const openFolder = (folderId) => {
     setMountedFolderIds(prev => {
@@ -242,8 +244,111 @@ export default function App() {
     return ov ? { ...base, ...ov } : base;
   }, [steps, stepIdx, stepOverrides]);
 
-  const handleEditStep = (newTitle) => {
+  const handleEditStep = async (newTitle) => {
     setStepOverrides(prev => ({ ...prev, [stepIdx]: { title: newTitle } }));
+
+    const total = steps.length;
+    if (stepIdx >= total - 1 || !canCallAPI) return;
+
+    const lockedSteps = steps.slice(0, stepIdx + 1).map((s, i) => ({
+      tag: s.tag,
+      title: i === stepIdx ? newTitle : (stepOverrides[i]?.title || s.title),
+      hint: s.hint || '',
+    }));
+    const remainingTags = steps.slice(stepIdx + 1).map(s => s.tag);
+    try {
+      const res = await fetch('/api/regenerate-remaining', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission,
+          ...(sourceDescription ? { description: sourceDescription } : {}),
+          lockedSteps,
+          remainingTags,
+          count: total - stepIdx - 1,
+          mode: 'fourStep',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.steps) && data.steps.length > 0) {
+        setSteps(prev => {
+          const next = [...prev];
+          data.steps.forEach((s, i) => { next[stepIdx + 1 + i] = s; });
+          return next;
+        });
+        setStepOverrides(prev => {
+          const next = { ...prev };
+          for (let i = stepIdx + 1; i < total; i++) delete next[i];
+          return next;
+        });
+      }
+    } catch {}
+  };
+
+  const handleMicroStepEdited = async (batchPos, newTitle) => {
+    if (batchPos >= 3 || !canCallAPI) return;
+    const batchStart = (microBatch - 1) * 4;
+    const absolutePos = batchStart + batchPos;
+    const lockedSteps = microSteps.slice(0, absolutePos + 1).map((s, i) => ({
+      title: i === absolutePos ? newTitle : (s.title || ''),
+      description: s.description || '',
+    }));
+    const count = 4 - batchPos - 1;
+    try {
+      const res = await fetch('/api/regenerate-remaining', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission,
+          ...(sourceDescription ? { description: sourceDescription } : {}),
+          lockedSteps,
+          count,
+          mode: 'micro',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.steps) && data.steps.length > 0) {
+        setMicroSteps(prev => {
+          const next = [...prev];
+          next[absolutePos] = { ...next[absolutePos], title: newTitle };
+          data.steps.forEach((s, i) => { next[absolutePos + 1 + i] = s; });
+          return next;
+        });
+      }
+    } catch {}
+  };
+
+  const handleDeepStepEdited = async (batchPos, newTitle) => {
+    if (batchPos >= 3 || !canCallAPI) return;
+    const batchStart = (deepBatch - 1) * 4;
+    const absolutePos = batchStart + batchPos;
+    const lockedSteps = deepSteps.slice(0, absolutePos + 1).map((s, i) => ({
+      title: i === absolutePos ? newTitle : (s.title || ''),
+      description: s.description || '',
+    }));
+    const count = 4 - batchPos - 1;
+    try {
+      const res = await fetch('/api/regenerate-remaining', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mission,
+          ...(sourceDescription ? { description: sourceDescription } : {}),
+          lockedSteps,
+          count,
+          mode: 'deep',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.steps) && data.steps.length > 0) {
+        setDeepSteps(prev => {
+          const next = [...prev];
+          next[absolutePos] = { ...next[absolutePos], title: newTitle };
+          data.steps.forEach((s, i) => { next[absolutePos + 1 + i] = s; });
+          return next;
+        });
+      }
+    } catch {}
   };
 
   const advanceStep = () => {
@@ -342,12 +447,15 @@ export default function App() {
       setStepIdx(0);
       setMomentumGained(0);
       setStepOverrides({});
-      if (lastLaunchedFolderIdRef.current) {
-        openFolder(lastLaunchedFolderIdRef.current);
-      } else {
-        setOpenFolderId(null);
+      const returnScreen = stepReturnScreenRef.current || 'home';
+      if (returnScreen === 'input') {
+        if (lastLaunchedFolderIdRef.current) {
+          openFolder(lastLaunchedFolderIdRef.current);
+        } else {
+          setOpenFolderId(null);
+        }
       }
-      setScreen('input');
+      setScreen(returnScreen);
     }
   };
 
@@ -357,6 +465,7 @@ export default function App() {
   const startExecution = () => {
     setStepIdx(0);
     setMomentumGained(0);
+    stepReturnScreenRef.current = 'modeSelect';
     if (selectedMode === 'smallChunker') setScreen('smallChunker');
     else if (selectedMode === 'deepFocus') setScreen('deepFocus');
     else setScreen('step');
@@ -691,6 +800,7 @@ export default function App() {
         onSelectFourStep={() => { setSelectedMode('fourStep'); setScreen('countdown'); }}
         onSelectSmallChunker={startSmallChunker}
         onSelectDeepFocus={startDeepFocus}
+        onBack={() => setScreen('home')}
       />
     );
   else if (screen === 'smallChunker')
@@ -711,6 +821,7 @@ export default function App() {
         onAdvanceInBatch={() => setMicroInBatchIdx(i => i + 1)}
         onBatchComplete={handleMicroBatchComplete}
         onFinish={handleMicroBatchComplete}
+        onStepEdited={handleMicroStepEdited}
         onBack={() => { resetMicroState(); setScreen('modeSelect'); }}
       />
     );
@@ -732,6 +843,7 @@ export default function App() {
         onAdvanceInBatch={() => setDeepInBatchIdx(i => i + 1)}
         onBatchComplete={handleDeepBatchComplete}
         onFinish={handleDeepBatchComplete}
+        onStepEdited={handleDeepStepEdited}
         onBack={() => { resetDeepState(); setScreen('modeSelect'); }}
       />
     );
