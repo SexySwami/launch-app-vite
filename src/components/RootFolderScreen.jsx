@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
@@ -69,6 +69,11 @@ const ICONS = {
       <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
     </g>
   ),
+  custom: (color) => (
+    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 8a2 2 0 0 1 2-2h3.17a2 2 0 0 1 1.42.59L10.83 8H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
+    </g>
+  ),
 };
 
 function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
@@ -85,7 +90,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
       onPointerLeave={() => setPressed(false)}
       style={{
         all: 'unset', display: 'block', cursor: 'pointer', boxSizing: 'border-box',
-        width: '100%', position: 'relative',
+        width: '100%', position: 'relative', flexShrink: 0,
         borderRadius: 22,
         padding: '20px 20px 18px',
         background: `linear-gradient(155deg, ${toRGBA(accent, 0.14)} 0%, rgba(255,255,255,0.025) 45%, ${toRGBA(accent, 0.05)} 100%)`,
@@ -145,7 +150,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
         }}>
           <svg width="24" height="24" viewBox="0 0 24 24"
             style={{ filter: `drop-shadow(0 0 6px ${toRGBA(accent, 0.7)})` }}>
-            {ICONS[folder.iconKey](accent)}
+            {(ICONS[folder.iconKey] || ICONS.custom)(accent)}
           </svg>
         </div>
 
@@ -229,7 +234,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
   );
 }
 
-export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect }) {
+export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect, onCreateFolder }) {
   const [counts, setCounts] = useState(() => ({}));
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -237,6 +242,9 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
   const [searchLoading, setSearchLoading] = useState(false);
   const [hoveredResultIdx, setHoveredResultIdx] = useState(-1);
   const searchInputRef = useRef(null);
+  const [creating, setCreating] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const createInputRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,6 +279,25 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
     setSearchOpen(false);
     setSearchQuery('');
     setHoveredResultIdx(-1);
+  };
+
+  useEffect(() => {
+    if (creating) {
+      const t = setTimeout(() => createInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [creating]);
+
+  const confirmCreate = useCallback(() => {
+    const name = newFolderName.trim();
+    setCreating(false);
+    setNewFolderName('');
+    if (name) onCreateFolder?.(name);
+  }, [newFolderName, onCreateFolder]);
+
+  const cancelCreate = () => {
+    setCreating(false);
+    setNewFolderName('');
   };
 
   const openSearch = async () => {
@@ -478,6 +505,87 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
             onOpen={() => onOpen(f.id)}
           />
         ))}
+
+        {creating ? (
+          <div style={{
+            borderRadius: 22,
+            padding: '14px 16px 14px 20px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1.5px solid rgba(255,255,255,0.22)',
+            display: 'flex', alignItems: 'center', gap: 10,
+            boxSizing: 'border-box',
+          }}>
+            <input
+              ref={createInputRef}
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') confirmCreate();
+                if (e.key === 'Escape') cancelCreate();
+              }}
+              placeholder="Folder name…"
+              maxLength={60}
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
+                color: 'rgba(255,255,255,0.9)', letterSpacing: '-0.02em', padding: 0,
+              }}
+            />
+            <button
+              onClick={confirmCreate}
+              style={{
+                all: 'unset', cursor: 'pointer', flexShrink: 0,
+                width: 32, height: 32, borderRadius: 99,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                color: 'rgba(255,255,255,0.85)',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M1.5 6.5L4.5 9.5L10.5 2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={cancelCreate}
+              style={{
+                all: 'unset', cursor: 'pointer', flexShrink: 0,
+                width: 32, height: 32, borderRadius: 99,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.40)',
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setCreating(true)}
+            style={{
+              all: 'unset', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 8, cursor: 'pointer', boxSizing: 'border-box', width: '100%',
+              borderRadius: 22, padding: '17px 20px',
+              border: '1.5px dashed rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.30)',
+              transition: 'border-color 160ms ease, color 160ms ease',
+              WebkitTapHighlightColor: 'transparent',
+              marginBottom: 8,
+            }}
+            onPointerEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
+            onPointerLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.30)'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              New Folder
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

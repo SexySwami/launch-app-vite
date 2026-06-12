@@ -27,13 +27,14 @@ import { generateMicroSteps } from './lib/generateMicroSteps.js';
 import { generateDeepFocusSteps } from './lib/generateDeepFocusSteps.js';
 
 // Root folders the Checklists tab can drill into. Order is preserved in the UI.
-const FOLDERS = [
+const BASE_FOLDERS = [
   { id: 'short-list', name: 'Short List', accent: T.rose,  iconKey: 'short-list', code: 'RT-00', tagline: "Today's Focus" },
   { id: 'work',       name: 'Work',       accent: T.cyan,   iconKey: 'work',       code: 'RT-01', tagline: 'Mission Ops'   },
   { id: 'personal',   name: 'Personal',   accent: T.purple, iconKey: 'personal',   code: 'RT-02', tagline: 'Off-Duty'      },
   { id: 'health',     name: 'Health',     accent: T.teal,   iconKey: 'health',     code: 'RT-03', tagline: 'Vital Signs'   },
   { id: 'dailies',    name: 'Dailies',    accent: T.amber,  iconKey: 'dailies',    code: 'RT-04', tagline: 'Daily Reset'   },
 ];
+const CUSTOM_ACCENT_CYCLE = [T.amber, T.cyan, T.purple, T.rose, T.teal];
 const DEFAULT_FOLDER_ID = 'work';
 
 export default function App() {
@@ -222,6 +223,31 @@ export default function App() {
 
     return () => { if (midnightTimerRef.current) clearTimeout(midnightTimerRef.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // User-created custom root folders, persisted to localStorage.
+  const [customFolders, setCustomFolders] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('launch:custom-folders') || '[]'); }
+    catch { return []; }
+  });
+  const folders = useMemo(() => [...BASE_FOLDERS, ...customFolders], [customFolders]);
+
+  const handleCreateFolder = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const accent = CUSTOM_ACCENT_CYCLE[customFolders.length % CUSTOM_ACCENT_CYCLE.length];
+    const idx = BASE_FOLDERS.length + customFolders.length;
+    const newFolder = {
+      id: `custom-${Date.now()}`,
+      name: trimmed,
+      accent,
+      iconKey: 'custom',
+      code: `RT-${String(idx).padStart(2, '0')}`,
+      tagline: trimmed.split(' ')[0],
+    };
+    const next = [...customFolders, newFolder];
+    setCustomFolders(next);
+    try { localStorage.setItem('launch:custom-folders', JSON.stringify(next)); } catch {}
+  };
 
   // Root-folder routing inside the Checklists tab.
   // - openFolderId: null → root folder selection; otherwise the folder being shown.
@@ -727,15 +753,16 @@ export default function App() {
   // (absolutely positioned). Switching folders hides via visibility:hidden
   // so component state — fetched items, drag/edit state, etc. — survives.
   const renderInputBranch = () => {
-    const foldersById = Object.fromEntries(FOLDERS.map(f => [f.id, f]));
+    const foldersById = Object.fromEntries(folders.map(f => [f.id, f]));
     return (
       <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {!openFolderId && (
           <RootFolderScreen
-            folders={FOLDERS}
+            folders={folders}
             onOpen={openFolder}
             resetKey={dailiesResetKey}
             onSearchSelect={(item) => { setMission(item.text); setScreen('home'); }}
+            onCreateFolder={handleCreateFolder}
           />
         )}
         {Array.from(mountedFolderIds).map(fid => {
@@ -779,7 +806,7 @@ export default function App() {
         onLaunch={(text, folderId) => launchMission(text, { folderId: folderId || DEFAULT_FOLDER_ID })}
         currentItemIdx={currentItemIdx}
         setCurrentItemIdx={setCurrentItemIdx}
-        folders={FOLDERS}
+        folders={folders}
       />
     );
   else if (screen === 'profile')
@@ -953,7 +980,7 @@ export default function App() {
 
       {choosingTask && (
         <ChooseTaskOverlay
-          folders={FOLDERS}
+          folders={folders}
           onSelect={(task) => { setPreselectedTask(task); setChoosingTask(false); }}
           onClose={() => setChoosingTask(false)}
         />

@@ -45,7 +45,17 @@ export function MissionInput({
     'health':     { solid: T.teal,   solid2: '#22B89A', rgb: '79,227,193',  rgb2: '34,184,154'  },
     'dailies':    { solid: T.amber,  solid2: '#D48020', rgb: '255,192,72',  rgb2: '212,128,32'  },
   };
-  const _a = FOLDER_ACCENTS[folderId] ?? FOLDER_ACCENTS['work'];
+  const _a = FOLDER_ACCENTS[folderId] ?? (() => {
+    const hex = (folder?.accent || '').replace('#', '');
+    if (hex.length === 6) {
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const rgb = `${r},${g},${b}`;
+      return { solid: folder.accent, solid2: folder.accent, rgb, rgb2: rgb };
+    }
+    return FOLDER_ACCENTS['work'];
+  })();
   const aSolid  = _a.solid;
   const aSolid2 = _a.solid2;
   const ac  = (a) => `rgba(${_a.rgb},${a})`;
