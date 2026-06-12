@@ -833,6 +833,7 @@ export default function App() {
         loading={microLoading}
         allSteps={microSteps}
         onAdvanceInBatch={() => setMicroInBatchIdx(i => i + 1)}
+        onGoBack={() => setMicroInBatchIdx(i => i - 1)}
         onBatchComplete={handleMicroBatchComplete}
         onFinish={handleMicroBatchComplete}
         onStepEdited={handleMicroStepEdited}
@@ -855,6 +856,7 @@ export default function App() {
         loading={deepLoading}
         allSteps={deepSteps}
         onAdvanceInBatch={() => setDeepInBatchIdx(i => i + 1)}
+        onGoBack={() => setDeepInBatchIdx(i => i - 1)}
         onBatchComplete={handleDeepBatchComplete}
         onFinish={handleDeepBatchComplete}
         onStepEdited={handleDeepStepEdited}
