@@ -249,6 +249,14 @@ export default function App() {
     try { localStorage.setItem('launch:custom-folders', JSON.stringify(next)); } catch {}
   };
 
+  const handleDeleteFolder = (folderId) => {
+    const next = customFolders.filter(f => f.id !== folderId);
+    setCustomFolders(next);
+    try { localStorage.setItem('launch:custom-folders', JSON.stringify(next)); } catch {}
+    // If the deleted folder is currently open, return to root.
+    if (openFolderId === folderId) setOpenFolderId(null);
+  };
+
   // Root-folder routing inside the Checklists tab.
   // - openFolderId: null → root folder selection; otherwise the folder being shown.
   // - mountedFolderIds: lazy-mount set so once a folder is opened, its
@@ -763,6 +771,7 @@ export default function App() {
             resetKey={dailiesResetKey}
             onSearchSelect={(item) => { setMission(item.text); setScreen('home'); }}
             onCreateFolder={handleCreateFolder}
+            onDeleteFolder={handleDeleteFolder}
           />
         )}
         {Array.from(mountedFolderIds).map(fid => {

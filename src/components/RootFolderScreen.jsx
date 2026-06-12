@@ -76,12 +76,13 @@ const ICONS = {
   ),
 };
 
-function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
+function FolderTile({ folder, count, countKnown, animationDelay, onOpen, isCustom, onDeleteRequest }) {
   const [pressed, setPressed] = useState(false);
   const accent = folder.accent;
   const isEmpty = countKnown && count === 0;
 
   return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
     <button
       onClick={onOpen}
       onPointerDown={() => setPressed(true)}
@@ -90,7 +91,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
       onPointerLeave={() => setPressed(false)}
       style={{
         all: 'unset', display: 'block', cursor: 'pointer', boxSizing: 'border-box',
-        width: '100%', position: 'relative', flexShrink: 0,
+        width: '100%', position: 'relative',
         borderRadius: 22,
         padding: '20px 20px 18px',
         background: `linear-gradient(155deg, ${toRGBA(accent, 0.14)} 0%, rgba(255,255,255,0.025) 45%, ${toRGBA(accent, 0.05)} 100%)`,
@@ -231,10 +232,34 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen }) {
         </span>
       </div>
     </button>
+    {isCustom && (
+      <button
+        aria-label={`Delete ${folder.name}`}
+        onClick={e => { e.stopPropagation(); onDeleteRequest(folder); }}
+        style={{
+          all: 'unset', cursor: 'pointer',
+          position: 'absolute', top: 12, right: 12,
+          width: 28, height: 28, borderRadius: 99,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(255,80,80,0.10)',
+          border: '1px solid rgba(255,80,80,0.28)',
+          color: 'rgba(255,100,100,0.70)',
+          transition: 'background 160ms ease, color 160ms ease',
+          zIndex: 2,
+        }}
+        onPointerEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.22)'; e.currentTarget.style.color = 'rgba(255,120,120,1)'; }}
+        onPointerLeave={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.10)'; e.currentTarget.style.color = 'rgba(255,100,100,0.70)'; }}
+      >
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+          <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+    )}
+    </div>
   );
 }
 
-export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect, onCreateFolder }) {
+export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect, onCreateFolder, onDeleteFolder }) {
   const [counts, setCounts] = useState(() => ({}));
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -245,6 +270,7 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
   const [creating, setCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const createInputRef = useRef(null);
+  const [deleteConfirmFolder, setDeleteConfirmFolder] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -503,6 +529,8 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
             countKnown={typeof counts[f.id] === 'number'}
             animationDelay={i * 70}
             onOpen={() => onOpen(f.id)}
+            isCustom={f.iconKey === 'custom'}
+            onDeleteRequest={setDeleteConfirmFolder}
           />
         ))}
 
@@ -587,6 +615,86 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
           </button>
         )}
       </div>
+
+      {deleteConfirmFolder && (
+        <div
+          onClick={() => setDeleteConfirmFolder(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            padding: '0 24px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 340,
+              background: 'linear-gradient(160deg, rgba(20,26,40,0.98) 0%, rgba(12,16,28,0.98) 100%)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 24,
+              padding: '28px 24px 22px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
+            }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: 14, marginBottom: 18,
+              background: 'rgba(255,70,70,0.12)',
+              border: '1px solid rgba(255,70,70,0.28)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'rgba(255,100,100,0.9)',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 14 14" fill="none">
+                <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2 style={{
+              fontFamily: T.display, fontWeight: 600, fontSize: 20,
+              letterSpacing: '-0.02em', color: T.text, margin: '0 0 8px',
+            }}>
+              Delete "{deleteConfirmFolder.name}"?
+            </h2>
+            <p style={{
+              fontFamily: T.display, fontSize: 14, color: T.text2,
+              margin: '0 0 24px', lineHeight: 1.5,
+            }}>
+              This folder will be removed. Items inside it won't be recoverable.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setDeleteConfirmFolder(null)}
+                style={{
+                  all: 'unset', flex: 1, cursor: 'pointer',
+                  height: 46, borderRadius: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  fontFamily: T.display, fontSize: 15, fontWeight: 500, color: T.text2,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { onDeleteFolder(deleteConfirmFolder.id); setDeleteConfirmFolder(null); }}
+                style={{
+                  all: 'unset', flex: 1, cursor: 'pointer',
+                  height: 46, borderRadius: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,60,60,0.15)',
+                  border: '1px solid rgba(255,80,80,0.40)',
+                  fontFamily: T.display, fontSize: 15, fontWeight: 600,
+                  color: 'rgba(255,110,110,1)',
+                  boxShadow: '0 0 20px rgba(255,60,60,0.15)',
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
