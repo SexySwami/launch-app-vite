@@ -249,7 +249,7 @@ export function SmallChunker({
           color: T.text3, textTransform: 'uppercase', marginTop: 12,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          MSN · {mission}
+          {mission}
         </div>
       </div>
 
