@@ -104,7 +104,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 fontFamily: T.display, fontSize: 18, fontWeight: 600,
                 color: T.text, letterSpacing: '-0.01em', lineHeight: 1.1,
               }}>
-                Step <span style={{ color: T.cyan }}>{stepIdx + 1}</span> of {totalSteps}
+                Step <span style={{ color: T.teal }}>{stepIdx + 1}</span> of {totalSteps}
               </div>
             </div>
           </div>
@@ -112,11 +112,11 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '8px 12px', borderRadius: 99,
-            background: 'rgba(0,229,255,0.08)',
-            border: `1px solid rgba(0,229,255,0.32)`,
+            background: 'rgba(79,227,193,0.08)',
+            border: `1px solid rgba(79,227,193,0.32)`,
             boxShadow: pulseMomentum
-              ? `0 0 0 6px rgba(0,229,255,0.18), 0 0 24px ${T.cyan}`
-              : `0 0 16px rgba(0,229,255,0.18)`,
+              ? `0 0 0 6px rgba(79,227,193,0.18), 0 0 24px ${T.teal}`
+              : `0 0 16px rgba(79,227,193,0.18)`,
             transition: 'box-shadow 600ms ease',
           }}>
             <span style={{
@@ -130,7 +130,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
               transition: 'transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1)',
               display: 'inline-block',
             }}>
-              +{momentumGained} <span style={{ color: T.cyan, marginLeft: 2 }}>Momentum</span>
+              +{momentumGained} <span style={{ color: T.teal, marginLeft: 2 }}>Momentum</span>
             </span>
           </div>
         </div>
@@ -142,14 +142,14 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         }}>
           <div style={{
             height: '100%', width: `${progress}%`,
-            background: `linear-gradient(90deg, ${T.cyan}, ${T.blue} 60%, ${T.purple})`,
-            boxShadow: `0 0 12px ${T.cyan}99`,
+            background: `linear-gradient(90deg, ${T.teal}, ${T.blue} 60%, ${T.purple})`,
+            boxShadow: `0 0 12px ${T.teal}99`,
             transition: 'width 600ms cubic-bezier(0.2, 0.8, 0.2, 1)',
             position: 'relative',
           }}>
             <div style={{
               position: 'absolute', right: -2, top: -3, bottom: -3, width: 10,
-              background: `radial-gradient(circle, ${T.cyan}, transparent 70%)`,
+              background: `radial-gradient(circle, ${T.teal}, transparent 70%)`,
               filter: 'blur(2px)',
             }} />
           </div>
@@ -170,7 +170,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
       }}>
         <div style={{
           position: 'absolute', width: 360, height: 360, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(0,229,255,0.18), rgba(168,118,255,0.08) 40%, transparent 70%)`,
+          background: `radial-gradient(circle, rgba(79,227,193,0.18), rgba(168,118,255,0.08) 40%, transparent 70%)`,
           animation: 'breathe 3.2s ease-in-out infinite',
           pointerEvents: 'none',
         }} />
@@ -178,14 +178,14 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         <div key={stepIdx} style={{
           position: 'relative', width: '100%', height: '100%',
           maxHeight: 460,
-          background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 60%, rgba(0,229,255,0.04))',
-          border: `1px solid rgba(0,229,255,0.32)`,
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 60%, rgba(79,227,193,0.04))',
+          border: `1px solid rgba(79,227,193,0.32)`,
           borderRadius: 28,
           display: 'flex', flexDirection: 'column',
           padding: '28px 24px 32px',
           boxShadow: `
             0 0 0 1px rgba(255,255,255,0.04) inset,
-            0 30px 80px rgba(0,229,255,0.12),
+            0 30px 80px rgba(79,227,193,0.12),
             0 8px 32px rgba(0,0,0,0.5),
             inset 0 1px 0 rgba(255,255,255,0.08)
           `,
@@ -199,7 +199,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
           <div style={{
             position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
             width: 280, height: 200,
-            background: `radial-gradient(ellipse, rgba(0,229,255,0.35), transparent 70%)`,
+            background: `radial-gradient(ellipse, rgba(79,227,193,0.35), transparent 70%)`,
             pointerEvents: 'none',
           }} />
           {[
@@ -212,10 +212,10 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
               position: 'absolute',
               top: c.top, left: c.left, right: c.right, bottom: c.bottom,
               width: 14, height: 14,
-              borderTop: c.r === 't' ? `1px solid ${T.cyan}88` : 'none',
-              borderBottom: c.r === 'b' ? `1px solid ${T.cyan}88` : 'none',
-              borderLeft: c.b === 'l' ? `1px solid ${T.cyan}88` : 'none',
-              borderRight: c.b === 'r' ? `1px solid ${T.cyan}88` : 'none',
+              borderTop: c.r === 't' ? `1px solid ${T.teal}88` : 'none',
+              borderBottom: c.r === 'b' ? `1px solid ${T.teal}88` : 'none',
+              borderLeft: c.b === 'l' ? `1px solid ${T.teal}88` : 'none',
+              borderRight: c.b === 'r' ? `1px solid ${T.teal}88` : 'none',
             }} />
           ))}
 
@@ -227,13 +227,13 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             }}>
               <div style={{
                 fontFamily: T.mono, fontSize: 10, letterSpacing: '0.32em',
-                color: T.cyan, textTransform: 'uppercase',
-                textShadow: `0 0 12px ${T.cyan}88`,
+                color: T.teal, textTransform: 'uppercase',
+                textShadow: `0 0 12px ${T.teal}88`,
                 display: 'inline-flex', alignItems: 'center', gap: 8,
               }}>
                 <span style={{
-                  width: 6, height: 6, borderRadius: 99, background: T.cyan,
-                  boxShadow: `0 0 10px ${T.cyan}`,
+                  width: 6, height: 6, borderRadius: 99, background: T.teal,
+                  boxShadow: `0 0 10px ${T.teal}`,
                   animation: 'pulse 1.4s ease-in-out infinite',
                 }} />
                 Recalibrating
@@ -242,7 +242,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 {[0, 1].map(i => (
                   <div key={i} style={{
                     height: 10, borderRadius: 99,
-                    background: `linear-gradient(90deg, rgba(0,229,255,0.10) 0%, rgba(0,229,255,0.26) 50%, rgba(0,229,255,0.10) 100%)`,
+                    background: `linear-gradient(90deg, rgba(79,227,193,0.10) 0%, rgba(79,227,193,0.26) 50%, rgba(79,227,193,0.10) 100%)`,
                     backgroundSize: '200% 100%',
                     animation: `shimmer 1.6s ease-in-out ${i * 0.2}s infinite`,
                     width: `${[78, 55][i]}%`,
@@ -292,7 +292,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 {[0, 1, 2, 3].map(i => (
                   <div key={i} style={{
                     height: 10, borderRadius: 99,
-                    background: `linear-gradient(90deg, rgba(168,118,255,0.12) 0%, rgba(0,229,255,0.22) 50%, rgba(168,118,255,0.12) 100%)`,
+                    background: `linear-gradient(90deg, rgba(168,118,255,0.12) 0%, rgba(79,227,193,0.22) 50%, rgba(168,118,255,0.12) 100%)`,
                     backgroundSize: '200% 100%',
                     animation: `shimmer 1.6s ease-in-out ${i * 0.15}s infinite`,
                     width: `${[90, 70, 80, 60][i]}%`,
@@ -314,14 +314,14 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
               <div style={{
                 display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
                 padding: '6px 12px 6px 8px', borderRadius: 99,
-                background: 'rgba(0,229,255,0.12)',
-                border: `1px solid rgba(0,229,255,0.4)`,
+                background: 'rgba(79,227,193,0.12)',
+                border: `1px solid rgba(79,227,193,0.4)`,
                 position: 'relative', zIndex: 1,
                 minWidth: 0,
               }}>
                 <span style={{
                   width: 22, height: 22, borderRadius: 99, flexShrink: 0,
-                  background: `linear-gradient(180deg, ${T.cyan}, ${T.blue})`,
+                  background: `linear-gradient(180deg, ${T.teal}, ${T.blue})`,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: '#001018',
                 }}>
@@ -331,7 +331,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                   text={(mission || '').toString()}
                   textStyle={{
                     fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
-                    color: T.cyan, textTransform: 'uppercase', fontWeight: 600,
+                    color: T.teal, textTransform: 'uppercase', fontWeight: 600,
                   }}
                 />
               </div>
@@ -352,7 +352,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                   fontFamily: T.display, fontWeight: 600,
                   fontSize: 36, lineHeight: 1.1, letterSpacing: '-0.025em',
                   color: T.text, margin: 0, textAlign: 'center',
-                  textShadow: `0 0 40px rgba(0,229,255,0.4)`,
+                  textShadow: `0 0 40px rgba(79,227,193,0.4)`,
                 }}>
                   {step.title}
                 </h2>
@@ -397,9 +397,9 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                     all: 'unset', cursor: regenLoading ? 'default' : 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '6px 9px', borderRadius: 99,
-                    background: 'rgba(0,229,255,0.08)',
-                    border: `1px solid rgba(0,229,255,0.32)`,
-                    color: T.cyan,
+                    background: 'rgba(79,227,193,0.08)',
+                    border: `1px solid rgba(79,227,193,0.32)`,
+                    color: T.teal,
                     fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
                     textTransform: 'uppercase', fontWeight: 600,
                     transition: 'all 200ms ease',

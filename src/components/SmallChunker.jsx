@@ -192,7 +192,7 @@ export function SmallChunker({
                 fontFamily: T.display, fontSize: 18, fontWeight: 600,
                 color: T.text, letterSpacing: '-0.01em', lineHeight: 1.1,
               }}>
-                Step <span style={{ color: T.cyan }}>{absoluteStepNumber}</span>
+                Step <span style={{ color: T.amber }}>{absoluteStepNumber}</span>
                 <span style={{ color: T.text3, fontWeight: 500 }}> · card {inBatchIdx + 1} of {BATCH_SIZE}</span>
               </div>
             </div>
@@ -205,14 +205,14 @@ export function SmallChunker({
               all: 'unset', cursor: 'pointer', flexShrink: 0,
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '8px 13px', borderRadius: 99,
-              background: 'rgba(168,118,255,0.10)',
-              border: `1px solid rgba(168,118,255,0.42)`,
-              boxShadow: `0 0 16px rgba(168,118,255,0.18)`,
+              background: 'rgba(255,192,72,0.10)',
+              border: `1px solid rgba(255,192,72,0.42)`,
+              boxShadow: `0 0 16px rgba(255,192,72,0.18)`,
               transition: 'all 180ms ease',
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <svg width="13" height="13" viewBox="0 0 14 14" style={{ flexShrink: 0, color: T.purple }}>
+            <svg width="13" height="13" viewBox="0 0 14 14" style={{ flexShrink: 0, color: T.amber }}>
               <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z" fill="currentColor"/>
             </svg>
             <span style={{
@@ -231,14 +231,14 @@ export function SmallChunker({
         }}>
           <div style={{
             height: '100%', width: `${progress}%`,
-            background: `linear-gradient(90deg, ${T.cyan}, ${T.blue} 60%, ${T.purple})`,
-            boxShadow: `0 0 12px ${T.cyan}99`,
+            background: `linear-gradient(90deg, ${T.amber}, ${T.blue} 60%, ${T.amber})`,
+            boxShadow: `0 0 12px ${T.amber}99`,
             transition: 'width 600ms cubic-bezier(0.2, 0.8, 0.2, 1)',
             position: 'relative',
           }}>
             <div style={{
               position: 'absolute', right: -2, top: -3, bottom: -3, width: 10,
-              background: `radial-gradient(circle, ${T.cyan}, transparent 70%)`,
+              background: `radial-gradient(circle, ${T.amber}, transparent 70%)`,
               filter: 'blur(2px)',
             }} />
           </div>
@@ -259,7 +259,7 @@ export function SmallChunker({
       }}>
         <div style={{
           position: 'absolute', width: 360, height: 360, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(0,229,255,0.18), rgba(168,118,255,0.08) 40%, transparent 70%)`,
+          background: `radial-gradient(circle, rgba(255,192,72,0.18), rgba(255,192,72,0.08) 40%, transparent 70%)`,
           animation: 'breathe 3.2s ease-in-out infinite',
           pointerEvents: 'none',
         }} />
@@ -267,14 +267,14 @@ export function SmallChunker({
         <div key={`${batchNumber}-${inBatchIdx}`} style={{
           position: 'relative', width: '100%', height: '100%',
           maxHeight: 460,
-          background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 60%, rgba(0,229,255,0.04))',
-          border: `1px solid rgba(0,229,255,0.32)`,
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 60%, rgba(255,192,72,0.04))',
+          border: `1px solid rgba(255,192,72,0.32)`,
           borderRadius: 28,
           display: 'flex', flexDirection: 'column',
           padding: '28px 24px 32px',
           boxShadow: `
             0 0 0 1px rgba(255,255,255,0.04) inset,
-            0 30px 80px rgba(0,229,255,0.12),
+            0 30px 80px rgba(255,192,72,0.12),
             0 8px 32px rgba(0,0,0,0.5),
             inset 0 1px 0 rgba(255,255,255,0.08)
           `,
@@ -288,7 +288,7 @@ export function SmallChunker({
           <div style={{
             position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
             width: 280, height: 200,
-            background: `radial-gradient(ellipse, rgba(0,229,255,0.35), transparent 70%)`,
+            background: `radial-gradient(ellipse, rgba(255,192,72,0.35), transparent 70%)`,
             pointerEvents: 'none',
           }} />
           {[
@@ -301,10 +301,10 @@ export function SmallChunker({
               position: 'absolute',
               top: c.top, left: c.left, right: c.right, bottom: c.bottom,
               width: 14, height: 14,
-              borderTop: c.r === 't' ? `1px solid ${T.cyan}88` : 'none',
-              borderBottom: c.r === 'b' ? `1px solid ${T.cyan}88` : 'none',
-              borderLeft: c.b === 'l' ? `1px solid ${T.cyan}88` : 'none',
-              borderRight: c.b === 'r' ? `1px solid ${T.cyan}88` : 'none',
+              borderTop: c.r === 't' ? `1px solid ${T.amber}88` : 'none',
+              borderBottom: c.r === 'b' ? `1px solid ${T.amber}88` : 'none',
+              borderLeft: c.b === 'l' ? `1px solid ${T.amber}88` : 'none',
+              borderRight: c.b === 'r' ? `1px solid ${T.amber}88` : 'none',
             }} />
           ))}
 
@@ -316,13 +316,13 @@ export function SmallChunker({
             }}>
               <div style={{
                 fontFamily: T.mono, fontSize: 10, letterSpacing: '0.32em',
-                color: T.cyan, textTransform: 'uppercase',
-                textShadow: `0 0 12px ${T.cyan}88`,
+                color: T.amber, textTransform: 'uppercase',
+                textShadow: `0 0 12px ${T.amber}88`,
                 display: 'inline-flex', alignItems: 'center', gap: 8,
               }}>
                 <span style={{
-                  width: 6, height: 6, borderRadius: 99, background: T.cyan,
-                  boxShadow: `0 0 10px ${T.cyan}`,
+                  width: 6, height: 6, borderRadius: 99, background: T.amber,
+                  boxShadow: `0 0 10px ${T.amber}`,
                   animation: 'pulse 1.4s ease-in-out infinite',
                 }} />
                 Recalibrating
@@ -331,7 +331,7 @@ export function SmallChunker({
                 {[0, 1].map(i => (
                   <div key={i} style={{
                     height: 10, borderRadius: 99,
-                    background: `linear-gradient(90deg, rgba(0,229,255,0.10) 0%, rgba(0,229,255,0.26) 50%, rgba(0,229,255,0.10) 100%)`,
+                    background: `linear-gradient(90deg, rgba(255,192,72,0.10) 0%, rgba(255,192,72,0.26) 50%, rgba(255,192,72,0.10) 100%)`,
                     backgroundSize: '200% 100%',
                     animation: `shimmer 1.6s ease-in-out ${i * 0.2}s infinite`,
                     width: `${[78, 55][i]}%`,
@@ -355,13 +355,13 @@ export function SmallChunker({
             }}>
               <div style={{
                 fontFamily: T.mono, fontSize: 10, letterSpacing: '0.32em',
-                color: T.purple, textTransform: 'uppercase',
-                textShadow: `0 0 12px ${T.purple}88`,
+                color: T.amber, textTransform: 'uppercase',
+                textShadow: `0 0 12px ${T.amber}88`,
                 display: 'inline-flex', alignItems: 'center', gap: 8,
               }}>
                 <span style={{
-                  width: 6, height: 6, borderRadius: 99, background: T.purple,
-                  boxShadow: `0 0 10px ${T.purple}`,
+                  width: 6, height: 6, borderRadius: 99, background: T.amber,
+                  boxShadow: `0 0 10px ${T.amber}`,
                   animation: 'pulse 1.4s ease-in-out infinite',
                 }} />
                 Generating batch {batchNumber || 1}
@@ -371,7 +371,7 @@ export function SmallChunker({
                 fontFamily: T.display, fontWeight: 600,
                 fontSize: 28, lineHeight: 1.15, letterSpacing: '-0.02em',
                 color: T.text, margin: 0, textAlign: 'center',
-                textShadow: `0 0 40px rgba(168,118,255,0.4)`,
+                textShadow: `0 0 40px rgba(255,192,72,0.4)`,
               }}>
                 {(batchNumber || 1) === 1
                   ? <>Chunking your mission<br/>into 4 tiny steps…</>
@@ -382,7 +382,7 @@ export function SmallChunker({
                 {[0, 1, 2, 3].map(i => (
                   <div key={i} style={{
                     height: 10, borderRadius: 99,
-                    background: `linear-gradient(90deg, rgba(168,118,255,0.12) 0%, rgba(0,229,255,0.22) 50%, rgba(168,118,255,0.12) 100%)`,
+                    background: `linear-gradient(90deg, rgba(255,192,72,0.12) 0%, rgba(255,192,72,0.22) 50%, rgba(255,192,72,0.12) 100%)`,
                     backgroundSize: '200% 100%',
                     animation: `shimmer 1.6s ease-in-out ${i * 0.15}s infinite`,
                     width: `${[90, 70, 80, 60][i]}%`,
@@ -406,14 +406,14 @@ export function SmallChunker({
               <div style={{
                 display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
                 padding: '6px 12px 6px 8px', borderRadius: 99,
-                background: 'rgba(0,229,255,0.12)',
-                border: `1px solid rgba(0,229,255,0.4)`,
+                background: 'rgba(255,192,72,0.12)',
+                border: `1px solid rgba(255,192,72,0.4)`,
                 position: 'relative', zIndex: 1,
                 minWidth: 0,
               }}>
                 <span style={{
                   width: 22, height: 22, borderRadius: 99, flexShrink: 0,
-                  background: `linear-gradient(180deg, ${T.cyan}, ${T.blue})`,
+                  background: `linear-gradient(180deg, ${T.amber}, ${T.blue})`,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: '#001018',
                 }}>
@@ -423,7 +423,7 @@ export function SmallChunker({
                   text={(mission || '').toString()}
                   textStyle={{
                     fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
-                    color: T.cyan, textTransform: 'uppercase', fontWeight: 600,
+                    color: T.amber, textTransform: 'uppercase', fontWeight: 600,
                   }}
                 />
               </div>
@@ -444,7 +444,7 @@ export function SmallChunker({
                   fontFamily: T.display, fontWeight: 600,
                   fontSize: 32, lineHeight: 1.1, letterSpacing: '-0.025em',
                   color: T.text, margin: 0, textAlign: 'center',
-                  textShadow: `0 0 40px rgba(0,229,255,0.4)`,
+                  textShadow: `0 0 40px rgba(255,192,72,0.4)`,
                 }}>
                   {step.title}
                 </h2>
@@ -467,9 +467,9 @@ export function SmallChunker({
                   all: 'unset', cursor: 'pointer',
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   padding: '6px 9px', borderRadius: 99,
-                  background: 'rgba(168,118,255,0.08)',
-                  border: `1px solid rgba(168,118,255,0.32)`,
-                  color: T.purple,
+                  background: 'rgba(255,192,72,0.08)',
+                  border: `1px solid rgba(255,192,72,0.32)`,
+                  color: T.amber,
                   fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
                   textTransform: 'uppercase', fontWeight: 600,
                   transition: 'all 200ms ease',
@@ -489,9 +489,9 @@ export function SmallChunker({
                     all: 'unset', cursor: regenLoading ? 'default' : 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '6px 9px', borderRadius: 99,
-                    background: 'rgba(0,229,255,0.08)',
-                    border: `1px solid rgba(0,229,255,0.32)`,
-                    color: T.cyan,
+                    background: 'rgba(255,192,72,0.08)',
+                    border: `1px solid rgba(255,192,72,0.32)`,
+                    color: T.amber,
                     fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
                     textTransform: 'uppercase', fontWeight: 600,
                     transition: 'all 200ms ease',
