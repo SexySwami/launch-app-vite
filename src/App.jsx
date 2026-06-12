@@ -46,6 +46,8 @@ export default function App() {
   const [steps, setSteps] = useState([]);
   const [stepsLoading, setStepsLoading] = useState(false);
   const [stepsError, setStepsError] = useState(null);
+  const [cascadeLoading, setCascadeLoading] = useState(false);
+  const [cascadeFromIdx, setCascadeFromIdx] = useState(-1);
 
   // Completion-logging state.
   const [completionGroupId, setCompletionGroupId] = useState(null);
@@ -260,6 +262,8 @@ export default function App() {
       hint: s.hint || '',
     }));
     const remainingTags = steps.slice(stepIdx + 1).map(s => s.tag);
+    setCascadeFromIdx(stepIdx);
+    setCascadeLoading(true);
     try {
       const res = await fetch('/api/regenerate-remaining', {
         method: 'POST',
@@ -287,6 +291,10 @@ export default function App() {
         });
       }
     } catch {}
+    finally {
+      setCascadeLoading(false);
+      setCascadeFromIdx(-1);
+    }
   };
 
   const handleMicroStepEdited = async (batchPos, newTitle) => {
@@ -488,6 +496,8 @@ export default function App() {
     setSteps([]);
     setStepsError(null);
     setStepsLoading(true);
+    setCascadeLoading(false);
+    setCascadeFromIdx(-1);
     setCompletionGroupId(typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `c_${Date.now()}_${Math.random().toString(36).slice(2)}`);
@@ -865,6 +875,7 @@ export default function App() {
         stepLogged={loggedSteps.has(stepIdx)}
         mission={mission}
         loading={stepsLoading || !resolvedStep}
+        cascadeLoading={cascadeLoading && stepIdx > cascadeFromIdx}
       />
     );
   else if (screen === 'reward')
