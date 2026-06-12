@@ -135,29 +135,24 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
     setPos(pos - 1 < 0 ? order.length - 1 : pos - 1);
   };
 
-  const arrowBtn = (side, onTap, enabled) => (
+  const arrowBtn = (side, onTap) => (
     <button
       onClick={onTap}
-      disabled={!enabled}
       aria-label={side === 'left' ? 'Previous video' : 'Next video'}
       style={{
         all: 'unset',
-        position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-        [side]: -14,
-        cursor: enabled ? 'pointer' : 'default',
-        width: 38, height: 38, borderRadius: 99,
-        background: 'rgba(168,118,255,0.16)',
-        border: `1px solid rgba(168,118,255,0.42)`,
-        boxShadow: `0 0 16px rgba(168,118,255,0.28)`,
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        color: enabled ? T.text : T.text3,
+        cursor: 'pointer',
+        width: 30, height: 30, borderRadius: 99,
+        background: 'rgba(168,118,255,0.12)',
+        border: `1px solid rgba(168,118,255,0.32)`,
+        color: T.text2,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 2, opacity: enabled ? 1 : 0.4,
-        transition: 'opacity 200ms ease',
+        flexShrink: 0,
+        transition: 'background 180ms ease, color 180ms ease',
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 14 14">
+      <svg width="12" height="12" viewBox="0 0 14 14">
         {side === 'left'
           ? <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
           : <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>}
@@ -272,7 +267,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
               <iframe
                 key={video.video_id}
                 width="100%" height="100%"
-                src={`https://www.youtube.com/embed/${video.video_id}?rel=0`}
+                src={`https://www.youtube.com/embed/${video.video_id}?rel=0${video.start ? `&start=${video.start}` : ''}`}
                 title={video.title}
                 frameBorder="0"
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -291,17 +286,21 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
             )}
           </div>
 
-          {!loading && multiple && arrowBtn('left', goPrev, true)}
-          {!loading && multiple && arrowBtn('right', goNext, true)}
         </div>
 
-        {/* Creator */}
+        {/* Creator + nav arrows */}
         <div style={{
-          marginTop: 12, textAlign: 'center', minHeight: 16,
-          fontFamily: T.mono, fontSize: 11, letterSpacing: '0.14em',
-          color: T.text3, textTransform: 'uppercase',
+          marginTop: 12, minHeight: 30,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
         }}>
-          {!loading && video ? `by ${video.creator}` : ' '}
+          {!loading && multiple && arrowBtn('left', goPrev)}
+          <span style={{
+            fontFamily: T.mono, fontSize: 11, letterSpacing: '0.14em',
+            color: T.text3, textTransform: 'uppercase',
+          }}>
+            {!loading && video ? `by ${video.creator}` : ' '}
+          </span>
+          {!loading && multiple && arrowBtn('right', goNext)}
         </div>
       </div>
     </div>
