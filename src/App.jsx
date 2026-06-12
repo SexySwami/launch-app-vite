@@ -34,7 +34,7 @@ const BASE_FOLDERS = [
   { id: 'health',     name: 'Health',     accent: T.teal,   iconKey: 'health',     code: 'RT-03', tagline: 'Vital Signs'   },
   { id: 'dailies',    name: 'Dailies',    accent: T.amber,  iconKey: 'dailies',    code: 'RT-04', tagline: 'Daily Reset'   },
 ];
-const CUSTOM_ACCENT_CYCLE = [T.amber, T.cyan, T.purple, T.rose, T.teal];
+const CUSTOM_ACCENT_CYCLE = [T.blue, T.rose, T.teal, T.amber, T.cyan, T.purple];
 const DEFAULT_FOLDER_ID = 'work';
 
 export default function App() {
