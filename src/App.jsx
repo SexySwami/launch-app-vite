@@ -48,6 +48,10 @@ export default function App() {
   const [stepsError, setStepsError] = useState(null);
   const [cascadeLoading, setCascadeLoading] = useState(false);
   const [cascadeFromIdx, setCascadeFromIdx] = useState(-1);
+  const [microCascadeLoading, setMicroCascadeLoading] = useState(false);
+  const [microCascadeFromBatchPos, setMicroCascadeFromBatchPos] = useState(-1);
+  const [deepCascadeLoading, setDeepCascadeLoading] = useState(false);
+  const [deepCascadeFromBatchPos, setDeepCascadeFromBatchPos] = useState(-1);
 
   // Completion-logging state.
   const [completionGroupId, setCompletionGroupId] = useState(null);
@@ -306,6 +310,8 @@ export default function App() {
       description: s.description || '',
     }));
     const count = 4 - batchPos - 1;
+    setMicroCascadeFromBatchPos(batchPos);
+    setMicroCascadeLoading(true);
     try {
       const res = await fetch('/api/regenerate-remaining', {
         method: 'POST',
@@ -328,6 +334,10 @@ export default function App() {
         });
       }
     } catch {}
+    finally {
+      setMicroCascadeLoading(false);
+      setMicroCascadeFromBatchPos(-1);
+    }
   };
 
   const handleDeepStepEdited = async (batchPos, newTitle) => {
@@ -339,6 +349,8 @@ export default function App() {
       description: s.description || '',
     }));
     const count = 4 - batchPos - 1;
+    setDeepCascadeFromBatchPos(batchPos);
+    setDeepCascadeLoading(true);
     try {
       const res = await fetch('/api/regenerate-remaining', {
         method: 'POST',
@@ -361,6 +373,10 @@ export default function App() {
         });
       }
     } catch {}
+    finally {
+      setDeepCascadeLoading(false);
+      setDeepCascadeFromBatchPos(-1);
+    }
   };
 
   const advanceStep = () => {
@@ -831,6 +847,7 @@ export default function App() {
         firstStepNumber={(microBatch - 1) * 4 + 1}
         inBatchIdx={microInBatchIdx}
         loading={microLoading}
+        cascadeLoading={microCascadeLoading && microInBatchIdx > microCascadeFromBatchPos}
         allSteps={microSteps}
         onAdvanceInBatch={() => setMicroInBatchIdx(i => i + 1)}
         onGoBack={() => setMicroInBatchIdx(i => i - 1)}
@@ -854,6 +871,7 @@ export default function App() {
         firstStepNumber={(deepBatch - 1) * 4 + 1}
         inBatchIdx={deepInBatchIdx}
         loading={deepLoading}
+        cascadeLoading={deepCascadeLoading && deepInBatchIdx > deepCascadeFromBatchPos}
         allSteps={deepSteps}
         onAdvanceInBatch={() => setDeepInBatchIdx(i => i + 1)}
         onGoBack={() => setDeepInBatchIdx(i => i - 1)}
