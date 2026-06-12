@@ -4,12 +4,14 @@ import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditStepModal } from './EditStepModal.jsx';
+import { WorkWithMeModal } from './WorkWithMeModal.jsx';
 
 export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, loading, cascadeLoading }) {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
   const [pulseMomentum, setPulseMomentum] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [workWithMeOpen, setWorkWithMeOpen] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
   const [regenSeen, setRegenSeen] = useState([]);
 
@@ -109,30 +111,30 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             </div>
           </div>
 
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '8px 12px', borderRadius: 99,
-            background: 'rgba(79,227,193,0.08)',
-            border: `1px solid rgba(79,227,193,0.32)`,
-            boxShadow: pulseMomentum
-              ? `0 0 0 6px rgba(79,227,193,0.18), 0 0 24px ${T.teal}`
-              : `0 0 16px rgba(79,227,193,0.18)`,
-            transition: 'box-shadow 600ms ease',
-          }}>
+          <button
+            onClick={() => setWorkWithMeOpen(true)}
+            aria-label="Open Work With Me videos"
+            style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 13px', borderRadius: 99,
+              background: 'rgba(79,227,193,0.10)',
+              border: `1px solid rgba(79,227,193,0.42)`,
+              boxShadow: `0 0 16px rgba(79,227,193,0.18)`,
+              transition: 'all 180ms ease',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" style={{ flexShrink: 0, color: T.teal }}>
+              <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z" fill="currentColor"/>
+            </svg>
             <span style={{
-              width: 6, height: 6, borderRadius: 99, background: T.teal,
-              boxShadow: `0 0 8px ${T.teal}`,
-            }} />
-            <span style={{
-              fontFamily: T.mono, fontSize: 11, letterSpacing: '0.16em',
-              fontWeight: 600, color: T.text, fontVariantNumeric: 'tabular-nums',
-              transform: pulseMomentum ? 'scale(1.1)' : 'scale(1)',
-              transition: 'transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-              display: 'inline-block',
+              fontFamily: T.mono, fontSize: 11, letterSpacing: '0.14em',
+              fontWeight: 600, color: T.text, textTransform: 'uppercase',
             }}>
-              +{momentumGained} <span style={{ color: T.teal, marginLeft: 2 }}>Momentum</span>
+              Work With Me
             </span>
-          </div>
+          </button>
         </div>
 
         <div style={{
@@ -457,6 +459,12 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
           onEditStep(picked);
           setEditOpen(false);
         }}
+      />
+
+      <WorkWithMeModal
+        open={workWithMeOpen}
+        mission={mission}
+        onClose={() => setWorkWithMeOpen(false)}
       />
     </div>
   );
