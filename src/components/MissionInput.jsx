@@ -15,6 +15,11 @@ export function MissionInput({
   folder = null,
   onBack = null,
   refetchKey = 0,
+  // True when this folder is the one currently shown. The component stays
+  // mounted across in-app folder switches (hidden via CSS), so this lets the
+  // Short List refetch when re-opened — items added from other folders would
+  // otherwise not appear until a full reload.
+  active = false,
   // When true, per-item launch buttons render a checkmark and fire
   // `onSelect(task)` instead of launching. Used by the Break Flow
   // "Choose Task" overlay to pick a post-break task without leaving
@@ -296,6 +301,17 @@ export function MissionInput({
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The Short List is a curated view of references owned by other folders, so
+  // items get added from elsewhere while this instance sits mounted-but-hidden.
+  // Refetch each time it becomes the active folder to surface those additions
+  // immediately (no reload). Guarded to the inactive→active transition so we
+  // don't double-fetch on mount (the mount effect already loads once).
+  const wasActiveRef = useRef(active);
+  useEffect(() => {
+    if (isShortList && active && !wasActiveRef.current) fetchItems();
+    wasActiveRef.current = active;
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // For non-short-list folders: load which items are already in the Short List so the
   // three-dot menu can show "Already in Short List" vs "Add to Short List".

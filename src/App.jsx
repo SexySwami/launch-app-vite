@@ -756,6 +756,7 @@ export default function App() {
               <MissionInput
                 folderId={fid}
                 folder={folder}
+                active={active}
                 onLaunch={launchMission}
                 mission={mission}
                 setMission={setMission}
