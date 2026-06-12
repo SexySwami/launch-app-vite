@@ -22,6 +22,7 @@ export function SmallChunker({
   loading,
   allSteps,
   onAdvanceInBatch,
+  onGoBack,
   onBatchComplete,
   onFinish,
   onStepEdited,
@@ -109,6 +110,11 @@ export function SmallChunker({
     }, 320);
   };
 
+  const handleBack = () => {
+    if (inBatchIdx > 0) onGoBack && onGoBack();
+    else onBack && onBack();
+  };
+
   const handleFinished = () => {
     if (exiting) return;
     onFinish && onFinish();
@@ -157,8 +163,8 @@ export function SmallChunker({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             <button
-              onClick={onBack}
-              aria-label="Back to mode select"
+              onClick={handleBack}
+              aria-label={inBatchIdx > 0 ? 'Back to previous card' : 'Back to mode select'}
               style={{
                 all: 'unset', cursor: 'pointer', flexShrink: 0,
                 width: 36, height: 36, borderRadius: 99,
