@@ -34,6 +34,16 @@ export function MissionInput({
   const queueIdUrl = (id) => `${queueUrl}&id=${encodeURIComponent(id)}`;
   const isShortList = folderId === 'short-list';
 
+  // Accent palette. The Short List wears its rose identity across the entire
+  // checklist UI — priority badges, launch buttons, highlights, the add/search
+  // inputs — to match its branding. Every other folder keeps the default
+  // cyan/blue. `ac`/`ac2` build rgba strings at a given alpha so the many
+  // translucent fills, borders and glows can switch in one place.
+  const aSolid  = isShortList ? T.rose    : T.cyan;
+  const aSolid2 = isShortList ? '#E0457E' : T.blue;
+  const ac  = (a) => `rgba(${isShortList ? '255,107,157' : '0,229,255'},${a})`;
+  const ac2 = (a) => `rgba(${isShortList ? '224,69,126'  : '61,127,255'},${a})`;
+
   // Cloud-backed mission queue (Upstash Redis via /api/queue).
   const [items, setItems] = useState([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -1855,9 +1865,9 @@ export function MissionInput({
                 all: 'unset', cursor: items.length === 0 ? 'default' : 'pointer',
                 width: 40, height: 40, borderRadius: 99,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                color: activePanel === 'search' ? T.cyan : T.text2,
-                background: activePanel === 'search' ? 'rgba(0,229,255,0.10)' : 'transparent',
-                boxShadow: activePanel === 'search' ? '0 0 12px rgba(0,229,255,0.22)' : 'none',
+                color: activePanel === 'search' ? aSolid : T.text2,
+                background: activePanel === 'search' ? ac(0.10) : 'transparent',
+                boxShadow: activePanel === 'search' ? `0 0 12px ${ac(0.22)}` : 'none',
                 transition: 'all 200ms ease',
                 WebkitTapHighlightColor: 'transparent',
                 opacity: items.length === 0 ? 0.3 : 1,
@@ -1879,10 +1889,10 @@ export function MissionInput({
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 color: activePanel === 'add' ? '#001018' : T.teal,
                 background: activePanel === 'add'
-                  ? `linear-gradient(180deg, ${T.cyan}, ${T.blue})`
+                  ? `linear-gradient(180deg, ${aSolid}, ${aSolid2})`
                   : 'rgba(79,227,193,0.10)',
                 border: `1px solid ${activePanel === 'add' ? 'transparent' : 'rgba(79,227,193,0.35)'}`,
-                boxShadow: activePanel === 'add' ? `0 0 16px rgba(0,229,255,0.45)` : 'none',
+                boxShadow: activePanel === 'add' ? `0 0 16px ${ac(0.45)}` : 'none',
                 transition: 'all 200ms ease',
                 WebkitTapHighlightColor: 'transparent',
               }}
@@ -1902,7 +1912,7 @@ export function MissionInput({
                 cursor: (drag || items.length === 0) ? 'default' : 'pointer',
                 width: 40, height: 40, borderRadius: 99,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                color: items.length === 0 ? T.text3 : T.cyan,
+                color: items.length === 0 ? T.text3 : aSolid,
                 transition: 'all 200ms ease',
                 WebkitTapHighlightColor: 'transparent',
                 opacity: (drag || items.length === 0) ? 0.3 : 1,
@@ -1914,7 +1924,7 @@ export function MissionInput({
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"
-                style={{ filter: items.length > 0 ? `drop-shadow(0 0 5px ${T.cyan})` : 'none' }}
+                style={{ filter: items.length > 0 ? `drop-shadow(0 0 5px ${aSolid})` : 'none' }}
               >
                 <path d="M9 1l-4 9h4l-3 7L15 8h-4l3-7z" fill="currentColor"/>
               </svg>
@@ -1936,15 +1946,15 @@ export function MissionInput({
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 background: 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isSearching ? 'rgba(0,229,255,0.42)' : T.hairlineSoft}`,
+                border: `1px solid ${isSearching ? ac(0.42) : T.hairlineSoft}`,
                 borderRadius: 14, padding: '8px 10px 8px 12px',
                 boxShadow: isSearching
-                  ? '0 0 0 3px rgba(0,229,255,0.08), 0 0 18px rgba(0,229,255,0.10)'
+                  ? `0 0 0 3px ${ac(0.08)}, 0 0 18px ${ac(0.10)}`
                   : 'none',
                 transition: 'border-color 200ms ease, box-shadow 200ms ease',
               }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"
-                  style={{ color: isSearching ? T.cyan : T.text3, flexShrink: 0 }}
+                  style={{ color: isSearching ? aSolid : T.text3, flexShrink: 0 }}
                 >
                   <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.4" fill="none"/>
                   <path d="M9 9l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
@@ -1997,9 +2007,9 @@ export function MissionInput({
               <div style={{
                 display: 'flex', alignItems: 'flex-end', gap: 6,
                 background: 'rgba(255,255,255,0.04)',
-                border: `1px solid rgba(0,229,255,0.42)`,
+                border: `1px solid ${ac(0.42)}`,
                 borderRadius: 14, padding: '8px 8px 8px 14px',
-                boxShadow: '0 0 0 3px rgba(0,229,255,0.08), 0 0 24px rgba(0,229,255,0.10)',
+                boxShadow: `0 0 0 3px ${ac(0.08)}, 0 0 24px ${ac(0.10)}`,
                 transition: 'border-color 200ms ease, box-shadow 200ms ease',
               }}>
                 <textarea
@@ -2042,11 +2052,11 @@ export function MissionInput({
                     cursor: (newItemDraft.trim() && !savingItem) ? 'pointer' : 'default',
                     width: 30, height: 30, borderRadius: 99,
                     background: newItemDraft.trim()
-                      ? `linear-gradient(180deg, ${T.cyan}, ${T.blue})`
+                      ? `linear-gradient(180deg, ${aSolid}, ${aSolid2})`
                       : 'rgba(255,255,255,0.05)',
                     color: newItemDraft.trim() ? '#001018' : T.text3,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: newItemDraft.trim() ? `0 0 12px ${T.cyan}88` : 'none',
+                    boxShadow: newItemDraft.trim() ? `0 0 12px ${ac(0.53)}` : 'none',
                     transition: 'all 200ms ease',
                     opacity: savingItem ? 0.7 : 1,
                   }}
@@ -2121,8 +2131,8 @@ export function MissionInput({
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
                 <span style={{
-                  width: 6, height: 6, borderRadius: 99, background: T.cyan,
-                  boxShadow: `0 0 8px ${T.cyan}`,
+                  width: 6, height: 6, borderRadius: 99, background: aSolid,
+                  boxShadow: `0 0 8px ${aSolid}`,
                   animation: 'pulse 1.2s ease-in-out infinite',
                 }} />
                 Syncing queue from cloud…
@@ -2327,12 +2337,12 @@ export function MissionInput({
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8,
                               background: childSelected
-                                ? 'linear-gradient(180deg, rgba(0,229,255,0.14), rgba(0,229,255,0.04))'
+                                ? `linear-gradient(180deg, ${ac(0.14)}, ${ac(0.04)})`
                                 : childEditing
                                   ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
                                   : 'rgba(255,255,255,0.02)',
                               border: `1px solid ${
-                                childSelected ? 'rgba(0,229,255,0.6)'
+                                childSelected ? ac(0.6)
                                 : childEditing ? 'rgba(168,118,255,0.55)'
                                 : T.hairlineSoft
                               }`,
@@ -2346,9 +2356,9 @@ export function MissionInput({
                               zIndex: isChildDragging ? 10 : 1,
                               opacity: isChildDragging ? 0.96 : 1,
                               boxShadow: isChildDragging
-                                ? `0 12px 32px rgba(0,229,255,0.32), 0 0 24px rgba(0,229,255,0.20)`
+                                ? `0 12px 32px ${ac(0.32)}, 0 0 24px ${ac(0.20)}`
                                 : childSelected
-                                  ? `0 0 14px rgba(0,229,255,0.22)`
+                                  ? `0 0 14px ${ac(0.22)}`
                                   : childEditing
                                     ? `0 0 14px rgba(168,118,255,0.22)`
                                     : 'none',
@@ -2400,10 +2410,10 @@ export function MissionInput({
                                 all: 'unset', cursor: 'pointer', flexShrink: 0,
                                 width: 28, height: 28, borderRadius: 99,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                color: T.cyan,
-                                background: 'rgba(0,229,255,0.10)',
-                                border: '1px solid rgba(0,229,255,0.28)',
-                                boxShadow: '0 0 8px rgba(0,229,255,0.15)',
+                                color: aSolid,
+                                background: ac(0.10),
+                                border: `1px solid ${ac(0.28)}`,
+                                boxShadow: `0 0 8px ${ac(0.15)}`,
                                 transition: 'color 150ms, background 150ms',
                                 WebkitTapHighlightColor: 'transparent',
                               }}
@@ -2448,17 +2458,17 @@ export function MissionInput({
                       background: isHoverTarget
                         ? 'linear-gradient(180deg, rgba(168,118,255,0.22), rgba(168,118,255,0.08))'
                         : isSelected
-                          ? 'linear-gradient(180deg, rgba(0,229,255,0.14), rgba(0,229,255,0.04))'
+                          ? `linear-gradient(180deg, ${ac(0.14)}, ${ac(0.04)})`
                           : isEditing
                             ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
                             : isFirstItem
-                              ? 'linear-gradient(180deg, rgba(0,229,255,0.07), rgba(255,255,255,0.025))'
+                              ? `linear-gradient(180deg, ${ac(0.07)}, rgba(255,255,255,0.025))`
                               : 'rgba(255,255,255,0.025)',
                       border: `1px solid ${
                         isHoverTarget ? 'rgba(168,118,255,0.7)'
-                        : isSelected ? 'rgba(0,229,255,0.6)'
+                        : isSelected ? ac(0.6)
                         : isEditing ? 'rgba(168,118,255,0.55)'
-                        : isFirstItem ? 'rgba(0,229,255,0.32)'
+                        : isFirstItem ? ac(0.32)
                         : T.hairlineSoft
                       }`,
                       borderRadius: 14, padding: '4px 4px 4px 4px',
@@ -2472,15 +2482,15 @@ export function MissionInput({
                         : isHoverTarget ? `scale(${1 + hoverProgress * 0.025})` : 'none',
                       zIndex: isDragging ? 10 : 1,
                       boxShadow: isDragging
-                        ? `0 12px 32px rgba(0,229,255,0.32), 0 0 24px rgba(0,229,255,0.20)`
+                        ? `0 12px 32px ${ac(0.32)}, 0 0 24px ${ac(0.20)}`
                         : isHoverTarget
                           ? `0 0 0 ${2 + hoverProgress * 4}px rgba(168,118,255,${0.18 + hoverProgress * 0.32}), 0 0 ${20 + hoverProgress * 20}px rgba(168,118,255,${0.25 + hoverProgress * 0.35})`
                           : isSelected
-                            ? `0 0 18px rgba(0,229,255,0.30)`
+                            ? `0 0 18px ${ac(0.30)}`
                             : isEditing
                               ? `0 0 18px rgba(168,118,255,0.30)`
                               : isFirstItem
-                                ? `0 0 12px rgba(0,229,255,0.10)`
+                                ? `0 0 12px ${ac(0.10)}`
                                 : 'none',
                       opacity: isDragging ? 0.96 : 1,
                       transition: isDragging
@@ -2503,18 +2513,18 @@ export function MissionInput({
                         boxSizing: 'border-box',
                         borderRadius: 99,
                         background: isFirstItem
-                          ? `linear-gradient(180deg, ${T.cyan}, ${T.blue})`
-                          : 'linear-gradient(180deg, rgba(0,229,255,0.16), rgba(0,229,255,0.06))',
-                        border: `1px solid ${isFirstItem ? 'transparent' : 'rgba(0,229,255,0.42)'}`,
-                        color: isFirstItem ? '#001018' : T.cyan,
+                          ? `linear-gradient(180deg, ${aSolid}, ${aSolid2})`
+                          : `linear-gradient(180deg, ${ac(0.16)}, ${ac(0.06)})`,
+                        border: `1px solid ${isFirstItem ? 'transparent' : ac(0.42)}`,
+                        color: isFirstItem ? '#001018' : aSolid,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         fontFamily: T.mono, fontSize: 12, fontWeight: 700,
                         fontVariantNumeric: 'tabular-nums',
                         letterSpacing: '0.02em',
                         boxShadow: isFirstItem
-                          ? `0 0 14px rgba(0,229,255,0.45), inset 0 1px 0 rgba(255,255,255,0.2)`
+                          ? `0 0 14px ${ac(0.45)}, inset 0 1px 0 rgba(255,255,255,0.2)`
                           : 'inset 0 1px 0 rgba(255,255,255,0.04)',
-                        textShadow: isFirstItem ? 'none' : `0 0 8px rgba(0,229,255,0.4)`,
+                        textShadow: isFirstItem ? 'none' : `0 0 8px ${ac(0.4)}`,
                         pointerEvents: 'none',
                         marginLeft: 4,
                         transition: 'background 200ms ease, color 200ms ease, box-shadow 200ms ease',
@@ -2561,10 +2571,10 @@ export function MissionInput({
                         all: 'unset', cursor: 'pointer', flexShrink: 0,
                         width: 32, height: 32, borderRadius: 99,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        color: T.cyan,
-                        background: 'rgba(0,229,255,0.10)',
-                        border: '1px solid rgba(0,229,255,0.28)',
-                        boxShadow: '0 0 8px rgba(0,229,255,0.15)',
+                        color: aSolid,
+                        background: ac(0.10),
+                        border: `1px solid ${ac(0.28)}`,
+                        boxShadow: `0 0 8px ${ac(0.15)}`,
                         transition: 'color 150ms, background 150ms',
                         WebkitTapHighlightColor: 'transparent',
                       }}
@@ -3030,12 +3040,12 @@ export function MissionInput({
             style={{
               all: 'unset', cursor: 'pointer', flexShrink: 0,
               padding: '8px 16px', borderRadius: 99,
-              background: `linear-gradient(180deg, rgba(0,229,255,0.20), rgba(61,127,255,0.12))`,
-              border: `1px solid rgba(0,229,255,0.5)`,
+              background: `linear-gradient(180deg, ${ac(0.20)}, ${ac2(0.12)})`,
+              border: `1px solid ${ac(0.5)}`,
               color: T.text,
               fontFamily: T.mono, fontSize: 11, letterSpacing: '0.2em',
               fontWeight: 600, textTransform: 'uppercase',
-              boxShadow: `0 0 14px rgba(0,229,255,0.25)`,
+              boxShadow: `0 0 14px ${ac(0.25)}`,
               WebkitTapHighlightColor: 'transparent',
             }}
           >
@@ -3044,8 +3054,8 @@ export function MissionInput({
           {/* draining progress bar — visual countdown of the 10s window */}
           <div style={{
             position: 'absolute', bottom: 0, left: 0, height: 2,
-            background: `linear-gradient(90deg, ${T.cyan}, ${T.blue})`,
-            boxShadow: `0 0 8px ${T.cyan}88`,
+            background: `linear-gradient(90deg, ${aSolid}, ${aSolid2})`,
+            boxShadow: `0 0 8px ${ac(0.53)}`,
             animation: 'toastDrain 10s linear forwards',
           }} />
         </div>
