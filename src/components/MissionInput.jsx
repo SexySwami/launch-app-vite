@@ -1258,6 +1258,82 @@ export function MissionInput({
     } catch {}
   };
 
+  // Check off a Short List item: complete the underlying source item in its
+  // origin folder (log to completed + remove from that queue) AND drop the
+  // reference from the Short List. The completion is recorded against the
+  // source folder so it matches checking the item off from its real list.
+  const handleShortListCheckOff = async (entryId) => {
+    setItemOptionsId(null);
+    const entry = items.find(i => i.id === entryId);
+    if (!entry) return;
+
+    // Green pulse so the item glows before vanishing (mirrors handleCheckOff).
+    setHighlightedIds(prev => { const next = new Map(prev); next.set(entryId, 0); return next; });
+    await new Promise(r => setTimeout(r, 650));
+    const remaining = itemsRef.current.filter(i => i.id !== entryId);
+    setItems(remaining);
+    setHighlightedIds(prev => { const n = new Map(prev); n.delete(entryId); return n; });
+
+    if (!canCallAPI) return;
+
+    // 1) Remove the reference from the Short List queue.
+    try { await fetch(queueIdUrl(entryId), { method: 'DELETE' }); } catch {}
+
+    // 2) Complete the source item in its origin folder.
+    const { sourceItemId, sourceFolderId, text: cachedText, description: cachedDesc } = entry;
+    if (!sourceItemId || !sourceFolderId) return;
+    const srcUrl = `/api/queue?folder=${encodeURIComponent(sourceFolderId)}`;
+    try {
+      const res = await fetch(srcUrl, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      const srcItems = Array.isArray(data.items) ? data.items : [];
+
+      // Locate the source item (top-level or nested inside a folder).
+      let topLevelIdx = srcItems.findIndex(i => i.id === sourceItemId);
+      let sourceItem = topLevelIdx >= 0 ? srcItems[topLevelIdx] : null;
+      let parentFolderId = null;
+      if (!sourceItem) {
+        for (const i of srcItems) {
+          const child = (i.children || []).find(c => c.id === sourceItemId);
+          if (child) { sourceItem = child; parentFolderId = i.id; break; }
+        }
+      }
+
+      // Log the completion against the source folder (cached text/desc as fallback).
+      const completionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const completedText = sourceItem?.text ?? cachedText;
+      const completedDesc = sourceItem?.description ?? cachedDesc;
+      try {
+        await fetch('/api/completed?action=finalize', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            id: completionId,
+            sourceItemId,
+            sourceItemIndex: topLevelIdx >= 0 ? topLevelIdx : -1,
+            folderId: sourceFolderId,
+            text: completedText,
+            ...(completedDesc ? { description: completedDesc } : {}),
+          }),
+        });
+      } catch {}
+
+      // Remove the source item from its origin queue (if still present).
+      if (sourceItem) {
+        const nextSrc = parentFolderId
+          ? srcItems.map(i => i.id === parentFolderId
+              ? { ...i, children: (i.children || []).filter(c => c.id !== sourceItemId) }
+              : i)
+          : srcItems.filter(i => i.id !== sourceItemId);
+        await fetch(srcUrl, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: nextSrc }),
+        });
+      }
+    } catch {}
+  };
+
   // Resolve the empty-folder prompt: either delete the folder or keep it empty.
   const resolveEmptyFolderPrompt = async (action) => {
     const prompt = emptyFolderPrompt;
@@ -2553,27 +2629,49 @@ export function MissionInput({
       {itemOptionsId && (
         <div style={{ padding: '0 24px' }}>
           {isShortList ? (
-            /* ── Short List: only Remove from Short List ──────────── */
-            <button
-              onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
-              style={{
-                width: '100%', height: 60, borderRadius: 18,
-                background: 'linear-gradient(180deg, rgba(255,107,157,0.14), rgba(255,107,157,0.04))',
-                border: '1px solid rgba(255,107,157,0.45)',
-                color: T.rose,
-                fontFamily: T.display, fontSize: 14, fontWeight: 600,
-                letterSpacing: '0.04em', textTransform: 'uppercase',
-                cursor: 'pointer',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,107,157,0.12)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 13 13">
-                <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-              </svg>
-              Remove from Short List
-            </button>
+            /* ── Short List: Check Off (source + reference) / Remove ── */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => handleShortListCheckOff(itemOptionsId)}
+                style={{
+                  width: '100%', height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
+                  border: `1px solid rgba(0,255,110,0.45)`,
+                  color: '#00e56e',
+                  fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13">
+                  <path d="M2 7l3.5 3.5 5.5-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Check Off
+              </button>
+              <button
+                onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                style={{
+                  width: '100%', height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(255,107,157,0.14), rgba(255,107,157,0.04))',
+                  border: '1px solid rgba(255,107,157,0.45)',
+                  color: T.rose,
+                  fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,107,157,0.12)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13">
+                  <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                Remove from Short List
+              </button>
+            </div>
           ) : (
             /* ── ⋯ options menu: Remove / Check Off / Short List ───── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
