@@ -227,12 +227,12 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen, onDelet
                 all: 'unset', cursor: 'pointer',
                 width: 22, height: 22, borderRadius: 6,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                color: 'rgba(255,100,100,0.38)',
+                color: toRGBA(accent, 0.38),
                 transition: 'color 160ms ease',
                 flexShrink: 0,
               }}
-              onPointerEnter={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.9)'; }}
-              onPointerLeave={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.38)'; }}
+              onPointerEnter={e => { e.currentTarget.style.color = toRGBA(accent, 0.9); }}
+              onPointerLeave={e => { e.currentTarget.style.color = toRGBA(accent, 0.38); }}
             >
               <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
                 <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
