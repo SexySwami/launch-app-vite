@@ -28,10 +28,11 @@ import { generateDeepFocusSteps } from './lib/generateDeepFocusSteps.js';
 
 // Root folders the Checklists tab can drill into. Order is preserved in the UI.
 const FOLDERS = [
-  { id: 'work',     name: 'Work',     accent: T.cyan,   iconKey: 'work',     code: 'RT-01', tagline: 'Mission Ops' },
-  { id: 'personal', name: 'Personal', accent: T.purple, iconKey: 'personal', code: 'RT-02', tagline: 'Off-Duty'    },
-  { id: 'health',   name: 'Health',   accent: T.teal,   iconKey: 'health',   code: 'RT-03', tagline: 'Vital Signs' },
-  { id: 'dailies',  name: 'Dailies',  accent: T.amber,  iconKey: 'dailies',  code: 'RT-04', tagline: 'Daily Reset' },
+  { id: 'short-list', name: 'Short List', accent: T.rose,  iconKey: 'short-list', code: 'RT-00', tagline: "Today's Focus" },
+  { id: 'work',       name: 'Work',       accent: T.cyan,   iconKey: 'work',       code: 'RT-01', tagline: 'Mission Ops'   },
+  { id: 'personal',   name: 'Personal',   accent: T.purple, iconKey: 'personal',   code: 'RT-02', tagline: 'Off-Duty'      },
+  { id: 'health',     name: 'Health',     accent: T.teal,   iconKey: 'health',     code: 'RT-03', tagline: 'Vital Signs'   },
+  { id: 'dailies',    name: 'Dailies',    accent: T.amber,  iconKey: 'dailies',    code: 'RT-04', tagline: 'Daily Reset'   },
 ];
 const DEFAULT_FOLDER_ID = 'work';
 

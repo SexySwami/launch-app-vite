@@ -13,6 +13,7 @@ export const T = {
   purple: '#A876FF',
   teal: '#4FE3C1',
   amber: '#FFC048',
+  rose: '#FF6B9D',
   warn: '#FFB347',
   display: '"Space Grotesk", -apple-system, system-ui, sans-serif',
   mono: '"JetBrains Mono", ui-monospace, "SF Mono", monospace',

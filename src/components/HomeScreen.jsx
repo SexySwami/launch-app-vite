@@ -585,7 +585,8 @@ export function HomeScreen({
   currentItemIdx, setCurrentItemIdx,
   folders,
 }) {
-  const resolvedFolders = folders?.length ? folders : DEFAULT_FOLDERS;
+  // Exclude Short List from the cycling pill — it's a curated view, not a source queue.
+  const resolvedFolders = (folders?.length ? folders : DEFAULT_FOLDERS).filter(f => f.id !== 'short-list');
   const [inputFocused, setInputFocused] = useState(false);
   const [flatItems, setFlatItems] = useState([]);
   const [selectedCatIdx, setSelectedCatIdx] = useState(0);

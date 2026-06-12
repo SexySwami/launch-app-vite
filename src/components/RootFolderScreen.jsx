@@ -40,6 +40,11 @@ function countLeaves(items) {
 }
 
 const ICONS = {
+  'short-list': (color) => (
+    <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12,2.5 14.47,8.86 21.27,9.36 16.4,13.56 17.98,20.18 12,16.77 6.02,20.18 7.6,13.56 2.73,9.36 9.53,8.86"/>
+    </g>
+  ),
   work: (color) => (
     <g stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4.5" y="7.5" width="15" height="11" rx="1.5"/>

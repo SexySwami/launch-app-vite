@@ -27,6 +27,7 @@ export function MissionInput({
   const queueUrl = `/api/queue?folder=${encodeURIComponent(folderId)}`;
   const queueAppendUrl = `${queueUrl}&append=1`;
   const queueIdUrl = (id) => `${queueUrl}&id=${encodeURIComponent(id)}`;
+  const isShortList = folderId === 'short-list';
 
   // Cloud-backed mission queue (Upstash Redis via /api/queue).
   const [items, setItems] = useState([]);
@@ -143,9 +144,16 @@ export function MissionInput({
     return 'granted'; // browsers without the permission API expose events freely
   });
 
+  // shortListMap: sourceItemId → shortListEntryId for non-short-list folders.
+  // Used to show "Already in Short List" vs "Add to Short List" in the three-dot menu.
+  const [shortListMap, setShortListMap] = useState(() => new Map());
+  const [shortListToast, setShortListToast] = useState('');
+  const shortListToastRef = useRef(null);
+
   useEffect(() => () => {
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
     if (emptyListToastTimerRef.current) clearTimeout(emptyListToastTimerRef.current);
+    if (shortListToastRef.current) clearTimeout(shortListToastRef.current);
   }, []);
 
   // Newly-appended items pulse green for ~1s and the list auto-scrolls to them.
@@ -189,6 +197,71 @@ export function MissionInput({
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
 
+  const showShortListToast = (msg) => {
+    setShortListToast(msg);
+    if (shortListToastRef.current) clearTimeout(shortListToastRef.current);
+    shortListToastRef.current = setTimeout(() => setShortListToast(''), 2500);
+  };
+
+  // For the Short List folder: on load, remove any entries whose source item was deleted.
+  const cleanDeadRefs = async (loadedItems) => {
+    if (!canCallAPI || loadedItems.length === 0) return loadedItems;
+    const byFolder = new Map();
+    for (const it of loadedItems) {
+      if (!it.sourceItemId || !it.sourceFolderId) continue;
+      if (!byFolder.has(it.sourceFolderId)) byFolder.set(it.sourceFolderId, new Set());
+      byFolder.get(it.sourceFolderId).add(it.sourceItemId);
+    }
+    if (byFolder.size === 0) return loadedItems;
+    const aliveIds = new Set();
+    await Promise.all(
+      Array.from(byFolder.keys()).map(async (sfid) => {
+        try {
+          const r = await fetch(`/api/queue?folder=${encodeURIComponent(sfid)}`, { cache: 'no-store' });
+          const d = await r.json().catch(() => ({}));
+          for (const i of (Array.isArray(d.items) ? d.items : [])) {
+            if (i.id) aliveIds.add(i.id);
+            if (i.type === 'folder') {
+              for (const c of (i.children || [])) { if (c.id) aliveIds.add(c.id); }
+            }
+          }
+        } catch {}
+      })
+    );
+    const cleaned = loadedItems.filter(i => !i.sourceItemId || aliveIds.has(i.sourceItemId));
+    if (cleaned.length < loadedItems.length) {
+      try {
+        await fetch(queueUrl, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: cleaned }),
+        });
+      } catch {}
+    }
+    return cleaned;
+  };
+
+  const handleAddToShortList = async (item) => {
+    setItemOptionsId(null);
+    if (!canCallAPI) return;
+    try {
+      const res = await fetch('/api/short-list', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ itemId: item.id, sourceFolderId: folderId, text: item.text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.entry) {
+        setShortListMap(prev => { const next = new Map(prev); next.set(item.id, data.entry.id); return next; });
+        showShortListToast('Added to Short List');
+      } else {
+        showShortListToast(data.alreadyIn ? 'Already in Short List' : (data.error || 'Could not add'));
+      }
+    } catch {
+      showShortListToast('Could not add to Short List');
+    }
+  };
+
   const fetchItems = async () => {
     if (!canCallAPI) {
       setItemsLoading(false);
@@ -199,7 +272,9 @@ export function MissionInput({
       const res = await fetch(queueUrl, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
-      setItems(Array.isArray(data.items) ? data.items : []);
+      let loaded = Array.isArray(data.items) ? data.items : [];
+      if (isShortList) loaded = await cleanDeadRefs(loaded);
+      setItems(loaded);
     } catch (err) {
       setItemsError(err.message || 'Could not load queue');
     } finally {
@@ -220,7 +295,31 @@ export function MissionInput({
     const handler = () => { if (document.visibilityState === 'visible') fetchItems(); };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // For non-short-list folders: load which items are already in the Short List so the
+  // three-dot menu can show "Already in Short List" vs "Add to Short List".
+  useEffect(() => {
+    if (isShortList || !canCallAPI) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/queue?folder=short-list', { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        const entries = Array.isArray(data.items) ? data.items : [];
+        const map = new Map();
+        for (const e of entries) {
+          if (e.sourceItemId) map.set(e.sourceItemId, e.id);
+        }
+        setShortListMap(map);
+      } catch {}
+    };
+    load();
+    const onVis = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { cancelled = true; document.removeEventListener('visibilitychange', onVis); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activePanel === 'add') {
@@ -420,6 +519,18 @@ export function MissionInput({
   };
 
   const handleDeleteItem = async (id) => {
+    // Short List removes: skip undo toast, just remove immediately with short toast.
+    if (isShortList) {
+      const next = items.filter(i => i.id !== id);
+      setItems(next);
+      setItemOptionsId(null);
+      showShortListToast('Removed from Short List');
+      if (canCallAPI) {
+        try { await fetch(queueIdUrl(id), { method: 'DELETE' }); } catch {}
+      }
+      return;
+    }
+
     // FIRST — request DeviceMotion permission synchronously inside the user
     // gesture (iOS 13+ requirement). Anything async after this would lose
     // the user-activation flag.
@@ -472,6 +583,15 @@ export function MissionInput({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       if (Array.isArray(data.items)) setItems(data.items);
+
+      // Cascade: if this item was in the Short List, remove it from there too.
+      if (shortListMap.has(id)) {
+        const slEntryId = shortListMap.get(id);
+        try {
+          await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slEntryId)}`, { method: 'DELETE' });
+          setShortListMap(prev => { const next = new Map(prev); next.delete(id); return next; });
+        } catch {}
+      }
     } catch (err) {
       setItems(before); // rollback
       setPendingUndo(null);
@@ -674,6 +794,34 @@ export function MissionInput({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       if (Array.isArray(data.items)) setItems(data.items);
+
+      // Short List: propagate the text edit back to the original source folder.
+      if (isShortList) {
+        const editedEntry = items.find(i => i.id === id);
+        if (editedEntry?.sourceItemId && editedEntry?.sourceFolderId) {
+          try {
+            const srcUrl = `/api/queue?folder=${encodeURIComponent(editedEntry.sourceFolderId)}`;
+            const srcRes = await fetch(srcUrl, { cache: 'no-store' });
+            const srcData = await srcRes.json().catch(() => ({}));
+            if (srcRes.ok && Array.isArray(srcData.items)) {
+              const sid = editedEntry.sourceItemId;
+              const updSrc = srcData.items.map(i => {
+                if (i.id === sid) return applyDesc(i);
+                if (i.type === 'folder' && Array.isArray(i.children)) {
+                  const hit = i.children.some(c => c.id === sid);
+                  if (hit) return { ...i, children: i.children.map(c => c.id === sid ? applyDesc(c) : c) };
+                }
+                return i;
+              });
+              await fetch(srcUrl, {
+                method: 'PUT',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ items: updSrc }),
+              });
+            }
+          } catch {}
+        }
+      }
     } catch (err) {
       setItemsError(err.message || 'Could not save edit');
     } finally {
@@ -2388,19 +2536,19 @@ export function MissionInput({
 
       {itemOptionsId && (
         <div style={{ padding: '0 24px' }}>
-          {/* ── ⋯ options menu: Remove Item / Check Off ──────────────── */}
-          <div style={{ display: 'flex', gap: 10 }}>
+          {isShortList ? (
+            /* ── Short List: only Remove from Short List ──────────── */
             <button
               onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
               style={{
-                flex: 1, height: 60, borderRadius: 18,
-                background: 'linear-gradient(180deg, rgba(255,179,71,0.14), rgba(255,179,71,0.04))',
-                border: `1px solid rgba(255,179,71,0.4)`,
-                color: T.warn,
+                width: '100%', height: 60, borderRadius: 18,
+                background: 'linear-gradient(180deg, rgba(255,107,157,0.14), rgba(255,107,157,0.04))',
+                border: '1px solid rgba(255,107,157,0.45)',
+                color: T.rose,
                 fontFamily: T.display, fontSize: 14, fontWeight: 600,
                 letterSpacing: '0.04em', textTransform: 'uppercase',
                 cursor: 'pointer',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,179,71,0.10)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,107,157,0.12)',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 WebkitTapHighlightColor: 'transparent',
               }}
@@ -2408,29 +2556,102 @@ export function MissionInput({
               <svg width="13" height="13" viewBox="0 0 13 13">
                 <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
               </svg>
-              Remove
+              Remove from Short List
             </button>
-            <button
-              onClick={() => handleCheckOff(itemOptionsId)}
-              style={{
-                flex: 1, height: 60, borderRadius: 18,
-                background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
-                border: `1px solid rgba(0,255,110,0.45)`,
-                color: '#00e56e',
-                fontFamily: T.display, fontSize: 14, fontWeight: 600,
-                letterSpacing: '0.04em', textTransform: 'uppercase',
-                cursor: 'pointer',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 13 13">
-                <path d="M2 7l3.5 3.5 5.5-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Check Off
-            </button>
-          </div>
+          ) : (
+            /* ── ⋯ options menu: Remove / Check Off / Short List ───── */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                  style={{
+                    flex: 1, height: 60, borderRadius: 18,
+                    background: 'linear-gradient(180deg, rgba(255,179,71,0.14), rgba(255,179,71,0.04))',
+                    border: `1px solid rgba(255,179,71,0.4)`,
+                    color: T.warn,
+                    fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,179,71,0.10)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 13 13">
+                    <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                  Remove
+                </button>
+                <button
+                  onClick={() => handleCheckOff(itemOptionsId)}
+                  style={{
+                    flex: 1, height: 60, borderRadius: 18,
+                    background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
+                    border: `1px solid rgba(0,255,110,0.45)`,
+                    color: '#00e56e',
+                    fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 13 13">
+                    <path d="M2 7l3.5 3.5 5.5-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Check Off
+                </button>
+              </div>
+              {/* Add to Short List row */}
+              {shortListMap.has(itemOptionsId) ? (
+                <button
+                  disabled
+                  style={{
+                    width: '100%', height: 52, borderRadius: 18,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${T.hairlineSoft}`,
+                    color: T.text3,
+                    fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                    cursor: 'default',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    opacity: 0.5,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                  </svg>
+                  Already in Short List
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    const found = findItemAnywhere(itemOptionsId);
+                    if (found) handleAddToShortList(found.item);
+                  }}
+                  style={{
+                    width: '100%', height: 52, borderRadius: 18,
+                    background: 'linear-gradient(180deg, rgba(255,107,157,0.12), rgba(255,107,157,0.04))',
+                    border: '1px solid rgba(255,107,157,0.42)',
+                    color: T.rose,
+                    fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(255,107,157,0.10)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                  </svg>
+                  Add to Short List
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -2743,6 +2964,38 @@ export function MissionInput({
           }} />
           <span style={{ fontSize: 14, color: T.text2, fontWeight: 500 }}>
             No items in your checklist
+          </span>
+        </div>
+      )}
+
+      {shortListToast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
+            left: 16, right: 16,
+            zIndex: 100,
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(11, 16, 26, 0.92)',
+            border: '1px solid rgba(255,107,157,0.35)',
+            borderRadius: 14,
+            padding: '12px 16px',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            boxShadow: '0 14px 36px rgba(0,0,0,0.55), 0 0 20px rgba(255,107,157,0.12), inset 0 1px 0 rgba(255,255,255,0.04)',
+            fontFamily: T.display,
+            animation: 'toastIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+            maxWidth: 480, marginLeft: 'auto', marginRight: 'auto',
+          }}
+        >
+          <span style={{
+            width: 6, height: 6, borderRadius: 99, flexShrink: 0,
+            background: T.rose,
+            boxShadow: `0 0 8px ${T.rose}`,
+          }} />
+          <span style={{ fontSize: 14, color: T.text2, fontWeight: 500 }}>
+            {shortListToast}
           </span>
         </div>
       )}
