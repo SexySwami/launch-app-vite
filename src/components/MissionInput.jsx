@@ -34,15 +34,22 @@ export function MissionInput({
   const queueIdUrl = (id) => `${queueUrl}&id=${encodeURIComponent(id)}`;
   const isShortList = folderId === 'short-list';
 
-  // Accent palette. The Short List wears its rose identity across the entire
-  // checklist UI — priority badges, launch buttons, highlights, the add/search
-  // inputs — to match its branding. Every other folder keeps the default
-  // cyan/blue. `ac`/`ac2` build rgba strings at a given alpha so the many
-  // translucent fills, borders and glows can switch in one place.
-  const aSolid  = isShortList ? T.rose    : T.cyan;
-  const aSolid2 = isShortList ? '#E0457E' : T.blue;
-  const ac  = (a) => `rgba(${isShortList ? '255,107,157' : '0,229,255'},${a})`;
-  const ac2 = (a) => `rgba(${isShortList ? '224,69,126'  : '61,127,255'},${a})`;
+  // Per-folder accent palette. Every folder's checklist UI — priority badges,
+  // launch buttons, row highlights, inputs — adopts its own brand colour so
+  // the screen feels cohesive. `ac`/`ac2` build rgba() strings at a given
+  // alpha for the many translucent fills, borders and glows.
+  const FOLDER_ACCENTS = {
+    'short-list': { solid: T.rose,   solid2: '#E0457E', rgb: '255,107,157', rgb2: '224,69,126'  },
+    'work':       { solid: T.cyan,   solid2: T.blue,    rgb: '0,229,255',   rgb2: '61,127,255'  },
+    'personal':   { solid: T.purple, solid2: '#7A3FE0', rgb: '168,118,255', rgb2: '122,63,224'  },
+    'health':     { solid: T.teal,   solid2: '#22B89A', rgb: '79,227,193',  rgb2: '34,184,154'  },
+    'dailies':    { solid: T.amber,  solid2: '#D48020', rgb: '255,192,72',  rgb2: '212,128,32'  },
+  };
+  const _a = FOLDER_ACCENTS[folderId] ?? FOLDER_ACCENTS['work'];
+  const aSolid  = _a.solid;
+  const aSolid2 = _a.solid2;
+  const ac  = (a) => `rgba(${_a.rgb},${a})`;
+  const ac2 = (a) => `rgba(${_a.rgb2},${a})`;
 
   // Cloud-backed mission queue (Upstash Redis via /api/queue).
   const [items, setItems] = useState([]);
