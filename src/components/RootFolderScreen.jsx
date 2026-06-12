@@ -76,21 +76,23 @@ const ICONS = {
   ),
 };
 
-function FolderTile({ folder, count, countKnown, animationDelay, onOpen, isCustom, onDeleteRequest }) {
+function FolderTile({ folder, count, countKnown, animationDelay, onOpen, onDeleteRequest }) {
   const [pressed, setPressed] = useState(false);
   const accent = folder.accent;
   const isEmpty = countKnown && count === 0;
 
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       onPointerDown={() => setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
       style={{
-        all: 'unset', display: 'block', cursor: 'pointer', boxSizing: 'border-box',
+        cursor: 'pointer', boxSizing: 'border-box', flexShrink: 0,
         width: '100%', position: 'relative',
         borderRadius: 22,
         padding: '20px 20px 18px',
@@ -104,6 +106,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen, isCusto
         overflow: 'hidden',
         animation: `tileIn 480ms cubic-bezier(0.2,0.8,0.2,1) ${animationDelay}ms both`,
         WebkitTapHighlightColor: 'transparent',
+        userSelect: 'none',
       }}
     >
       {/* Drifting corner glow */}
@@ -183,38 +186,58 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen, isCusto
             {folder.name}
           </div>
 
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '4px 9px 4px 7px', borderRadius: 99,
-            background: isEmpty || !countKnown ? 'rgba(255,255,255,0.03)' : toRGBA(accent, 0.10),
-            border: `1px solid ${isEmpty || !countKnown ? T.hairlineSoft : toRGBA(accent, 0.32)}`,
-            maxWidth: '100%',
-          }}>
-            <span style={{
-              flexShrink: 0,
-              width: 13, height: 13, borderRadius: 4,
-              background: isEmpty || !countKnown ? 'transparent' : toRGBA(accent, 0.20),
-              border: `1px solid ${isEmpty || !countKnown ? T.hairline : toRGBA(accent, 0.55)}`,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          {/* Count badge + delete button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '4px 9px 4px 7px', borderRadius: 99,
+              background: isEmpty || !countKnown ? 'rgba(255,255,255,0.03)' : toRGBA(accent, 0.10),
+              border: `1px solid ${isEmpty || !countKnown ? T.hairlineSoft : toRGBA(accent, 0.32)}`,
             }}>
-              {countKnown && !isEmpty && (
-                <svg width="7" height="7" viewBox="0 0 8 8">
-                  <path d="M1.2 4l2 2 3.6-4.4" stroke={accent} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </span>
-            <span style={{
-              fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.16em',
-              color: isEmpty || !countKnown ? T.text3 : T.text2, textTransform: 'uppercase',
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-            }}>
-              {!countKnown
-                ? 'Loading…'
-                : isEmpty
-                  ? 'Empty · tap to start'
-                  : `${count} ${count === 1 ? 'item' : 'items'}`}
-            </span>
+              <span style={{
+                flexShrink: 0,
+                width: 13, height: 13, borderRadius: 4,
+                background: isEmpty || !countKnown ? 'transparent' : toRGBA(accent, 0.20),
+                border: `1px solid ${isEmpty || !countKnown ? T.hairline : toRGBA(accent, 0.55)}`,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {countKnown && !isEmpty && (
+                  <svg width="7" height="7" viewBox="0 0 8 8">
+                    <path d="M1.2 4l2 2 3.6-4.4" stroke={accent} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </span>
+              <span style={{
+                fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.16em',
+                color: isEmpty || !countKnown ? T.text3 : T.text2, textTransform: 'uppercase',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+              }}>
+                {!countKnown
+                  ? 'Loading…'
+                  : isEmpty
+                    ? 'Empty · tap to start'
+                    : `${count} ${count === 1 ? 'item' : 'items'}`}
+              </span>
+            </div>
+            <button
+              aria-label={`Delete ${folder.name}`}
+              onClick={e => { e.stopPropagation(); onDeleteRequest(folder); }}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                width: 22, height: 22, borderRadius: 6,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: 'rgba(255,100,100,0.38)',
+                transition: 'color 160ms ease',
+                flexShrink: 0,
+              }}
+              onPointerEnter={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.9)'; }}
+              onPointerLeave={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.38)'; }}
+            >
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -231,30 +254,6 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen, isCusto
           </svg>
         </span>
       </div>
-    </button>
-    {isCustom && (
-      <button
-        aria-label={`Delete ${folder.name}`}
-        onClick={e => { e.stopPropagation(); onDeleteRequest(folder); }}
-        style={{
-          all: 'unset', cursor: 'pointer',
-          position: 'absolute', top: 12, right: 12,
-          width: 28, height: 28, borderRadius: 99,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(255,80,80,0.10)',
-          border: '1px solid rgba(255,80,80,0.28)',
-          color: 'rgba(255,100,100,0.70)',
-          transition: 'background 160ms ease, color 160ms ease',
-          zIndex: 2,
-        }}
-        onPointerEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.22)'; e.currentTarget.style.color = 'rgba(255,120,120,1)'; }}
-        onPointerLeave={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.10)'; e.currentTarget.style.color = 'rgba(255,100,100,0.70)'; }}
-      >
-        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-          <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-    )}
     </div>
   );
 }
@@ -529,7 +528,6 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
             countKnown={typeof counts[f.id] === 'number'}
             animationDelay={i * 70}
             onOpen={() => onOpen(f.id)}
-            isCustom={f.iconKey === 'custom'}
             onDeleteRequest={setDeleteConfirmFolder}
           />
         ))}

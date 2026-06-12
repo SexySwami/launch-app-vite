@@ -229,7 +229,14 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('launch:custom-folders') || '[]'); }
     catch { return []; }
   });
-  const folders = useMemo(() => [...BASE_FOLDERS, ...customFolders], [customFolders]);
+  const [hiddenFolderIds, setHiddenFolderIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('launch:hidden-folders') || '[]'); }
+    catch { return []; }
+  });
+  const folders = useMemo(
+    () => [...BASE_FOLDERS, ...customFolders].filter(f => !hiddenFolderIds.includes(f.id)),
+    [customFolders, hiddenFolderIds],
+  );
 
   const handleCreateFolder = (name) => {
     const trimmed = name.trim();
@@ -250,10 +257,14 @@ export default function App() {
   };
 
   const handleDeleteFolder = (folderId) => {
-    const next = customFolders.filter(f => f.id !== folderId);
-    setCustomFolders(next);
-    try { localStorage.setItem('launch:custom-folders', JSON.stringify(next)); } catch {}
-    // If the deleted folder is currently open, return to root.
+    const nextCustom = customFolders.filter(f => f.id !== folderId);
+    setCustomFolders(nextCustom);
+    try { localStorage.setItem('launch:custom-folders', JSON.stringify(nextCustom)); } catch {}
+    if (BASE_FOLDERS.some(f => f.id === folderId)) {
+      const nextHidden = [...hiddenFolderIds.filter(id => id !== folderId), folderId];
+      setHiddenFolderIds(nextHidden);
+      try { localStorage.setItem('launch:hidden-folders', JSON.stringify(nextHidden)); } catch {}
+    }
     if (openFolderId === folderId) setOpenFolderId(null);
   };
 
