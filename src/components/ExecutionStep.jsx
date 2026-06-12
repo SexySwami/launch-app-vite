@@ -5,7 +5,7 @@ import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditStepModal } from './EditStepModal.jsx';
 
-export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, loading }) {
+export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, loading, cascadeLoading }) {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
   const [pulseMomentum, setPulseMomentum] = useState(false);
@@ -219,7 +219,46 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             }} />
           ))}
 
-          {loading || !step ? (
+          {cascadeLoading ? (
+            <div style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              position: 'relative', zIndex: 1, padding: '20px 8px', gap: 16,
+            }}>
+              <div style={{
+                fontFamily: T.mono, fontSize: 10, letterSpacing: '0.32em',
+                color: T.cyan, textTransform: 'uppercase',
+                textShadow: `0 0 12px ${T.cyan}88`,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: 99, background: T.cyan,
+                  boxShadow: `0 0 10px ${T.cyan}`,
+                  animation: 'pulse 1.4s ease-in-out infinite',
+                }} />
+                Recalibrating
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 260, marginTop: 4 }}>
+                {[0, 1].map(i => (
+                  <div key={i} style={{
+                    height: 10, borderRadius: 99,
+                    background: `linear-gradient(90deg, rgba(0,229,255,0.10) 0%, rgba(0,229,255,0.26) 50%, rgba(0,229,255,0.10) 100%)`,
+                    backgroundSize: '200% 100%',
+                    animation: `shimmer 1.6s ease-in-out ${i * 0.2}s infinite`,
+                    width: `${[78, 55][i]}%`,
+                    alignSelf: 'center',
+                  }} />
+                ))}
+              </div>
+              <p style={{
+                fontFamily: T.mono, fontSize: 10, color: T.text3,
+                letterSpacing: '0.18em', textTransform: 'uppercase',
+                margin: 0, marginTop: 4, textAlign: 'center',
+              }}>
+                Adjusting step to match your edit
+              </p>
+            </div>
+          ) : loading || !step ? (
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
@@ -380,11 +419,13 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
       </div>
 
       <div style={{ padding: '0 24px' }}>
-        <GlowButton onClick={handleComplete} disabled={loading || !step}>
+        <GlowButton onClick={handleComplete} disabled={loading || !step || cascadeLoading}>
           {loading || !step
             ? 'Generating Steps…'
-            : stepIdx + 1 === totalSteps ? 'Complete Final Step' : 'Completed'}
-          {!loading && step && (
+            : cascadeLoading
+              ? 'Recalibrating…'
+              : stepIdx + 1 === totalSteps ? 'Complete Final Step' : 'Completed'}
+          {!loading && step && !cascadeLoading && (
             <svg width="14" height="14" viewBox="0 0 14 14">
               <path d="M2 7.5l3 3 7-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -397,9 +438,11 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         }}>
           {loading || !step
             ? 'Claude is preparing your checkpoints'
-            : stepIdx + 1 < totalSteps
-              ? `${totalSteps - stepIdx - 1} more checkpoint${totalSteps - stepIdx - 1 === 1 ? '' : 's'} to go`
-              : 'Final checkpoint · launch nearly complete'}
+            : cascadeLoading
+              ? 'Adjusting next steps to match your edit'
+              : stepIdx + 1 < totalSteps
+                ? `${totalSteps - stepIdx - 1} more checkpoint${totalSteps - stepIdx - 1 === 1 ? '' : 's'} to go`
+                : 'Final checkpoint · launch nearly complete'}
         </div>
       </div>
 
