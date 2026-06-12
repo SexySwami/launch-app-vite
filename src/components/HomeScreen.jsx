@@ -80,7 +80,7 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
   const borderColor = hot ? 'rgba(0,229,255,0.65)' : T.hairline;
 
   return (
-    <div style={{ padding: '20px 24px 0', position: 'relative' }}>
+    <div style={{ padding: '36px 24px 0', position: 'relative' }}>
       <div style={{
         fontFamily: T.display, fontSize: 15, fontWeight: 500,
         color: T.text3, letterSpacing: '0.01em', marginBottom: 8,
