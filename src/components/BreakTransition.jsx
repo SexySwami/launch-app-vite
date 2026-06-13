@@ -3,7 +3,7 @@ import { Eyebrow } from './Eyebrow.jsx';
 import { Telemetry } from './Telemetry.jsx';
 import { AmbientField } from './AmbientField.jsx';
 
-export function BreakTransition({ onDone }) {
+export function BreakTransition({ onDone, onBack }) {
   const rgba = (a) => hexToRgba(T.teal, a);
   return (
     <div style={{
@@ -15,6 +15,26 @@ export function BreakTransition({ onDone }) {
         <Telemetry time="BRK · RITUAL" code="BRK-01 / RITUAL" state="ENGAGE" color={T.teal} />
       </div>
       <div style={{ padding: '26px 28px 0', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Go back"
+            style={{
+              all: 'unset', cursor: 'pointer',
+              position: 'absolute', top: 0, left: 28,
+              width: 36, height: 36, borderRadius: 99,
+              background: T.surface,
+              border: `1px solid ${T.hairlineSoft}`,
+              color: T.text2,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14">
+              <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        )}
         <div style={{ display: 'inline-block' }}>
           <Eyebrow color={T.teal} style={{ marginBottom: 18 }}>Transition</Eyebrow>
         </div>

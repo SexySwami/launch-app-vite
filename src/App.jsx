@@ -879,7 +879,7 @@ export default function App() {
       />
     );
   else if (screen === 'break-ritual')
-    body = <BreakTransition onDone={() => setScreen('break-transition')} />;
+    body = <BreakTransition onDone={() => setScreen('break-transition')} onBack={() => setScreen('break-transition')} />;
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
   else if (screen === 'standup')
