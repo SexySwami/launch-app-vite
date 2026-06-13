@@ -16,5 +16,6 @@ export const T = {
   rose: '#FF6B9D',
   warn: '#FFB347',
   display: '"Space Grotesk", -apple-system, system-ui, sans-serif',
+  orbital: '"Orbitron", sans-serif',
   mono: '"JetBrains Mono", ui-monospace, "SF Mono", monospace',
 };

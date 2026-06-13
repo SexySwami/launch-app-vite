@@ -541,9 +541,9 @@ function ReactorCore({ state, intensity, onLaunch }) {
           </div>
 
           <div style={{
-            fontFamily: T.display, fontWeight: 700,
-            fontSize: 21, lineHeight: 1.08,
-            letterSpacing: '-0.01em', textAlign: 'center', maxWidth: 130,
+            fontFamily: T.orbital, fontWeight: 700,
+            fontSize: 14, lineHeight: 1.2,
+            letterSpacing: '0.04em', textAlign: 'center', maxWidth: 130,
             color: armed ? T.text : warming ? T.text2 : T.text3,
             textShadow: armed
               ? `0 0 16px ${T.cyan}, 0 0 44px rgba(0,229,255,0.55)`
@@ -551,6 +551,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
                 ? '0 0 10px rgba(0,229,255,0.5)'
                 : 'none',
             transition: 'all 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+            textTransform: 'uppercase',
           }}>
             Help me start
           </div>
