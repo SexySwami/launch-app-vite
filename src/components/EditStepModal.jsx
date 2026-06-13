@@ -427,56 +427,8 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
                 <path d="M2 6.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-          ) : micAvailable ? (
-            <button
-              onClick={toggleMic}
-              disabled={transcribing}
-              aria-label={listening ? 'Stop voice input' : 'Voice input'}
-              style={{
-                all: 'unset', cursor: transcribing ? 'default' : 'pointer', flexShrink: 0,
-                width: 30, height: 30, borderRadius: 99,
-                background: listening
-                  ? `linear-gradient(180deg, ${T.teal}, ${T.cyan})`
-                  : transcribing ? 'rgba(168,118,255,0.18)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${listening ? 'transparent' : transcribing ? 'rgba(168,118,255,0.4)' : T.hairlineSoft}`,
-                color: listening ? '#001018' : transcribing ? T.purple : T.text2,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 220ms ease',
-                boxShadow: listening ? `0 0 12px ${T.teal}99` : 'none',
-              }}
-            >
-              {transcribing ? (
-                <svg width="12" height="12" viewBox="0 0 12 12" style={{ animation: 'spin360 800ms linear infinite' }}>
-                  <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : (
-                <svg width="13" height="13" viewBox="0 0 14 14">
-                  <path d="M7 1.8a1.9 1.9 0 0 0-1.9 1.9v3.2a1.9 1.9 0 1 0 3.8 0V3.7A1.9 1.9 0 0 0 7 1.8z" fill="currentColor"/>
-                  <path d="M3.5 7a3.5 3.5 0 0 0 7 0M7 10.5V12.4M5 12.4h4" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-                </svg>
-              )}
-            </button>
           ) : null}
         </div>
-        {(listening || transcribing || recError) && (
-          <div style={{
-            fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
-            color: recError ? T.warn : transcribing ? T.purple : T.teal,
-            textTransform: 'uppercase', marginTop: 8, textAlign: 'center',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            lineHeight: 1.3,
-          }}>
-            {!recError && (
-              <span style={{
-                width: 5, height: 5, borderRadius: 99,
-                background: transcribing ? T.purple : T.teal,
-                boxShadow: `0 0 8px ${transcribing ? T.purple : T.teal}`,
-                animation: 'pulse 1.2s ease-in-out infinite',
-              }} />
-            )}
-            {recError ? recError : transcribing ? 'Transcribing…' : 'Listening…'}
-          </div>
-        )}
       </div>
     </div>
   );
