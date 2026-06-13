@@ -734,18 +734,19 @@ export function HomeScreen({
           style={{
             all: 'unset', cursor: 'pointer', flexShrink: 0,
             width: 34, height: 34, borderRadius: 99,
-            background: 'rgba(255,255,255,0.05)',
-            border: `1px solid ${T.hairlineSoft}`,
-            color: T.text2,
+            background: 'rgba(0,229,255,0.10)',
+            border: `1px solid rgba(0,229,255,0.40)`,
+            color: T.cyan,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginRight: 12,
+            boxShadow: `0 0 12px rgba(0,229,255,0.20)`,
             transition: 'all 200ms ease',
             WebkitTapHighlightColor: 'transparent',
           }}
-          onPointerEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = T.text; }}
-          onPointerLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = T.text2; }}
+          onPointerEnter={e => { e.currentTarget.style.background = 'rgba(0,229,255,0.20)'; e.currentTarget.style.boxShadow = `0 0 20px rgba(0,229,255,0.35)`; }}
+          onPointerLeave={e => { e.currentTarget.style.background = 'rgba(0,229,255,0.10)'; e.currentTarget.style.boxShadow = `0 0 12px rgba(0,229,255,0.20)`; }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ filter: `drop-shadow(0 0 4px ${T.cyan}90)` }}>
             <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.75"/>
             <path d="M4 21v-1a8 8 0 0 1 16 0v1" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
           </svg>
