@@ -435,8 +435,8 @@ export function SmallChunker({
               }}>
                 <div style={{
                   fontFamily: T.mono, fontSize: 10, letterSpacing: '0.32em',
-                  color: T.teal, textTransform: 'uppercase', marginBottom: 18,
-                  textShadow: `0 0 12px ${T.teal}88`,
+                  color: T.amber, textTransform: 'uppercase', marginBottom: 18,
+                  textShadow: `0 0 12px ${T.amber}88`,
                 }}>
                   ▸ Do this
                 </div>
