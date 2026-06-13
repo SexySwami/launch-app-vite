@@ -754,6 +754,9 @@ export function MissionInput({
       // Pass the SL entry id so completion can remove it from the SL and
       // restore can put it back — same mechanism as the Short List launch path.
       effectiveSource.shortListEntryId = shortListMap.get(source.id);
+      console.log('[SL-DEBUG] launch: item is in Short List', { itemId: source.id, shortListEntryId: effectiveSource.shortListEntryId });
+    } else {
+      console.log('[SL-DEBUG] launch: item NOT in Short List', { itemId: source?.id, isShortList, mapSize: shortListMap.size, mapKeys: [...shortListMap.keys()].slice(0, 5) });
     }
     onLaunch(text, effectiveSource, description || null);
   };

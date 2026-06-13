@@ -492,6 +492,7 @@ export default function App() {
     if (canCallAPI) {
       try {
         let wasOnShortList = false;
+        console.log('[SL-DEBUG] finalizeCompletion start', { sourceFolderId, sourceItemId, shortListEntryId, mission });
         // Remove the Short List reference for this item. Match by sourceItemId
         // first (precise, covers "Add to Short List" items) then fall back to
         // text match (covers items typed directly into the Short List).
@@ -507,25 +508,31 @@ export default function App() {
                 slFlat.push(item);
               }
             }
+            console.log('[SL-DEBUG] shortList fetch', { count: slFlat.length, items: slFlat.map(i => ({ id: i.id, sourceItemId: i.sourceItemId, text: i.text })) });
             const needle = mission.trim().toLowerCase();
             const slMatch = slFlat.find(i =>
               (sourceItemId && i.sourceItemId === sourceItemId) ||
               (i.text || '').trim().toLowerCase() === needle
             );
+            console.log('[SL-DEBUG] slMatch', slMatch ?? null);
             if (slMatch) {
               wasOnShortList = true;
               await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slMatch.id)}`, { method: 'DELETE' });
             }
-          } catch {}
+          } catch (e) { console.log('[SL-DEBUG] fetch block error', e); }
         }
-        // When launched from the Short List itself, remove the SL reference entry.
+        // When launched from the Short List itself or from another folder where
+        // the item is also on the Short List, shortListEntryId is set at launch
+        // time — delete the reference and flag wasOnShortList.
+        console.log('[SL-DEBUG] shortListEntryId at finalize', shortListEntryId);
         if (shortListEntryId) {
           try {
             await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(shortListEntryId)}`, { method: 'DELETE' });
             wasOnShortList = true;
-          } catch {}
+          } catch (e) { console.log('[SL-DEBUG] shortListEntryId delete error', e); }
         }
 
+        console.log('[SL-DEBUG] sending finalize', { wasOnShortList, sourceItemId, folderId: sourceFolderId });
         await fetch('/api/completed?action=finalize', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
