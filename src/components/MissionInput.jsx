@@ -97,7 +97,6 @@ export function MissionInput({
   // editingItemId: which row's text is in the overlay (action-menu Edit
   // OR double-tap). overlayStartMode determines whether the overlay
   // opens in 'view' (double-tap) or 'edit' (action menu) mode.
-  const [selectedItemId, setSelectedItemId] = useState(null);
   const [editingItemId, setEditingItemId] = useState(null);
   const [overlayStartMode, setOverlayStartMode] = useState('edit');
   const [itemOptionsId, setItemOptionsId] = useState(null); // ⋯ button menu
@@ -721,7 +720,6 @@ export function MissionInput({
   // completion writes back to the right folder.
   const handleLaunchItem = (text, source, description) => {
     if (drag) return; // ignore taps mid-drag
-    setSelectedItemId(null);
     setEditingItemId(null);
     if (selectionMode) {
       // Route every launch path (per-item button, lazy-launch, search
@@ -752,61 +750,28 @@ export function MissionInput({
     onLaunch(text, effectiveSource, description || null);
   };
 
-  // Single-tap on a row → toggle the action menu for that item.
+  // Single-tap on a row → launch the item directly.
   const handleRowTap = (item) => {
     if (justEndedDragRef.current) return;
-    if (editingItemId) return; // ignore row taps mid-edit
-    setItemOptionsId(null); // close ⋯ panel if open
-    setSelectedItemId(prev => prev === item.id ? null : item.id);
+    if (editingItemId) return;
+    setItemOptionsId(null);
+    const idx = items.findIndex(i => i.id === item.id);
+    handleLaunchItem(item.text, { id: item.id, index: idx }, item.description);
   };
 
-  // Double-tap on a row → open the overlay in read-only "preview" mode.
-  const handleRowDoubleTap = (item) => {
-    if (justEndedDragRef.current) return;
-    setOverlayStartMode('view');
-    setSelectedItemId(null);
-    setEditingItemId(item.id);
-  };
-
-  // Click dispatcher — distinguishes single tap from double tap. First tap
-  // schedules a delayed single-tap action; a second tap within 320ms cancels
-  // the timer and fires the double-tap action instead.
   const TAP_DOUBLE_INTERVAL = 320;
   const handleRowClick = (item) => {
     if (justEndedDragRef.current) return;
-    const now = Date.now();
-    const last = lastTapRef.current;
-    if (last.id === item.id && (now - last.time) < TAP_DOUBLE_INTERVAL) {
-      if (tapTimerRef.current) {
-        clearTimeout(tapTimerRef.current);
-        tapTimerRef.current = null;
-      }
-      lastTapRef.current = { time: 0, id: null };
-      handleRowDoubleTap(item);
-      return;
-    }
-    lastTapRef.current = { time: now, id: item.id };
-    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-    tapTimerRef.current = setTimeout(() => {
-      tapTimerRef.current = null;
-      handleRowTap(item);
-    }, TAP_DOUBLE_INTERVAL);
+    handleRowTap(item);
   };
 
-  // Action menu Edit Item → open the overlay in editable mode.
-  const handleStartEdit = () => {
-    const found = findItemAnywhere(selectedItemId);
+  // Three-dot menu Edit → open the overlay in editable mode.
+  const handleStartEdit = (itemId) => {
+    const found = findItemAnywhere(itemId || itemOptionsId);
     if (!found) return;
     setOverlayStartMode('edit');
     setEditingItemId(found.item.id);
-    setSelectedItemId(null);
-  };
-
-  // Action menu: Launch (selected item)
-  const handleSelectedLaunch = () => {
-    const found = findItemAnywhere(selectedItemId);
-    if (!found) return;
-    handleLaunchItem(found.item.text, { id: found.item.id, index: found.topLevelIdx }, found.item.description);
+    setItemOptionsId(null);
   };
 
   // Edit overlay: Cancel
@@ -888,27 +853,24 @@ export function MissionInput({
   // Clear stale selection / edit state if the underlying item disappears
   // (deleted locally, removed by a cross-device sync, etc.).
   useEffect(() => {
-    if (selectedItemId && !findItemAnywhere(selectedItemId, items)) {
-      setSelectedItemId(null);
-    }
     if (editingItemId && !findItemAnywhere(editingItemId, items)) {
       setEditingItemId(null);
       setMission('');
     }
-  }, [items, selectedItemId, editingItemId]);
+  }, [items, editingItemId]);
 
-  // Esc dismisses the action menu / cancels edit.
+  // Esc dismisses the ⋯ menu / cancels edit.
   useEffect(() => {
-    if (!selectedItemId && !editingItemId) return;
+    if (!itemOptionsId && !editingItemId) return;
     const handler = (e) => {
       if (e.key === 'Escape') {
         if (editingItemId) handleCancelEdit();
-        else setSelectedItemId(null);
+        else setItemOptionsId(null);
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [selectedItemId, editingItemId]);
+  }, [itemOptionsId, editingItemId]);
 
   const handleLazyLaunch = () => {
     if (drag) return;
@@ -2348,7 +2310,7 @@ export function MissionInput({
                       }}>
                         {item.children.map((child, ci) => {
                           const isChildDragging = drag?.id === child.id && drag?.dragSource?.type === 'folder-child';
-                          const childSelected = selectedItemId === child.id;
+                          const childMenuOpen = itemOptionsId === child.id;
                           const childEditing = editingItemId === child.id;
                           const childHighlightDelay = highlightedIds.get(child.id);
                           const isChildHighlighted = childHighlightDelay !== undefined;
