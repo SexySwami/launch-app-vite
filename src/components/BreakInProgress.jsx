@@ -59,6 +59,13 @@ export function BreakInProgress({ endsAt, totalSec, onComplete, onEndEarly }) {
         }}>
           Rest up. Launch will fire when time's up.
         </p>
+        <p style={{
+          fontFamily: T.mono, fontSize: 11, color: T.text2, textAlign: 'center',
+          margin: 0, maxWidth: 260, lineHeight: 1.6, opacity: 0.45,
+          letterSpacing: '0.04em',
+        }}>
+          Keep your screen on to hear the alarm.
+        </p>
       </div>
       <div style={{ padding: '0 24px 22px', position: 'relative', zIndex: 1 }}>
         <button onClick={onEndEarly} style={{
