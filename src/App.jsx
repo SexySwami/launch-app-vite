@@ -952,9 +952,11 @@ export default function App() {
     body = <Reward onNext={() => setScreen('nextphase')} onLog={() => setScreen('dashboard')} momentum={momentum - 15} />;
   else if (screen === 'nextphase')
     body = (
-      <NextPhase
-        onKeepGoing={handleKeepGoing}
-        onSeeCompleted={() => setScreen('completed')}
+      <ModeSelect
+        onSelectFourStep={() => { setSelectedMode('fourStep'); setScreen('countdown'); }}
+        onSelectSmallChunker={startSmallChunker}
+        onSelectDeepFocus={startDeepFocus}
+        onBack={() => setScreen('completed')}
       />
     );
   else if (screen === 'completed')
