@@ -279,6 +279,9 @@ export default function App() {
   const [mountedFolderIds, setMountedFolderIds] = useState(() => new Set());
   const lastLaunchedFolderIdRef = useRef(DEFAULT_FOLDER_ID);
   const stepReturnScreenRef = useRef('home');
+  // Remember which screen was active when we navigated to modeSelect so
+  // the Back button returns the user to where they came from.
+  const modeSelectReturnScreenRef = useRef('home');
 
   const openFolder = (folderId) => {
     setMountedFolderIds(prev => {
@@ -609,7 +612,9 @@ export default function App() {
     lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
     setSelectedMode(null);
-    setScreen(skipToScreen ?? (onBreak ? 'standup' : 'modeSelect'));
+    const nextScreen = skipToScreen ?? (onBreak ? 'standup' : 'modeSelect');
+    if (nextScreen === 'modeSelect') modeSelectReturnScreenRef.current = screen;
+    setScreen(nextScreen);
 
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
@@ -931,7 +936,7 @@ export default function App() {
         onSelectFourStep={() => { setSelectedMode('fourStep'); setScreen('countdown'); }}
         onSelectSmallChunker={startSmallChunker}
         onSelectDeepFocus={startDeepFocus}
-        onBack={() => setScreen('home')}
+        onBack={() => setScreen(modeSelectReturnScreenRef.current)}
         onTooMuch={() => setScreen('mode-ritual')}
       />
     );
