@@ -1291,7 +1291,30 @@ export function MissionInput({
 
     // 2) Complete the source item in its origin folder.
     const { sourceItemId, sourceFolderId, text: cachedText, description: cachedDesc } = entry;
-    if (!sourceItemId || !sourceFolderId) return;
+
+    // Item was created directly in the Short List (not a reference to another
+    // folder) — no sourceItemId/sourceFolderId to follow. Log it to Completed
+    // under the Short List folder so it appears in Completed Steps and can be
+    // restored back here via the × button.
+    if (!sourceItemId || !sourceFolderId) {
+      const completionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const idx = items.findIndex(i => i.id === entryId);
+      try {
+        await fetch('/api/completed?action=finalize', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            id: completionId,
+            sourceItemId: entryId,
+            sourceItemIndex: idx,
+            folderId: 'short-list',
+            text: cachedText || '',
+            ...(cachedDesc ? { description: cachedDesc } : {}),
+          }),
+        });
+      } catch {}
+      return;
+    }
     const srcUrl = `/api/queue?folder=${encodeURIComponent(sourceFolderId)}`;
     try {
       const res = await fetch(srcUrl, { cache: 'no-store' });
