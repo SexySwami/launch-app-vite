@@ -502,7 +502,6 @@ export default function App() {
     if (canCallAPI) {
       try {
         let wasOnShortList = false;
-        console.log('[SL-DEBUG] finalizeCompletion start', { sourceFolderId, sourceItemId, shortListEntryId, mission });
         // Remove the Short List reference for this item. Match by sourceItemId
         // first (precise, covers "Add to Short List" items) then fall back to
         // text match (covers items typed directly into the Short List).
@@ -518,31 +517,29 @@ export default function App() {
                 slFlat.push(item);
               }
             }
-            console.log('[SL-DEBUG] shortList fetch', { count: slFlat.length, items: slFlat.map(i => ({ id: i.id, sourceItemId: i.sourceItemId, text: i.text })) });
             const needle = mission.trim().toLowerCase();
             const slMatch = slFlat.find(i =>
               (sourceItemId && i.sourceItemId === sourceItemId) ||
               (i.text || '').trim().toLowerCase() === needle
             );
-            console.log('[SL-DEBUG] slMatch', slMatch ?? null);
             if (slMatch) {
               wasOnShortList = true;
               await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slMatch.id)}`, { method: 'DELETE' });
             }
-          } catch (e) { console.log('[SL-DEBUG] fetch block error', e); }
+          } catch {}
         }
         // When launched from the Short List itself or from another folder where
         // the item is also on the Short List, shortListEntryId is set at launch
         // time — delete the reference and flag wasOnShortList.
-        console.log('[SL-DEBUG] shortListEntryId at finalize', shortListEntryId);
         if (shortListEntryId) {
           try {
             await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(shortListEntryId)}`, { method: 'DELETE' });
             wasOnShortList = true;
-          } catch (e) { console.log('[SL-DEBUG] shortListEntryId delete error', e); }
+          } catch {}
         }
 
-        console.log('[SL-DEBUG] sending finalize', { wasOnShortList, sourceItemId, folderId: sourceFolderId });
+        // NOTE: the API also performs server-authoritative Short List detection
+        // on finalize, so restore works even if the client checks above miss.
         await fetch('/api/completed?action=finalize', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -606,7 +603,6 @@ export default function App() {
   // (e.g. Home-screen launches) we fall back to the default folder so the
   // queue DELETE on completion still hits a sensible Redis key.
   const launchMission = async (missionText, source, description, skipToScreen = null) => {
-    console.log('[SL-DEBUG] launchMission called', { sourceId: source?.id, sourceFolderId: source?.folderId, shortListEntryId: source?.shortListEntryId });
     const m = (missionText || '').trim();
     if (!m) return;
     setMission(m);
