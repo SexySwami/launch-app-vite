@@ -61,6 +61,7 @@ export default function App() {
   const [sourceItemIndex, setSourceItemIndex] = useState(null);
   const [sourceFolderId, setSourceFolderId] = useState(DEFAULT_FOLDER_ID);
   const [sourceDescription, setSourceDescription] = useState(null);
+  const [shortListEntryId, setShortListEntryId] = useState(null);
   const [loggedSteps, setLoggedSteps] = useState(() => new Set());
 
   // Which mode the user picked on the ModeSelect screen. Read by the
@@ -487,6 +488,36 @@ export default function App() {
     if (!completionGroupId) return;
     if (canCallAPI) {
       try {
+        let wasOnShortList = false;
+        // Remove the Short List reference for this item, matched by sourceItemId
+        // (precise) rather than text (fragile, breaks when items share text).
+        if (sourceFolderId !== 'short-list' && sourceItemId) {
+          try {
+            const slRes = await fetch('/api/queue?folder=short-list', { cache: 'no-store' });
+            const slData = await slRes.json().catch(() => ({}));
+            const slFlat = [];
+            for (const item of Array.isArray(slData?.items) ? slData.items : []) {
+              if (item?.type === 'folder' && Array.isArray(item.children)) {
+                slFlat.push(...item.children.filter(c => c?.text));
+              } else if (item?.text) {
+                slFlat.push(item);
+              }
+            }
+            const slMatch = slFlat.find(i => i.sourceItemId === sourceItemId);
+            if (slMatch) {
+              wasOnShortList = true;
+              await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slMatch.id)}`, { method: 'DELETE' });
+            }
+          } catch {}
+        }
+        // When launched from the Short List itself, remove the SL reference entry.
+        if (shortListEntryId) {
+          try {
+            await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(shortListEntryId)}`, { method: 'DELETE' });
+            wasOnShortList = true;
+          } catch {}
+        }
+
         await fetch('/api/completed?action=finalize', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -496,6 +527,7 @@ export default function App() {
             sourceItemIndex: typeof sourceItemIndex === 'number' ? sourceItemIndex : null,
             folderId: sourceFolderId,
             text: mission,
+            wasOnShortList,
             ...(sourceDescription ? { description: sourceDescription } : {}),
           }),
         });
@@ -568,6 +600,7 @@ export default function App() {
     const launchFolderId = source?.folderId || DEFAULT_FOLDER_ID;
     setSourceFolderId(launchFolderId);
     setSourceDescription(description ? description.toString().trim() : null);
+    setShortListEntryId(source?.shortListEntryId || null);
     lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
     setSelectedMode(null);
@@ -613,6 +646,7 @@ export default function App() {
     setStepOverrides({});
     setSteps([]);
     setSourceDescription(null);
+    setShortListEntryId(null);
   };
   // Small Chunker: fetch the next batch of 4. Appends to microSteps on success;
   // falls back to the local generator if the API is unavailable so the screen

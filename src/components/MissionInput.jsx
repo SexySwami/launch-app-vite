@@ -736,7 +736,20 @@ export function MissionInput({
       return;
     }
     setMission(text);
-    onLaunch(text, { ...(source || {}), folderId }, description || null);
+    // For Short List items resolve the original item's identity so completion
+    // removes from the source folder (and source item), not just the SL reference.
+    let effectiveSource = { ...(source || {}), folderId };
+    if (isShortList && source?.id) {
+      const found = findItemAnywhere(source.id);
+      if (found?.item?.sourceItemId && found?.item?.sourceFolderId) {
+        effectiveSource = {
+          id: found.item.sourceItemId,
+          folderId: found.item.sourceFolderId,
+          shortListEntryId: source.id,
+        };
+      }
+    }
+    onLaunch(text, effectiveSource, description || null);
   };
 
   // Single-tap on a row → toggle the action menu for that item.
