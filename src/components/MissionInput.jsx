@@ -2635,55 +2635,55 @@ export function MissionInput({
               </button>
             </div>
           ) : (
-            /* ── ⋯ options menu: Remove / Check Off / Short List ───── */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
-                  style={{
-                    flex: 1, height: 60, borderRadius: 18,
-                    background: 'linear-gradient(180deg, rgba(255,179,71,0.14), rgba(255,179,71,0.04))',
-                    border: `1px solid rgba(255,179,71,0.4)`,
-                    color: T.warn,
-                    fontFamily: T.display, fontSize: 14, fontWeight: 600,
-                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,179,71,0.10)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 13 13">
-                    <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                  </svg>
-                  Remove
-                </button>
-                <button
-                  onClick={() => handleCheckOff(itemOptionsId)}
-                  style={{
-                    flex: 1, height: 60, borderRadius: 18,
-                    background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
-                    border: `1px solid rgba(0,255,110,0.45)`,
-                    color: '#00e56e',
-                    fontFamily: T.display, fontSize: 14, fontWeight: 600,
-                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 13 13">
-                    <path d="M2 7l3.5 3.5 5.5-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Check Off
-                </button>
-              </div>
-              {/* Edit row */}
+            /* ── ⋯ options menu: 2×2 grid ───────────────────────────── */
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {/* Remove */}
+              <button
+                onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                style={{
+                  height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(255,179,71,0.14), rgba(255,179,71,0.04))',
+                  border: `1px solid rgba(255,179,71,0.4)`,
+                  color: T.warn,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,179,71,0.10)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13">
+                  <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                Remove
+              </button>
+              {/* Check Off */}
+              <button
+                onClick={() => handleCheckOff(itemOptionsId)}
+                style={{
+                  height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
+                  border: `1px solid rgba(0,255,110,0.45)`,
+                  color: '#00e56e',
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13">
+                  <path d="M2 7l3.5 3.5 5.5-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Check Off
+              </button>
+              {/* Edit */}
               <button
                 onClick={() => handleStartEdit(itemOptionsId)}
                 style={{
-                  width: '100%', height: 52, borderRadius: 18,
+                  height: 60, borderRadius: 18,
                   background: 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))',
                   border: `1px solid rgba(168,118,255,0.45)`,
                   color: T.text,
@@ -2700,19 +2700,19 @@ export function MissionInput({
                 </svg>
                 Edit
               </button>
-              {/* Add to Short List row */}
+              {/* Short List */}
               {shortListMap.has(itemOptionsId) ? (
                 <button
                   disabled
                   style={{
-                    width: '100%', height: 52, borderRadius: 18,
+                    height: 60, borderRadius: 18,
                     background: 'rgba(255,255,255,0.02)',
                     border: `1px solid ${T.hairlineSoft}`,
                     color: T.text3,
-                    fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                    fontFamily: T.display, fontSize: 11, fontWeight: 600,
                     letterSpacing: '0.04em', textTransform: 'uppercase',
                     cursor: 'default',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     opacity: 0.5,
                     WebkitTapHighlightColor: 'transparent',
                   }}
@@ -2720,7 +2720,7 @@ export function MissionInput({
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                     <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
                   </svg>
-                  Already in Short List
+                  In Short List
                 </button>
               ) : (
                 <button
@@ -2729,22 +2729,22 @@ export function MissionInput({
                     if (found) handleAddToShortList(found.item);
                   }}
                   style={{
-                    width: '100%', height: 52, borderRadius: 18,
+                    height: 60, borderRadius: 18,
                     background: 'linear-gradient(180deg, rgba(255,107,157,0.12), rgba(255,107,157,0.04))',
                     border: '1px solid rgba(255,107,157,0.42)',
                     color: T.rose,
-                    fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                    fontFamily: T.display, fontSize: 11, fontWeight: 600,
                     letterSpacing: '0.04em', textTransform: 'uppercase',
                     cursor: 'pointer',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(255,107,157,0.10)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                     <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
                   </svg>
-                  Add to Short List
+                  Short List
                 </button>
               )}
             </div>
