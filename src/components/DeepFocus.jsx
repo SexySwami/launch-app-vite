@@ -508,7 +508,7 @@ export function DeepFocus({
       </div>
 
       <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <GlowButton onClick={handleAdvance} disabled={loading || !step || cascadeLoading}>
+        <GlowButton onClick={handleAdvance} disabled={loading || !step || cascadeLoading} variant="purple">
           {loading || !step
             ? `Generating focus batch ${batchNumber || 1}…`
             : cascadeLoading
