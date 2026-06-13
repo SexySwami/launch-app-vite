@@ -426,7 +426,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             ? 'Generating Steps…'
             : cascadeLoading
               ? 'Recalibrating…'
-              : stepIdx + 1 === totalSteps ? 'Complete Final Step' : 'Completed'}
+              : stepIdx + 1 === totalSteps ? 'Complete Final Step' : 'Next'}
           {!loading && step && !cascadeLoading && (
             <svg width="14" height="14" viewBox="0 0 14 14">
               <path d="M2 7.5l3 3 7-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>

@@ -516,7 +516,7 @@ export function SmallChunker({
             ? `Generating batch ${batchNumber || 1}…`
             : cascadeLoading
               ? 'Recalibrating…'
-              : 'Completed'}
+              : 'Next'}
           {!loading && step && !cascadeLoading && (
             <svg width="14" height="14" viewBox="0 0 14 14">
               <path d="M2 7.5l3 3 7-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
