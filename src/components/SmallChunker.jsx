@@ -511,7 +511,7 @@ export function SmallChunker({
       </div>
 
       <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <GlowButton onClick={handleAdvance} disabled={loading || !step || cascadeLoading}>
+        <GlowButton onClick={handleAdvance} disabled={loading || !step || cascadeLoading} variant="amber">
           {loading || !step
             ? `Generating batch ${batchNumber || 1}…`
             : cascadeLoading
