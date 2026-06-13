@@ -167,7 +167,7 @@ function MoodButton({ mood, index, selected, anySelected, onSelect }) {
 // Keeps the original ModeSelect prop signature so App wiring is
 // unchanged.
 // ─────────────────────────────────────────────────────────────
-export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus, onBack }) {
+export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDeepFocus, onBack, onTooMuch }) {
   const committed = useRef(false);
 
   const handlers = {
@@ -228,9 +228,26 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
               </svg>
             </button>
           )}
-          <div style={{ fontFamily: T.display, fontSize: 16, fontWeight: 500, color: T.text3 }}>
+          <div style={{ fontFamily: T.display, fontSize: 16, fontWeight: 500, color: T.text3, flex: 1 }}>
             before we launch
           </div>
+          {onTooMuch && (
+            <button
+              onClick={onTooMuch}
+              style={{
+                all: 'unset', cursor: 'pointer', flexShrink: 0,
+                padding: '7px 13px', borderRadius: 99,
+                background: 'rgba(168,118,255,0.10)',
+                border: `1px solid rgba(168,118,255,0.32)`,
+                color: T.purple,
+                fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.16em',
+                textTransform: 'uppercase', fontWeight: 600,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              Too Much
+            </button>
+          )}
         </div>
         <h1 style={{ fontFamily: T.display, fontSize: 44, fontWeight: 700, color: T.text, margin: 0, letterSpacing: '-0.03em', lineHeight: 0.98 }}>
           how are you,<br />really<span style={{ color: accent, textShadow: `0 0 18px ${rgba(accent, 0.7)}`, transition: 'color 320ms, text-shadow 320ms' }}>?</span>

@@ -869,7 +869,17 @@ export default function App() {
       />
     );
   else if (screen === 'break-transition')
-    body = <BreakTransition onDone={handleBreakDone} />;
+    body = (
+      <ModeSelect
+        onSelectFourStep={() => { setSelectedMode('fourStep'); handleBreakDone(); }}
+        onSelectSmallChunker={() => { setSelectedMode('smallChunker'); handleBreakDone(); }}
+        onSelectDeepFocus={() => { setSelectedMode('deepFocus'); handleBreakDone(); }}
+        onBack={handleBreakDone}
+        onTooMuch={() => setScreen('break-ritual')}
+      />
+    );
+  else if (screen === 'break-ritual')
+    body = <BreakTransition onDone={() => setScreen('break-transition')} />;
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
   else if (screen === 'standup')
