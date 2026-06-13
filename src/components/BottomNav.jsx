@@ -9,17 +9,6 @@ const ITEMS = [
     ),
   },
   {
-    id: 'break-set',
-    label: 'Break',
-    icon: (
-      <g stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <path d="M6 3h12M6 21h12"/>
-        <path d="M7.5 3v3.4L12 11l4.5-4.6V3"/>
-        <path d="M7.5 21v-3.4L12 13l4.5 4.6V21"/>
-      </g>
-    ),
-  },
-  {
     id: 'input',
     label: 'Checklists',
     icon: (
@@ -36,6 +25,17 @@ const ITEMS = [
       <g stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" fill="none">
         <circle cx="12" cy="12" r="9"/>
         <path d="M8.5 12l2.5 2.5 5-5"/>
+      </g>
+    ),
+  },
+  {
+    id: 'break-set',
+    label: 'Break',
+    icon: (
+      <g stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M6 3h12M6 21h12"/>
+        <path d="M7.5 3v3.4L12 11l4.5-4.6V3"/>
+        <path d="M7.5 21v-3.4L12 13l4.5 4.6V21"/>
       </g>
     ),
   },
