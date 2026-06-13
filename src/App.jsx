@@ -954,8 +954,6 @@ export default function App() {
     body = (
       <NextPhase
         onKeepGoing={handleKeepGoing}
-        onAllDone={handleAllDone}
-        onNextTask={handleNextTask}
         onSeeCompleted={() => setScreen('completed')}
       />
     );
