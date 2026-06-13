@@ -64,7 +64,6 @@ export function EditMicroStepModal({
       setListening(false);
       setTranscribing(false);
       setRecError('');
-      setRefreshing(false);
     }
   }, [open, absoluteStepNumber]);
 

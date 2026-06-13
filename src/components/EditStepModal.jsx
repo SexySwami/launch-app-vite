@@ -61,7 +61,6 @@ export function EditStepModal({ open, step, stepIdx, totalSteps, mission, onClos
       setListening(false);
       setTranscribing(false);
       setRecError('');
-      setRefreshing(false);
     }
   }, [open, stepIdx]);
 
