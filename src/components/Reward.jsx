@@ -210,8 +210,7 @@ function CelebrationCore() {
 }
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
-export function Reward({ onNext, onLog }) {
-  const [pressNew,  setPressNew]  = useState(false);
+export function Reward({ onNext }) {
   const [pressNext, setPressNext] = useState(false);
 
   return (
@@ -295,38 +294,16 @@ export function Reward({ onNext, onLog }) {
       </div>
 
       {/* Command row */}
-      <div style={{ flexShrink: 0, display: 'flex', gap: 12, padding: '8px 24px 22px', position: 'relative', zIndex: 1 }}>
+      <div style={{ flexShrink: 0, padding: '8px 24px 22px', position: 'relative', zIndex: 1 }}>
 
-        {/* Secondary: New Mission */}
-        <button
-          onClick={onLog}
-          onPointerDown={() => setPressNew(true)}
-          onPointerUp={() => setPressNew(false)}
-          onPointerLeave={() => setPressNew(false)}
-          style={{
-            all: 'unset', boxSizing: 'border-box', cursor: 'pointer', flex: 1, height: 60,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            borderRadius: 18, fontFamily: T.mono, fontSize: 12.5, fontWeight: 600,
-            letterSpacing: '0.14em', textTransform: 'uppercase',
-            color: T.text,
-            background: 'rgba(255,255,255,0.035)',
-            border: `1px solid ${T.hairline}`,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.4)`,
-            transform: `scale(${pressNew ? 0.97 : 1}) translateY(${pressNew ? 1 : 0}px)`,
-            transition: 'transform 140ms cubic-bezier(0.2,0.8,0.2,1)',
-            WebkitTapHighlightColor: 'transparent',
-          }}>
-          New Mission
-        </button>
-
-        {/* Primary: Next Phase */}
+        {/* Primary: Next */}
         <button
           onClick={onNext}
           onPointerDown={() => setPressNext(true)}
           onPointerUp={() => setPressNext(false)}
           onPointerLeave={() => setPressNext(false)}
           style={{
-            all: 'unset', boxSizing: 'border-box', cursor: 'pointer', flex: 1, height: 60,
+            all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', height: 60,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             borderRadius: 18, fontFamily: T.mono, fontSize: 12.5, fontWeight: 600,
             letterSpacing: '0.14em', textTransform: 'uppercase',
@@ -338,7 +315,7 @@ export function Reward({ onNext, onLog }) {
             transition: 'transform 140ms cubic-bezier(0.2,0.8,0.2,1)',
             WebkitTapHighlightColor: 'transparent',
           }}>
-          Next Phase
+          Next
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />
