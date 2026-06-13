@@ -542,7 +542,7 @@ function ReactorCore({ state, intensity, onLaunch }) {
 
           <div style={{
             fontFamily: T.orbital, fontWeight: 800,
-            fontSize: 15, lineHeight: 1.2,
+            fontSize: 18, lineHeight: 1.2,
             letterSpacing: '0.04em', textAlign: 'center', maxWidth: 130,
             color: armed ? T.text : warming ? T.text2 : T.text3,
             textShadow: armed
