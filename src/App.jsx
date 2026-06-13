@@ -962,7 +962,7 @@ export default function App() {
       />
     );
   else if (screen === 'reward')
-    body = <Reward onNext={() => setScreen('nextphase')} onLog={() => setScreen('dashboard')} momentum={momentum - 15} />;
+    body = <Reward onNext={() => setScreen('nextphase')} onLog={handleNextTask} momentum={momentum - 15} />;
   else if (screen === 'nextphase')
     body = (
       <NextPhase
