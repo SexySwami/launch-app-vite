@@ -93,8 +93,7 @@ export function MissionInput({
   const pressedItemRef = useRef(null);
   const justEndedDragRef = useRef(false);
 
-  // selectedItemId: which row's action menu shows (single-tap).
-  // editingItemId: which row's text is in the overlay (action-menu Edit
+  // editingItemId: which row's text is in the overlay (⋯ menu Edit
   // OR double-tap). overlayStartMode determines whether the overlay
   // opens in 'view' (double-tap) or 'edit' (action menu) mode.
   const [editingItemId, setEditingItemId] = useState(null);
@@ -2168,7 +2167,7 @@ export function MissionInput({
               const isFirstItem = idx === 0;
               const highlightDelay = highlightedIds.get(item.id);
               const isHighlighted = highlightDelay !== undefined;
-              const isSelected = selectedItemId === item.id;
+              const isMenuOpen = itemOptionsId === item.id;
               const isEditing = editingItemId === item.id;
               const isHoverTarget = drag && drag.hoverTargetId === item.id;
 
@@ -2328,13 +2327,13 @@ export function MissionInput({
                             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowTap(child); } }}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8,
-                              background: childSelected
+                              background: childMenuOpen
                                 ? `linear-gradient(180deg, ${ac(0.14)}, ${ac(0.04)})`
                                 : childEditing
                                   ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
                                   : 'rgba(255,255,255,0.02)',
                               border: `1px solid ${
-                                childSelected ? ac(0.6)
+                                childMenuOpen ? ac(0.6)
                                 : childEditing ? 'rgba(168,118,255,0.55)'
                                 : T.hairlineSoft
                               }`,
@@ -2349,7 +2348,7 @@ export function MissionInput({
                               opacity: isChildDragging ? 0.96 : 1,
                               boxShadow: isChildDragging
                                 ? `0 12px 32px ${ac(0.32)}, 0 0 24px ${ac(0.20)}`
-                                : childSelected
+                                : childMenuOpen
                                   ? `0 0 14px ${ac(0.22)}`
                                   : childEditing
                                     ? `0 0 14px rgba(168,118,255,0.22)`
@@ -2375,7 +2374,6 @@ export function MissionInput({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setItemOptionsId(prev => prev === child.id ? null : child.id);
-                                setSelectedItemId(null);
                               }}
                               aria-label={`Options for ${child.text}`}
                               style={{
@@ -2449,7 +2447,7 @@ export function MissionInput({
                       display: 'flex', alignItems: 'center', gap: 8,
                       background: isHoverTarget
                         ? 'linear-gradient(180deg, rgba(168,118,255,0.22), rgba(168,118,255,0.08))'
-                        : isSelected
+                        : isMenuOpen
                           ? `linear-gradient(180deg, ${ac(0.14)}, ${ac(0.04)})`
                           : isEditing
                             ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
@@ -2458,7 +2456,7 @@ export function MissionInput({
                               : 'rgba(255,255,255,0.025)',
                       border: `1px solid ${
                         isHoverTarget ? 'rgba(168,118,255,0.7)'
-                        : isSelected ? ac(0.6)
+                        : isMenuOpen ? ac(0.6)
                         : isEditing ? 'rgba(168,118,255,0.55)'
                         : isFirstItem ? ac(0.32)
                         : T.hairlineSoft
@@ -2477,7 +2475,7 @@ export function MissionInput({
                         ? `0 12px 32px ${ac(0.32)}, 0 0 24px ${ac(0.20)}`
                         : isHoverTarget
                           ? `0 0 0 ${2 + hoverProgress * 4}px rgba(168,118,255,${0.18 + hoverProgress * 0.32}), 0 0 ${20 + hoverProgress * 20}px rgba(168,118,255,${0.25 + hoverProgress * 0.35})`
-                          : isSelected
+                          : isMenuOpen
                             ? `0 0 18px ${ac(0.30)}`
                             : isEditing
                               ? `0 0 18px rgba(168,118,255,0.30)`
@@ -2535,7 +2533,6 @@ export function MissionInput({
                       onClick={(e) => {
                         e.stopPropagation();
                         setItemOptionsId(prev => prev === item.id ? null : item.id);
-                        setSelectedItemId(null);
                       }}
                       aria-label={`Options for ${item.text}`}
                       style={{
@@ -2590,43 +2587,6 @@ export function MissionInput({
           </div>
         </div>
       </div>
-
-      {selectedItemId && (
-        <div style={{ padding: '0 24px' }}>
-          {/* ── Action menu for the selected item ───────────────────── */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={handleStartEdit}
-              style={{
-                flex: 1, height: 60, borderRadius: 18,
-                background: 'linear-gradient(180deg, rgba(168,118,255,0.16), rgba(168,118,255,0.06))',
-                border: `1px solid rgba(168,118,255,0.45)`,
-                color: T.text,
-                fontFamily: T.display, fontSize: 14, fontWeight: 600,
-                letterSpacing: '0.04em', textTransform: 'uppercase',
-                cursor: 'pointer',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(168,118,255,0.14)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 13 13">
-                <path d="M1.5 11.5l1.5-3.5L8 2.5l2.5 2.5-5.5 5.5L1.5 11.5z" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
-              </svg>
-              Edit Item
-            </button>
-            <GlowButton
-              onClick={handleSelectedLaunch}
-              style={{ flex: 1, height: 60 }}
-            >
-              Launch
-              <svg width="14" height="14" viewBox="0 0 14 14">
-                <path d="M7 1l5 6h-3v6H5V7H2l5-6z" fill="currentColor"/>
-              </svg>
-            </GlowButton>
-          </div>
-        </div>
-      )}
 
       {itemOptionsId && (
         <div style={{ padding: '0 24px' }}>
@@ -2719,6 +2679,27 @@ export function MissionInput({
                   Check Off
                 </button>
               </div>
+              {/* Edit row */}
+              <button
+                onClick={() => handleStartEdit(itemOptionsId)}
+                style={{
+                  width: '100%', height: 52, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))',
+                  border: `1px solid rgba(168,118,255,0.45)`,
+                  color: T.text,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(168,118,255,0.12)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13">
+                  <path d="M1.5 11.5l1.5-3.5L8 2.5l2.5 2.5-5.5 5.5L1.5 11.5z" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
+                </svg>
+                Edit
+              </button>
               {/* Add to Short List row */}
               {shortListMap.has(itemOptionsId) ? (
                 <button
