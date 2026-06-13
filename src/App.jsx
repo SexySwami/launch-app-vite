@@ -22,6 +22,7 @@ import { BreakTransition } from './components/BreakTransition.jsx';
 import { WhatsNext } from './components/WhatsNext.jsx';
 import { ChooseTaskOverlay } from './components/ChooseTaskOverlay.jsx';
 import { primeBreakAudio, startBreakAlarmLoop } from './lib/breakAlarm.js';
+import { requestNotificationPermission, scheduleBreakAlarm, cancelBreakAlarm } from './lib/pushNotification.js';
 import { generateSteps } from './lib/generateSteps.js';
 import { generateMicroSteps } from './lib/generateMicroSteps.js';
 import { generateDeepFocusSteps } from './lib/generateDeepFocusSteps.js';
@@ -109,9 +110,13 @@ export default function App() {
 
   const startBreak = (mins) => {
     const total = Math.max(1, Math.round(mins * 60));
+    const endsAt = Date.now() + total * 1000;
     setBreakTotalSec(total);
-    setBreakEndsAt(Date.now() + total * 1000);
+    setBreakEndsAt(endsAt);
     primeBreakAudio(breakAudioCtxRef);
+    requestNotificationPermission().then((granted) => {
+      if (granted) scheduleBreakAlarm(endsAt);
+    });
     setScreen('break-progress');
   };
 
@@ -123,6 +128,7 @@ export default function App() {
   };
 
   const handleBreakComplete = () => {
+    cancelBreakAlarm();
     setScreen('break-complete');
   };
 
@@ -137,9 +143,13 @@ export default function App() {
 
   const handleBreakFiveMore = () => {
     const total = 5 * 60;
+    const endsAt = Date.now() + total * 1000;
     setBreakTotalSec(total);
-    setBreakEndsAt(Date.now() + total * 1000);
+    setBreakEndsAt(endsAt);
     primeBreakAudio(breakAudioCtxRef);
+    requestNotificationPermission().then((granted) => {
+      if (granted) scheduleBreakAlarm(endsAt);
+    });
     setScreen('break-progress');
   };
 
@@ -596,6 +606,7 @@ export default function App() {
   // (e.g. Home-screen launches) we fall back to the default folder so the
   // queue DELETE on completion still hits a sensible Redis key.
   const launchMission = async (missionText, source, description, skipToScreen = null) => {
+    console.log('[SL-DEBUG] launchMission called', { sourceId: source?.id, sourceFolderId: source?.folderId, shortListEntryId: source?.shortListEntryId });
     const m = (missionText || '').trim();
     if (!m) return;
     setMission(m);
@@ -1013,7 +1024,7 @@ export default function App() {
       />
     );
   else if (screen === 'reward')
-    body = <Reward onNext={() => setScreen('nextphase')} onLog={handleNextTask} momentum={momentum - 15} />;
+    body = <Reward onNext={() => setScreen('nextphase')} momentum={momentum - 15} />;
   else if (screen === 'nextphase')
     body = (
       <NextPhase

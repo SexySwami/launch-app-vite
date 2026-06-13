@@ -718,6 +718,7 @@ export function MissionInput({
   // launch with this MissionInput's folderId so the parent app can route
   // completion writes back to the right folder.
   const handleLaunchItem = (text, source, description) => {
+    console.log('[SL-DEBUG] handleLaunchItem ENTRY', { text: (text||'').slice(0,40), sourceId: source?.id, isShortList, folderId, selectionMode, drag: !!drag });
     if (drag) return; // ignore taps mid-drag
     setEditingItemId(null);
     if (selectionMode) {
