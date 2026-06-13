@@ -237,9 +237,9 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
               style={{
                 all: 'unset', cursor: 'pointer', flexShrink: 0,
                 padding: '7px 13px', borderRadius: 99,
-                background: 'rgba(61,127,255,0.10)',
-                border: `1px solid rgba(61,127,255,0.32)`,
-                color: T.blue,
+                background: 'rgba(0,229,255,0.10)',
+                border: `1px solid rgba(0,229,255,0.32)`,
+                color: T.cyan,
                 fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.16em',
                 textTransform: 'uppercase', fontWeight: 600,
                 WebkitTapHighlightColor: 'transparent',
