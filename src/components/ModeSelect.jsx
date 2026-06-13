@@ -245,7 +245,7 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              Too Much
+              Ease In
             </button>
           )}
         </div>

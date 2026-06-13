@@ -884,6 +884,8 @@ export default function App() {
     body = <Countdown onComplete={startExecution} />;
   else if (screen === 'standup')
     body = <StandUp onDone={() => setScreen('modeSelect')} />;
+  else if (screen === 'mode-ritual')
+    body = <BreakTransition onDone={() => setScreen('modeSelect')} onBack={() => setScreen('modeSelect')} />;
   else if (screen === 'modeSelect')
     body = (
       <ModeSelect
@@ -891,6 +893,7 @@ export default function App() {
         onSelectSmallChunker={startSmallChunker}
         onSelectDeepFocus={startDeepFocus}
         onBack={() => setScreen('home')}
+        onTooMuch={() => setScreen('mode-ritual')}
       />
     );
   else if (screen === 'smallChunker')
