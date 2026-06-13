@@ -489,8 +489,9 @@ export default function App() {
     if (canCallAPI) {
       try {
         let wasOnShortList = false;
-        // Remove the Short List reference for this item, matched by sourceItemId
-        // (precise) rather than text (fragile, breaks when items share text).
+        // Remove the Short List reference for this item. Match by sourceItemId
+        // first (precise, covers "Add to Short List" items) then fall back to
+        // text match (covers items typed directly into the Short List).
         if (sourceFolderId !== 'short-list') {
           try {
             const slRes = await fetch('/api/queue?folder=short-list', { cache: 'no-store' });
@@ -504,7 +505,10 @@ export default function App() {
               }
             }
             const needle = mission.trim().toLowerCase();
-            const slMatch = slFlat.find(i => (i.text || '').trim().toLowerCase() === needle);
+            const slMatch = slFlat.find(i =>
+              (sourceItemId && i.sourceItemId === sourceItemId) ||
+              (i.text || '').trim().toLowerCase() === needle
+            );
             if (slMatch) {
               wasOnShortList = true;
               await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slMatch.id)}`, { method: 'DELETE' });
