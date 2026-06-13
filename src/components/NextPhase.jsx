@@ -1,10 +1,34 @@
 import { T } from '../tokens.js';
 import { Telemetry } from './Telemetry.jsx';
 
+const STARS = Array.from({ length: 46 }).map(() => ({
+  left: Math.random() * 100,
+  top: Math.random() * 100,
+  size: Math.random() * 1.4 + 0.6,
+  dur: Math.random() * 3 + 2.5,
+  delay: -(Math.random() * 6),
+  cyan: Math.random() > 0.76,
+}));
+
 export function NextPhase({ onKeepGoing, onSeeCompleted }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', minHeight: 0 }}>
       <Telemetry time="PHASE COMPLETE" code="MC-04 / DECISION" state="STANDBY" />
+
+      {/* Twinkling starfield */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {STARS.map((s, i) => (
+          <span key={i} style={{
+            position: 'absolute',
+            left: `${s.left}%`, top: `${s.top}%`,
+            width: s.size, height: s.size, borderRadius: 99,
+            background: s.cyan ? T.cyan : '#fff',
+            boxShadow: `0 0 ${s.size * 3}px ${s.cyan ? 'rgba(0,229,255,0.65)' : 'rgba(255,255,255,0.5)'}`,
+            opacity: 0.3,
+            animation: `twinkle ${s.dur}s ease-in-out ${s.delay}s infinite`,
+          }} />
+        ))}
+      </div>
 
       {/* ambient glow */}
       <div style={{
