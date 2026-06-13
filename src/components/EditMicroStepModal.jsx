@@ -307,6 +307,27 @@ export function EditMicroStepModal({
             <span style={{ width: 4, height: 4, borderRadius: 99, background: T.cyan, boxShadow: `0 0 6px ${T.cyan}` }} />
             Better options
           </div>
+          {refreshing && currentAlts.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  height: 44, borderRadius: 12,
+                  background: 'linear-gradient(90deg, rgba(0,229,255,0.04) 0%, rgba(0,229,255,0.12) 50%, rgba(0,229,255,0.04) 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: `shimmer 1.5s ease-in-out ${i * 0.18}s infinite`,
+                  border: `1px solid rgba(0,229,255,0.12)`,
+                }} />
+              ))}
+              <div style={{
+                fontFamily: T.mono, fontSize: 10, letterSpacing: '0.22em',
+                color: T.cyan, textTransform: 'uppercase', textAlign: 'center',
+                marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+                <span style={{ width: 4, height: 4, borderRadius: 99, background: T.cyan, boxShadow: `0 0 6px ${T.cyan}`, animation: 'pulse 1.2s ease-in-out infinite' }} />
+                Generating options…
+              </div>
+            </div>
+          ) : (
           <div style={{
             display: 'flex', flexDirection: 'column', gap: 8,
             opacity: refreshing ? 0.35 : 1,
@@ -335,6 +356,7 @@ export function EditMicroStepModal({
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <button
