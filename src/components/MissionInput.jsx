@@ -733,8 +733,12 @@ export function MissionInput({
       return;
     }
     setMission(text);
-    // For Short List items resolve the original item's identity so completion
-    // removes from the source folder (and source item), not just the SL reference.
+    // Build effective source, resolving Short List references in both directions:
+    // • Launched FROM Short List → swap in the original item's id/folderId and
+    //   carry the SL entry id so finalizeCompletion can delete the reference.
+    // • Launched from another folder but item IS also on Short List → carry the
+    //   SL entry id (from shortListMap) so finalizeCompletion can clean it up
+    //   and set wasOnShortList, enabling the restore to put it back there too.
     let effectiveSource = { ...(source || {}), folderId };
     if (isShortList && source?.id) {
       const found = findItemAnywhere(source.id);
@@ -745,6 +749,11 @@ export function MissionInput({
           shortListEntryId: source.id,
         };
       }
+    } else if (!isShortList && source?.id && shortListMap.has(source.id)) {
+      // Item lives in this folder AND appears on the Short List.
+      // Pass the SL entry id so completion can remove it from the SL and
+      // restore can put it back — same mechanism as the Short List launch path.
+      effectiveSource.shortListEntryId = shortListMap.get(source.id);
     }
     onLaunch(text, effectiveSource, description || null);
   };
