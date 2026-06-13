@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import VIDEOS from '../data/workWithMeVideos.json';
 
+const RESUME_KEY = 'launch:wwm-resume';
+
 // Fisher–Yates shuffle (returns a new array).
 function shuffle(arr) {
   const a = [...arr];
@@ -42,8 +44,10 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState([]); // shuffled queue for the active pool
   const [pos, setPos] = useState(0);
+  const [overrideVideo, setOverrideVideo] = useState(null); // { ...videoObj, startSec } for resume
   const reqIdRef = useRef(0);
   const poolRef = useRef(null); // pool `order` belongs to; persists across opens
+  const iframeLoadTimeRef = useRef(null); // wall-clock time when current iframe loaded
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
@@ -53,7 +57,9 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   // history is preserved until the pool is exhausted.
   useEffect(() => {
     if (!open) {
+      iframeLoadTimeRef.current = null;
       setLoading(true); // arm loading for next open; keep order/pos/pool intact
+      setOverrideVideo(null);
       return;
     }
 
@@ -105,6 +111,18 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         setPos(0);
       }
       poolRef.current = pool.key;
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null');
+        if (saved?.videoId && typeof saved.timestamp === 'number') {
+          const resumeVideo = VIDEOS.find(v => v.video_id === saved.videoId);
+          if (resumeVideo) {
+            localStorage.removeItem(RESUME_KEY);
+            setOverrideVideo({ ...resumeVideo, startSec: saved.timestamp });
+          }
+        }
+      } catch {}
+
       setLoading(false);
     };
     run();
@@ -112,10 +130,25 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   if (!open) return null;
 
-  const video = order[pos] || null;
+  const video = overrideVideo || order[pos] || null;
   const multiple = order.length > 1;
+  const startSec = overrideVideo ? overrideVideo.startSec : (video?.start || 0);
+
+  const handleClose = () => {
+    if (video && iframeLoadTimeRef.current) {
+      const elapsed = Math.floor((Date.now() - iframeLoadTimeRef.current) / 1000);
+      try {
+        localStorage.setItem(RESUME_KEY, JSON.stringify({
+          videoId: video.video_id,
+          timestamp: startSec + elapsed,
+        }));
+      } catch {}
+    }
+    onClose();
+  };
 
   const goNext = () => {
+    setOverrideVideo(null);
     if (!multiple) return;
     if (pos + 1 >= order.length) {
       // Completed a full pass — reshuffle, avoiding an immediate repeat.
@@ -132,6 +165,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   };
 
   const goPrev = () => {
+    setOverrideVideo(null);
     if (!multiple) return;
     setPos(pos - 1 < 0 ? order.length - 1 : pos - 1);
   };
@@ -163,7 +197,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   return (
     <div
-      onClick={onClose}
+      onClick={handleClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -211,7 +245,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
               textShadow: `0 0 8px ${T.purple}66`,
             }}>Work With Me</span>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{
+          <button onClick={handleClose} aria-label="Close" style={{
             all: 'unset', cursor: 'pointer',
             width: 28, height: 28, borderRadius: 99,
             background: 'rgba(255,255,255,0.05)',
@@ -268,11 +302,12 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
               <iframe
                 key={video.video_id}
                 width="100%" height="100%"
-                src={`https://www.youtube.com/embed/${video.video_id}?rel=0${video.start ? `&start=${video.start}` : ''}`}
+                src={`https://www.youtube.com/embed/${video.video_id}?rel=0${startSec ? `&start=${startSec}` : ''}`}
                 title={video.title}
                 frameBorder="0"
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
+                onLoad={() => { iframeLoadTimeRef.current = Date.now(); }}
                 style={{ position: 'absolute', inset: 0, border: 'none' }}
               />
             ) : (
