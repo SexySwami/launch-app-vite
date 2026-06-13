@@ -64,7 +64,6 @@ function CategoryIcon({ iconKey, color }) {
 }
 
 function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
-  const [listening, setListening] = useState(false);
   const missionInputRef = useRef(null);
 
   useEffect(() => {
@@ -141,27 +140,28 @@ function MissionField({ mission, setMission, inputFocused, setInputFocused }) {
             }}
           />
         </div>
-        <button
-          aria-label="Voice input"
-          onClick={() => setListening(l => !l)}
-          style={{
-            all: 'unset', cursor: 'pointer',
-            width: 34, height: 34, borderRadius: 99,
-            background: listening
-              ? `linear-gradient(180deg, ${T.teal}, ${T.cyan})`
-              : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${listening ? 'transparent' : T.hairlineSoft}`,
-            color: listening ? '#001018' : T.text2,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 240ms ease',
-            boxShadow: listening ? `0 0 16px ${T.teal}99` : 'none',
-            flexShrink: 0,
-          }}>
-          <svg width="14" height="14" viewBox="0 0 14 14">
-            <path d="M7 1.8a1.9 1.9 0 0 0-1.9 1.9v3.2a1.9 1.9 0 1 0 3.8 0V3.7A1.9 1.9 0 0 0 7 1.8z" fill="currentColor"/>
-            <path d="M3.5 7a3.5 3.5 0 0 0 7 0M7 10.5V12.4M5 12.4h4" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-          </svg>
-        </button>
+        {mission.length > 0 && (
+          <button
+            aria-label="Clear mission"
+            onClick={() => { setMission(''); missionInputRef.current?.focus(); }}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              width: 34, height: 34, borderRadius: 99,
+              background: 'rgba(255,255,255,0.05)',
+              border: `1px solid ${T.hairlineSoft}`,
+              color: T.text2,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 200ms ease',
+              flexShrink: 0,
+            }}
+            onPointerEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.14)'; e.currentTarget.style.color = 'rgba(255,120,120,0.9)'; e.currentTarget.style.borderColor = 'rgba(255,80,80,0.32)'; }}
+            onPointerLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = T.text2; e.currentTarget.style.borderColor = T.hairlineSoft; }}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
