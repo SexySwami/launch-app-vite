@@ -21,7 +21,7 @@ export function BreakTransition({ onDone, onBack }) {
             aria-label="Go back"
             style={{
               all: 'unset', cursor: 'pointer',
-              position: 'absolute', top: 0, left: 28,
+              position: 'absolute', top: 10, left: 28,
               width: 36, height: 36, borderRadius: 99,
               background: T.surface,
               border: `1px solid ${T.hairlineSoft}`,
