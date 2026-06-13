@@ -1323,6 +1323,7 @@ export function MissionInput({
             sourceItemIndex: topLevelIdx >= 0 ? topLevelIdx : -1,
             folderId: sourceFolderId,
             text: completedText,
+            wasOnShortList: true, // always true — this path only runs for Short List items
             ...(completedDesc ? { description: completedDesc } : {}),
           }),
         });
