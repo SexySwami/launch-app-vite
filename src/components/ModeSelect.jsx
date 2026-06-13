@@ -1,6 +1,15 @@
 import { useState, useRef } from 'react';
 import { T } from '../tokens.js';
 
+const STARS = Array.from({ length: 46 }).map(() => ({
+  left: Math.random() * 100,
+  top: Math.random() * 100,
+  size: Math.random() * 1.4 + 0.6,
+  dur: Math.random() * 3 + 2.5,
+  delay: -(Math.random() * 6),
+  cyan: Math.random() > 0.76,
+}));
+
 const rgba = (hex, a) => {
   const m = hex.replace('#', '');
   return `rgba(${parseInt(m.slice(0, 2), 16)},${parseInt(m.slice(2, 4), 16)},${parseInt(m.slice(4, 6), 16)},${a})`;
@@ -177,13 +186,27 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
   const accent = T.cyan;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ paddingTop: 8 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
+      {/* Twinkling starfield */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        {STARS.map((s, i) => (
+          <span key={i} style={{
+            position: 'absolute',
+            left: `${s.left}%`, top: `${s.top}%`,
+            width: s.size, height: s.size, borderRadius: 99,
+            background: s.cyan ? T.cyan : '#fff',
+            boxShadow: `0 0 ${s.size * 3}px ${s.cyan ? 'rgba(0,229,255,0.65)' : 'rgba(255,255,255,0.5)'}`,
+            opacity: 0.3,
+            animation: `twinkle ${s.dur}s ease-in-out ${s.delay}s infinite`,
+          }} />
+        ))}
+      </div>
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
         <Telemetry state="PRE-FLIGHT" color={T.teal} />
       </div>
 
       {/* Title block — intimate, lowercase voice */}
-      <div style={{ padding: '26px 24px 0', animation: 'moodTitleIn 520ms cubic-bezier(0.2,0.8,0.2,1) both' }}>
+      <div style={{ padding: '26px 24px 0', animation: 'moodTitleIn 520ms cubic-bezier(0.2,0.8,0.2,1) both', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           {onBack && (
             <button
@@ -218,7 +241,7 @@ export function ModeSelect({ onSelectFourStep, onSelectSmallChunker, onSelectDee
       </div>
 
       {/* Mood buttons */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13, padding: '20px 24px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 13, padding: '20px 24px', position: 'relative', zIndex: 1 }}>
         {MOODS.map((m, i) => (
           <MoodButton key={m.id} mood={m} index={i}
             selected={false} anySelected={false}
