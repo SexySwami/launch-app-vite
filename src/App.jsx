@@ -827,6 +827,7 @@ export default function App() {
         currentItemIdx={currentItemIdx}
         setCurrentItemIdx={setCurrentItemIdx}
         folders={folders}
+        onProfile={() => setScreen('profile')}
       />
     );
   else if (screen === 'profile')

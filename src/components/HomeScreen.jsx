@@ -584,7 +584,7 @@ const STARS = Array.from({ length: 46 }).map(() => ({
 export function HomeScreen({
   mission, setMission, onLaunch,
   currentItemIdx, setCurrentItemIdx,
-  folders,
+  folders, onProfile,
 }) {
   // Exclude Short List from the cycling pill — it's a curated view, not a source queue.
   const resolvedFolders = (folders?.length ? folders : DEFAULT_FOLDERS).filter(f => f.id !== 'short-list');
@@ -724,8 +724,32 @@ export function HomeScreen({
         }} />
       </div>
 
-      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1 }}>
-        <Telemetry code="MC-01 / LAUNCH" state="READY" time="MC · STANDBY" color={T.cyan} />
+      <div style={{ paddingTop: 8, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <Telemetry code="MC-01 / LAUNCH" state="READY" time="MC · STANDBY" color={T.cyan} />
+        </div>
+        <button
+          onClick={onProfile}
+          aria-label="Profile"
+          style={{
+            all: 'unset', cursor: 'pointer', flexShrink: 0,
+            width: 34, height: 34, borderRadius: 99,
+            background: 'rgba(255,255,255,0.05)',
+            border: `1px solid ${T.hairlineSoft}`,
+            color: T.text2,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginRight: 12,
+            transition: 'all 200ms ease',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          onPointerEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = T.text; }}
+          onPointerLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = T.text2; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.75"/>
+            <path d="M4 21v-1a8 8 0 0 1 16 0v1" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
 
       <MissionField
