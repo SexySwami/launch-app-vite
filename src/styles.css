@@ -171,6 +171,43 @@ button, [role="button"], input {
   50%       { text-shadow: 0 0 60px #FFC048, 0 0 130px rgba(255,192,72,0.70), 0 0 200px rgba(255,192,72,0.30); }
 }
 
+/* ── Mission Complete celebration ── */
+@keyframes spokeSpin { to { transform: rotate(360deg) } }
+@keyframes coreBreathe {
+  0%, 100% { transform: scale(1);     filter: brightness(1) }
+  50%      { transform: scale(1.035); filter: brightness(1.12) }
+}
+@keyframes coreIn {
+  0%   { transform: scale(0.4); opacity: 0; filter: blur(8px) }
+  60%  { transform: scale(1.08); opacity: 1; filter: blur(0) }
+  100% { transform: scale(1); opacity: 1 }
+}
+@keyframes flash {
+  0%   { transform: scale(0.2); opacity: 0 }
+  18%  { opacity: 0.95 }
+  100% { transform: scale(2.6); opacity: 0 }
+}
+@keyframes ringExpand {
+  0%   { transform: scale(0.28); opacity: 0 }
+  22%  { opacity: 0.55 }
+  100% { transform: scale(1.85); opacity: 0 }
+}
+@keyframes burst {
+  0%   { transform: rotate(var(--a)) translateX(0) scale(0); opacity: 0 }
+  14%  { opacity: 1; transform: rotate(var(--a)) translateX(calc(var(--d) * 0.32)) scale(1) }
+  100% { transform: rotate(var(--a)) translateX(var(--d)) scale(0.2); opacity: 0 }
+}
+@keyframes orbit { to { transform: rotate(360deg) } }
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0;    transform: scale(0.2) rotate(0deg) }
+  50%      { opacity: 0.95; transform: scale(1)   rotate(45deg) }
+}
+@keyframes driftUp {
+  0%   { opacity: 0; transform: translate(var(--dx),  8px)    scale(0.4) }
+  18%  { opacity: 1 }
+  100% { opacity: 0; transform: translate(var(--dx2), -120px) scale(1) }
+}
+
 /* Hide native input clear/cancel chrome on iOS */
 input::-webkit-search-decoration,
 input::-webkit-search-cancel-button,
