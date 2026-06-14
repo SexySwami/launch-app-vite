@@ -115,10 +115,10 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
       try {
         const saved = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null');
         if (saved?.videoId && typeof saved.timestamp === 'number') {
-          const resumeVideo = VIDEOS.find(v => v.video_id === saved.videoId);
-          if (resumeVideo) {
-            localStorage.removeItem(RESUME_KEY);
-            setOverrideVideo({ ...resumeVideo, startSec: saved.timestamp });
+          localStorage.removeItem(RESUME_KEY);
+          if (saved.mission === (mission || '').trim()) {
+            const resumeVideo = VIDEOS.find(v => v.video_id === saved.videoId);
+            if (resumeVideo) setOverrideVideo({ ...resumeVideo, startSec: saved.timestamp });
           }
         }
       } catch {}
@@ -142,6 +142,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         localStorage.setItem(RESUME_KEY, JSON.stringify({
           videoId: video.video_id,
           timestamp: startSec + elapsed,
+          mission: (mission || '').trim(),
         }));
       } catch {}
     }
