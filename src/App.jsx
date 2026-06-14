@@ -13,7 +13,6 @@ import { Dashboard } from './components/Dashboard.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
 import { CompletedSteps } from './components/CompletedSteps.jsx';
 import { HomeScreen } from './components/HomeScreen.jsx';
-import { StandUp } from './components/StandUp.jsx';
 import { ModeSelect } from './components/ModeSelect.jsx';
 import { SmallChunker } from './components/SmallChunker.jsx';
 import { DeepFocus } from './components/DeepFocus.jsx';
@@ -646,7 +645,7 @@ function AppInner() {
     // stale deepMode/microMode left over from navigating away mid-run.
     resetMicroState();
     resetDeepState();
-    const nextScreen = skipToScreen ?? (onBreak ? 'standup' : 'modeSelect');
+    const nextScreen = skipToScreen ?? 'modeSelect';
     if (nextScreen === 'modeSelect') modeSelectReturnScreenRef.current = screen;
     setScreen(nextScreen);
 
@@ -996,8 +995,6 @@ function AppInner() {
     body = <BreakTransition onDone={() => setScreen('break-transition')} onBack={() => setScreen('break-transition')} />;
   else if (screen === 'countdown')
     body = <Countdown onComplete={startExecution} />;
-  else if (screen === 'standup')
-    body = <StandUp onDone={() => setScreen('modeSelect')} />;
   else if (screen === 'mode-ritual')
     body = <BreakTransition onDone={() => setScreen('modeSelect')} onBack={() => setScreen('modeSelect')} />;
   else if (screen === 'modeSelect')
