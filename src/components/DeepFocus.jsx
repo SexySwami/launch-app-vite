@@ -371,7 +371,7 @@ export function DeepFocus({
                 textShadow: `0 0 40px rgba(168,118,255,0.4)`,
               }}>
                 {(batchNumber || 1) === 1
-                  ? <>Mapping your<br/>deep focus path…</>
+                  ? <>Chunking your<br/>mission down…</>
                   : <>Generating 4 more<br/>focus steps…</>}
               </h2>
 
