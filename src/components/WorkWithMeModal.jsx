@@ -27,7 +27,7 @@ function shuffle(arr) {
 
 // Classifier categories that share the combined "computer" video pool. Desk and
 // study sessions both read as "someone working at a screen," so they merge.
-const COMPUTER_CATEGORIES = ['computer_work', 'studying'];
+const COMPUTER_CATEGORIES = ['computer_work', 'studying', 'computer_use'];
 
 // Maps a classifier category to its pool: a stable key + the source categories
 // whose videos make up that pool. Cleaning and general each stand alone (general
