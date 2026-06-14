@@ -75,7 +75,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
       JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }),
       'https://www.youtube.com'
     );
-    const id = setInterval(poll, 5000);
+    const id = setInterval(poll, 1000);
     return () => clearInterval(id);
   }, [open]);
 
