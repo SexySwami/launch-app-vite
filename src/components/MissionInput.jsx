@@ -759,13 +759,18 @@ export function MissionInput({
     onLaunch(text, effectiveSource, description || null);
   };
 
-  // Single-tap on a row → launch the item directly.
+  // Single-tap on a row → select the item (shows Launch button at bottom).
+  // In selectionMode (break-flow chooser) the old direct-launch path is preserved.
   const handleRowTap = (item) => {
     if (justEndedDragRef.current) return;
     if (editingItemId) return;
     setItemOptionsId(null);
-    const idx = items.findIndex(i => i.id === item.id);
-    handleLaunchItem(item.text, { id: item.id, index: idx }, item.description);
+    if (selectionMode) {
+      const idx = items.findIndex(i => i.id === item.id);
+      handleLaunchItem(item.text, { id: item.id, index: idx }, item.description);
+      return;
+    }
+    setSelectedItemId(prev => prev === item.id ? null : item.id);
   };
 
   // Double-tap on a row → open the overlay in read-only preview mode
@@ -1737,6 +1742,7 @@ export function MissionInput({
     };
     dragRef.current = newDrag;
     setDrag(newDrag);
+    setSelectedItemId(null);
     try { pressed.target.setPointerCapture(pressed.pointerId); } catch {}
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate(8); } catch {}
@@ -2172,7 +2178,7 @@ export function MissionInput({
 
           <div ref={listScrollRef} className="scroll-thin" style={{
             display: 'flex', flexDirection: 'column', gap: 8,
-            flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 4,
+            flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: selectedItemId ? 80 : 4,
             userSelect: 'none', WebkitUserSelect: 'none',
             overscrollBehavior: 'contain',
           }}>
@@ -2232,6 +2238,7 @@ export function MissionInput({
               const isMenuOpen = itemOptionsId === item.id;
               const isEditing = editingItemId === item.id;
               const isHoverTarget = drag && drag.hoverTargetId === item.id;
+              const isSelected = !selectionMode && selectedItemId === item.id;
 
               // Folder row — different layout from a flat item.
               if (item.type === 'folder') {
@@ -2435,6 +2442,7 @@ export function MissionInput({
                               onPointerDown={(e) => e.stopPropagation()}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                setSelectedItemId(null);
                                 setItemOptionsId(prev => prev === child.id ? null : child.id);
                               }}
                               aria-label={`Options for ${child.text}`}
@@ -2513,13 +2521,16 @@ export function MissionInput({
                           ? `linear-gradient(180deg, ${ac(0.14)}, ${ac(0.04)})`
                           : isEditing
                             ? 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))'
-                            : isFirstItem
-                              ? `linear-gradient(180deg, ${ac(0.07)}, rgba(255,255,255,0.025))`
-                              : 'rgba(255,255,255,0.025)',
+                            : isSelected
+                              ? `linear-gradient(180deg, ${ac(0.18)}, ${ac(0.07)})`
+                              : isFirstItem
+                                ? `linear-gradient(180deg, ${ac(0.07)}, rgba(255,255,255,0.025))`
+                                : 'rgba(255,255,255,0.025)',
                       border: `1px solid ${
                         isHoverTarget ? 'rgba(168,118,255,0.7)'
                         : isMenuOpen ? ac(0.6)
                         : isEditing ? 'rgba(168,118,255,0.55)'
+                        : isSelected ? ac(0.7)
                         : isFirstItem ? ac(0.32)
                         : T.hairlineSoft
                       }`,
@@ -2594,6 +2605,7 @@ export function MissionInput({
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation();
+                        setSelectedItemId(null);
                         setItemOptionsId(prev => prev === item.id ? null : item.id);
                       }}
                       aria-label={`Options for ${item.text}`}
@@ -3158,6 +3170,48 @@ export function MissionInput({
           </span>
         </div>
       )}
+
+      {/* Launch button — appears when an item is selected via tap */}
+      {selectedItemId && !selectionMode && (() => {
+        const found = findItemAnywhere(selectedItemId);
+        if (!found) return null;
+        const { item } = found;
+        const launch = () => {
+          const idx = items.findIndex(i => i.id === item.id);
+          handleLaunchItem(item.text, { id: item.id, index: idx }, item.description);
+          setSelectedItemId(null);
+        };
+        return (
+          <button
+            onClick={launch}
+            style={{
+              all: 'unset', boxSizing: 'border-box', cursor: 'pointer',
+              position: 'fixed',
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)',
+              left: 20, right: 20,
+              height: 54,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              borderRadius: 18,
+              background: `linear-gradient(180deg, ${aSolid} 0%, ${aSolid2} 100%)`,
+              border: `1px solid ${ac(0.9)}`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.35), 0 12px 30px rgba(0,0,0,0.5), 0 0 36px ${ac(0.4)}`,
+              fontFamily: T.mono, fontSize: 12, fontWeight: 700,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: '#020E10',
+              zIndex: 110,
+              animation: 'toastIn 200ms cubic-bezier(0.2,0.8,0.2,1)',
+              maxWidth: 480, marginLeft: 'auto', marginRight: 'auto',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            Launch
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        );
+      })()}
     </div>
   );
 }
