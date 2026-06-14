@@ -626,6 +626,11 @@ export default function App() {
     lastLaunchedFolderIdRef.current = launchFolderId;
     setLoggedSteps(new Set());
     setSelectedMode(null);
+    // Reset any lingering mode flags from a previous session so handleKeepGoing
+    // always routes based on the mode the user picks for *this* launch, not a
+    // stale deepMode/microMode left over from navigating away mid-run.
+    resetMicroState();
+    resetDeepState();
     const nextScreen = skipToScreen ?? (onBreak ? 'standup' : 'modeSelect');
     if (nextScreen === 'modeSelect') modeSelectReturnScreenRef.current = screen;
     setScreen(nextScreen);
