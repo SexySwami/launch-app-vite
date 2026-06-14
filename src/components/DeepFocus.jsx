@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect, useMemo } from 'react';
 import { T } from '../tokens.js';
 import { Telemetry } from './Telemetry.jsx';
@@ -73,7 +74,7 @@ export function DeepFocus({
     const currentTitle = step.title;
     setRegenLoading(true);
     try {
-      const res = await fetch('/api/generate-micro-options', {
+      const res = await apiFetch('/api/generate-micro-options', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -125,7 +126,7 @@ export function DeepFocus({
     if (!completionGroupId || !canCallAPI) return;
 
     try {
-      await fetch('/api/completed?action=log-step', {
+      await apiFetch('/api/completed?action=log-step', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import { Telemetry } from './Telemetry.jsx';
@@ -617,7 +618,7 @@ export function HomeScreen({
     (async () => {
       try {
         const folderId = encodeURIComponent(activeCat.id);
-        const res = await fetch(`/api/queue?folder=${folderId}`, { cache: 'no-store' });
+        const res = await apiFetch(`/api/queue?folder=${folderId}`, { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         setFlatItems(flattenQueue(data?.items));
@@ -637,7 +638,7 @@ export function HomeScreen({
     if (!canCallAPI) return;
     (async () => {
       try {
-        const res = await fetch('/api/queue?folder=work', { cache: 'no-store' });
+        const res = await apiFetch('/api/queue?folder=work', { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         const items = flattenQueue(data?.items);

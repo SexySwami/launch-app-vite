@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
@@ -280,7 +281,7 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
     const load = async () => {
       const results = await Promise.all(folders.map(async (f) => {
         try {
-          const res = await fetch(`/api/queue?folder=${encodeURIComponent(f.id)}`, { cache: 'no-store' });
+          const res = await apiFetch(`/api/queue?folder=${encodeURIComponent(f.id)}`, { cache: 'no-store' });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) return [f.id, null];
           return [f.id, countLeaves(data.items)];
@@ -338,7 +339,7 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
       const results = await Promise.all(
         folders.map(async (cat) => {
           try {
-            const res = await fetch(`/api/queue?folder=${encodeURIComponent(cat.id)}`, { cache: 'no-store' });
+            const res = await apiFetch(`/api/queue?folder=${encodeURIComponent(cat.id)}`, { cache: 'no-store' });
             const data = await res.json().catch(() => ({}));
             return flattenQueueWithMeta(data?.items, cat.name);
           } catch { return []; }

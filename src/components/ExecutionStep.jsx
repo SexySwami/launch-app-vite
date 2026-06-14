@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect } from 'react';
 import { T } from '../tokens.js';
 import { Telemetry } from './Telemetry.jsx';
@@ -39,7 +40,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
     const currentTitle = step.title;
     setRegenLoading(true);
     try {
-      const res = await fetch('/api/generate-options', {
+      const res = await apiFetch('/api/generate-options', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
