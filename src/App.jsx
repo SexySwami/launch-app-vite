@@ -61,6 +61,7 @@ function AppInner() {
   const [launchesToday, setLaunchesToday] = useState(2);
   const [stepOverrides, setStepOverrides] = useState({});
   const [steps, setSteps] = useState([]);
+  const [completedFourSteps, setCompletedFourSteps] = useState([]); // accumulates across keep-going batches
   const [stepsLoading, setStepsLoading] = useState(false);
   const [stepsError, setStepsError] = useState(null);
   const [cascadeLoading, setCascadeLoading] = useState(false);
@@ -624,6 +625,7 @@ function AppInner() {
     setMomentumGained(0);
     setStepOverrides({});
     setSteps([]);
+    setCompletedFourSteps([]);
     setStepsError(null);
     setStepsLoading(true);
     setCascadeLoading(false);
@@ -688,6 +690,7 @@ function AppInner() {
     setMomentumGained(0);
     setStepOverrides({});
     setSteps([]);
+    setCompletedFourSteps([]);
     setSourceDescription(null);
     setShortListEntryId(null);
   };
@@ -823,9 +826,13 @@ function AppInner() {
       setScreen('smallChunker');
       return;
     }
-    // Good (fourStep) mode — fetch another batch of steps with identical
-    // generation style, fresh completion group, and return to the step screen.
+    // Good (fourStep) mode — fetch the next batch of steps, passing the full
+    // history of already-completed steps so Claude generates continuations,
+    // not repeats. Accumulates across multiple keep-going presses.
     if (selectedMode === 'fourStep') {
+      // Snapshot completed steps (current batch) before resetting state.
+      const allCompleted = [...completedFourSteps, ...steps];
+      setCompletedFourSteps(allCompleted);
       setStepIdx(0);
       setMomentumGained(0);
       setStepOverrides({});
@@ -842,7 +849,13 @@ function AppInner() {
           const res = await apiFetch('/api/generate-steps', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ mission, ...(sourceDescription ? { description: sourceDescription } : {}) }),
+            body: JSON.stringify({
+              mission,
+              ...(sourceDescription ? { description: sourceDescription } : {}),
+              ...(allCompleted.length > 0 ? {
+                previousSteps: allCompleted.map(s => ({ title: s.title, hint: s.hint || '' })),
+              } : {}),
+            }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !Array.isArray(data.steps) || data.steps.length === 0) {
