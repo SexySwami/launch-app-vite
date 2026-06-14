@@ -392,6 +392,24 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                   Edit
                 </button>
 
+                <button onClick={() => setWorkWithMeOpen(true)} style={{
+                  all: 'unset', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '6px 9px', borderRadius: 99,
+                  background: 'rgba(79,227,193,0.08)',
+                  border: `1px solid rgba(79,227,193,0.32)`,
+                  color: T.teal,
+                  fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
+                  textTransform: 'uppercase', fontWeight: 600,
+                  transition: 'all 200ms ease',
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
+                  <svg width="10" height="10" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+                    <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z" fill="currentColor"/>
+                  </svg>
+                  Work With Me
+                </button>
+
                 <button
                   onClick={handleRegen}
                   disabled={regenLoading}
