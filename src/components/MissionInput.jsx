@@ -99,6 +99,7 @@ export function MissionInput({
   const [editingItemId, setEditingItemId] = useState(null);
   const [overlayStartMode, setOverlayStartMode] = useState('edit');
   const [itemOptionsId, setItemOptionsId] = useState(null); // ⋯ button menu
+  const [selectedItemId, setSelectedItemId] = useState(null); // tap-to-select before launch
 
   // Double-tap detection. We delay the single-tap action so a second tap
   // within ~320ms is recognized as a double-tap instead.
@@ -767,10 +768,38 @@ export function MissionInput({
     handleLaunchItem(item.text, { id: item.id, index: idx }, item.description);
   };
 
+  // Double-tap on a row → open the overlay in read-only preview mode
+  // (same overlay as Edit, but starts in view mode so the user can read
+  // the full text and description before deciding to edit).
+  const handleRowDoubleTap = (item) => {
+    if (justEndedDragRef.current) return;
+    setOverlayStartMode('view');
+    setEditingItemId(item.id);
+  };
+
+  // Click dispatcher — distinguishes single tap from double tap. First tap
+  // schedules a delayed single-tap action; a second tap within 320ms cancels
+  // the timer and fires the double-tap action instead.
   const TAP_DOUBLE_INTERVAL = 320;
   const handleRowClick = (item) => {
     if (justEndedDragRef.current) return;
-    handleRowTap(item);
+    const now = Date.now();
+    const last = lastTapRef.current;
+    if (last.id === item.id && (now - last.time) < TAP_DOUBLE_INTERVAL) {
+      if (tapTimerRef.current) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+      }
+      lastTapRef.current = { time: 0, id: null };
+      handleRowDoubleTap(item);
+      return;
+    }
+    lastTapRef.current = { time: now, id: item.id };
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    tapTimerRef.current = setTimeout(() => {
+      tapTimerRef.current = null;
+      handleRowTap(item);
+    }, TAP_DOUBLE_INTERVAL);
   };
 
   // Three-dot menu Edit → open the overlay in editable mode.
