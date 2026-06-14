@@ -47,7 +47,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   const [overrideVideo, setOverrideVideo] = useState(null); // { ...videoObj, startSec } for resume
   const reqIdRef = useRef(0);
   const poolRef = useRef(null); // pool `order` belongs to; persists across opens
-  const iframeLoadTimeRef = useRef(null); // wall-clock time when current iframe loaded
+  const videoDisplayedAtRef = useRef(null); // wall-clock time when current video started displaying
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
@@ -57,7 +57,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   // history is preserved until the pool is exhausted.
   useEffect(() => {
     if (!open) {
-      iframeLoadTimeRef.current = null;
+      videoDisplayedAtRef.current = null;
       setLoading(true); // arm loading for next open; keep order/pos/pool intact
       setOverrideVideo(null);
       return;
@@ -123,6 +123,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         }
       } catch {}
 
+      videoDisplayedAtRef.current = Date.now();
       setLoading(false);
     };
     run();
@@ -135,8 +136,8 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   const startSec = overrideVideo ? overrideVideo.startSec : (video?.start || 0);
 
   const handleClose = () => {
-    if (video && iframeLoadTimeRef.current) {
-      const elapsed = Math.floor((Date.now() - iframeLoadTimeRef.current) / 1000);
+    if (video && videoDisplayedAtRef.current) {
+      const elapsed = Math.floor((Date.now() - videoDisplayedAtRef.current) / 1000);
       try {
         localStorage.setItem(RESUME_KEY, JSON.stringify({
           videoId: video.video_id,
@@ -149,6 +150,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const goNext = () => {
     setOverrideVideo(null);
+    videoDisplayedAtRef.current = Date.now();
     if (!multiple) return;
     if (pos + 1 >= order.length) {
       // Completed a full pass — reshuffle, avoiding an immediate repeat.
@@ -166,6 +168,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const goPrev = () => {
     setOverrideVideo(null);
+    videoDisplayedAtRef.current = Date.now();
     if (!multiple) return;
     setPos(pos - 1 < 0 ? order.length - 1 : pos - 1);
   };
@@ -307,7 +310,6 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
                 frameBorder="0"
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
-                onLoad={() => { iframeLoadTimeRef.current = Date.now(); }}
                 style={{ position: 'absolute', inset: 0, border: 'none' }}
               />
             ) : (
