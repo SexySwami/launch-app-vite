@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import VIDEOS from '../data/workWithMeVideos.json';
@@ -47,42 +48,36 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   const [overrideVideo, setOverrideVideo] = useState(null); // { ...videoObj, startSec } for resume
   const reqIdRef = useRef(0);
   const poolRef = useRef(null); // pool `order` belongs to; persists across opens
-  const iframeRef = useRef(null);          // ref to the YouTube iframe element
-  const playStartedAtRef = useRef(null);   // wall-clock ms when the last play segment began (null = not playing)
-  const accumulatedSecRef = useRef(0);     // total confirmed play-seconds for the current video
-  const videoDisplayedAtRef = useRef(null);// fallback: wall-clock when loading ended (used if YT events never arrive)
+  const iframeRef = useRef(null);    // ref to the YouTube iframe element
+  const currentTimeRef = useRef(0); // last confirmed YouTube playhead position in seconds
 
-  // Reset play-time tracking when switching to a new video.
-  const resetPlayTracking = () => {
-    accumulatedSecRef.current = 0;
-    playStartedAtRef.current = null;
-  };
-
-  // Listen for YouTube IFrame API postMessage events (state 1 = playing, 2 = paused, etc.).
-  // We only count seconds the video is literally playing — this avoids the "dead time before
-  // the user taps play on iOS" problem that made the wall-clock approach wildly inaccurate.
-  // Filter by origin instead of event.source — cross-origin WindowProxy comparisons silently
-  // fail on many browsers, so source-checking caused all YouTube events to be dropped.
+  // Receive infoDelivery messages that carry the actual currentTime from YouTube.
+  // This is ground-truth — it reflects manual seeks, skips, and pauses automatically.
   useEffect(() => {
     const onMsg = (e) => {
       if (e.origin !== 'https://www.youtube.com') return;
       let d;
       try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
-      if (d?.event !== 'onStateChange') return;
-      if (d.info === 1) {
-        // Playing — start a new segment if not already tracking.
-        if (playStartedAtRef.current === null) playStartedAtRef.current = Date.now();
-      } else {
-        // Paused / ended / buffering — close off the current segment.
-        if (playStartedAtRef.current !== null) {
-          accumulatedSecRef.current += (Date.now() - playStartedAtRef.current) / 1000;
-          playStartedAtRef.current = null;
-        }
+      if (d?.event === 'infoDelivery' && typeof d?.info?.currentTime === 'number') {
+        currentTimeRef.current = d.info.currentTime;
       }
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
   }, []);
+
+  // Poll YouTube for the actual playhead position every 5 s while the modal is open.
+  // YouTube responds to the 'getCurrentTime' command with an infoDelivery message.
+  // Polling means seeks, skips, and pauses are all captured without any state math.
+  useEffect(() => {
+    if (!open) return;
+    const poll = () => iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }),
+      'https://www.youtube.com'
+    );
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, [open]);
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
@@ -92,8 +87,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   // history is preserved until the pool is exhausted.
   useEffect(() => {
     if (!open) {
-      videoDisplayedAtRef.current = null;
-      resetPlayTracking();
+      currentTimeRef.current = 0;
       setLoading(true); // arm loading for next open; keep order/pos/pool intact
       setOverrideVideo(null);
       return;
@@ -109,7 +103,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
       let category = 'general';
       try {
         if (!canCallAPI) throw new Error('__skip_api__');
-        const res = await fetch('/api/classify-task', {
+        const res = await apiFetch('/api/classify-task', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -159,8 +153,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         }
       } catch {}
 
-      resetPlayTracking();
-      videoDisplayedAtRef.current = Date.now(); // fallback if YT events never arrive
+      currentTimeRef.current = 0; // reset for new video
       setLoading(false);
     };
     run();
@@ -174,21 +167,14 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const handleClose = () => {
     if (video) {
-      // Finalize any in-progress play segment.
-      if (playStartedAtRef.current !== null) {
-        accumulatedSecRef.current += (Date.now() - playStartedAtRef.current) / 1000;
-        playStartedAtRef.current = null;
-      }
-      const playedSec = accumulatedSecRef.current;
-      // Fall back to wall-clock elapsed if YouTube events never fired (e.g. desktop autoplay).
-      const fallbackSec = videoDisplayedAtRef.current
-        ? (Date.now() - videoDisplayedAtRef.current) / 1000
-        : 0;
-      const elapsed = Math.floor(playedSec > 0 ? playedSec : fallbackSec);
+      // Use the last polled YouTube playhead position. If polling hasn't returned
+      // anything yet (currentTime === 0), fall back to the video's start offset so
+      // at minimum we resume at the right point in the video (not absolute zero).
+      const timestamp = Math.floor(currentTimeRef.current > 0 ? currentTimeRef.current : startSec);
       try {
         localStorage.setItem(RESUME_KEY, JSON.stringify({
           videoId: video.video_id,
-          timestamp: startSec + elapsed,
+          timestamp,
           mission: (mission || '').trim(),
         }));
       } catch {}
@@ -198,8 +184,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const goNext = () => {
     setOverrideVideo(null);
-    resetPlayTracking();
-    videoDisplayedAtRef.current = Date.now();
+    currentTimeRef.current = 0;
     if (!multiple) return;
     if (pos + 1 >= order.length) {
       // Completed a full pass — reshuffle, avoiding an immediate repeat.
@@ -217,8 +202,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const goPrev = () => {
     setOverrideVideo(null);
-    resetPlayTracking();
-    videoDisplayedAtRef.current = Date.now();
+    currentTimeRef.current = 0;
     if (!multiple) return;
     setPos(pos - 1 < 0 ? order.length - 1 : pos - 1);
   };
