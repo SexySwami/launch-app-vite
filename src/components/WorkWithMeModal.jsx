@@ -47,7 +47,40 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   const [overrideVideo, setOverrideVideo] = useState(null); // { ...videoObj, startSec } for resume
   const reqIdRef = useRef(0);
   const poolRef = useRef(null); // pool `order` belongs to; persists across opens
-  const videoDisplayedAtRef = useRef(null); // wall-clock time when current video started displaying
+  const iframeRef = useRef(null);          // ref to the YouTube iframe element
+  const playStartedAtRef = useRef(null);   // wall-clock ms when the last play segment began (null = not playing)
+  const accumulatedSecRef = useRef(0);     // total confirmed play-seconds for the current video
+  const videoDisplayedAtRef = useRef(null);// fallback: wall-clock when loading ended (used if YT events never arrive)
+
+  // Reset play-time tracking when switching to a new video.
+  const resetPlayTracking = () => {
+    accumulatedSecRef.current = 0;
+    playStartedAtRef.current = null;
+  };
+
+  // Listen for YouTube IFrame API postMessage events (state 1 = playing, 2 = paused, etc.).
+  // We only count seconds the video is literally playing — this avoids the "dead time before
+  // the user taps play on iOS" problem that made the wall-clock approach wildly inaccurate.
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
+      let d;
+      try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+      if (d?.event !== 'onStateChange') return;
+      if (d.info === 1) {
+        // Playing — start a new segment if not already tracking.
+        if (playStartedAtRef.current === null) playStartedAtRef.current = Date.now();
+      } else {
+        // Paused / ended / buffering — close off the current segment.
+        if (playStartedAtRef.current !== null) {
+          accumulatedSecRef.current += (Date.now() - playStartedAtRef.current) / 1000;
+          playStartedAtRef.current = null;
+        }
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
 
   const canCallAPI = typeof window !== 'undefined'
     && /^https?:$/.test(window.location?.protocol || '');
@@ -58,6 +91,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   useEffect(() => {
     if (!open) {
       videoDisplayedAtRef.current = null;
+      resetPlayTracking();
       setLoading(true); // arm loading for next open; keep order/pos/pool intact
       setOverrideVideo(null);
       return;
@@ -123,7 +157,8 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         }
       } catch {}
 
-      videoDisplayedAtRef.current = Date.now();
+      resetPlayTracking();
+      videoDisplayedAtRef.current = Date.now(); // fallback if YT events never arrive
       setLoading(false);
     };
     run();
@@ -136,8 +171,18 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   const startSec = overrideVideo ? overrideVideo.startSec : (video?.start || 0);
 
   const handleClose = () => {
-    if (video && videoDisplayedAtRef.current) {
-      const elapsed = Math.floor((Date.now() - videoDisplayedAtRef.current) / 1000);
+    if (video) {
+      // Finalize any in-progress play segment.
+      if (playStartedAtRef.current !== null) {
+        accumulatedSecRef.current += (Date.now() - playStartedAtRef.current) / 1000;
+        playStartedAtRef.current = null;
+      }
+      const playedSec = accumulatedSecRef.current;
+      // Fall back to wall-clock elapsed if YouTube events never fired (e.g. desktop autoplay).
+      const fallbackSec = videoDisplayedAtRef.current
+        ? (Date.now() - videoDisplayedAtRef.current) / 1000
+        : 0;
+      const elapsed = Math.floor(playedSec > 0 ? playedSec : fallbackSec);
       try {
         localStorage.setItem(RESUME_KEY, JSON.stringify({
           videoId: video.video_id,
@@ -151,6 +196,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const goNext = () => {
     setOverrideVideo(null);
+    resetPlayTracking();
     videoDisplayedAtRef.current = Date.now();
     if (!multiple) return;
     if (pos + 1 >= order.length) {
@@ -169,6 +215,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
 
   const goPrev = () => {
     setOverrideVideo(null);
+    resetPlayTracking();
     videoDisplayedAtRef.current = Date.now();
     if (!multiple) return;
     setPos(pos - 1 < 0 ? order.length - 1 : pos - 1);
@@ -305,8 +352,9 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
             ) : video ? (
               <iframe
                 key={video.video_id}
+                ref={iframeRef}
                 width="100%" height="100%"
-                src={`https://www.youtube.com/embed/${video.video_id}?rel=0${startSec ? `&start=${startSec}` : ''}`}
+                src={`https://www.youtube.com/embed/${video.video_id}?rel=0&enablejsapi=1${startSec ? `&start=${startSec}` : ''}`}
                 title={video.title}
                 frameBorder="0"
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
