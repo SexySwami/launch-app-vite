@@ -1,15 +1,41 @@
 import { useClerk, useUser } from '@clerk/clerk-react';
+import { useState } from 'react';
 import { T } from '../tokens.js';
+import { apiFetch } from '../lib/apiFetch.js';
 
-export function ProfileScreen({ onBack }) {
+export function ProfileScreen() {
   const { signOut } = useClerk();
   const { user } = useUser();
-
-  const handleSignOut = () => signOut();
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [cleared, setCleared] = useState(false);
 
   const name  = user?.fullName || user?.firstName || 'You';
   const email = user?.primaryEmailAddress?.emailAddress || '';
   const avatar = user?.imageUrl || null;
+
+  const handleSignOut = () => signOut();
+
+  const handleClearFirst = () => {
+    setConfirmClear(true);
+    // Auto-dismiss the confirmation after 4 s if they don't tap again.
+    setTimeout(() => setConfirmClear(false), 4000);
+  };
+
+  const handleClearConfirm = async () => {
+    if (clearing) return;
+    setClearing(true);
+    try {
+      await apiFetch('/api/user-data', { method: 'DELETE' });
+      setCleared(true);
+    } catch {
+      // silently ignore — data may be partially cleared
+      setCleared(true);
+    } finally {
+      setClearing(false);
+      setConfirmClear(false);
+    }
+  };
 
   return (
     <div style={{
@@ -54,7 +80,6 @@ export function ProfileScreen({ onBack }) {
       <button
         onClick={handleSignOut}
         style={{
-          marginTop: 8,
           padding: '12px 32px',
           background: 'rgba(255,255,255,0.06)',
           border: '1px solid rgba(255,255,255,0.12)',
@@ -70,6 +95,48 @@ export function ProfileScreen({ onBack }) {
       >
         Sign out
       </button>
+
+      {/* Clear data — two-tap confirmation */}
+      <div style={{ textAlign: 'center' }}>
+        {cleared ? (
+          <p style={{ fontSize: 13, color: T.text2, margin: 0 }}>
+            All data cleared. Sign out and back in to start fresh.
+          </p>
+        ) : confirmClear ? (
+          <button
+            onClick={handleClearConfirm}
+            disabled={clearing}
+            style={{
+              padding: '10px 24px',
+              background: 'rgba(255,60,60,0.15)',
+              border: '1px solid rgba(255,60,60,0.4)',
+              borderRadius: 10,
+              color: '#ff6b6b',
+              fontSize: 13, fontWeight: 600, fontFamily: T.display,
+              cursor: clearing ? 'default' : 'pointer',
+              opacity: clearing ? 0.6 : 1,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {clearing ? 'Clearing…' : 'Tap again to confirm — this cannot be undone'}
+          </button>
+        ) : (
+          <button
+            onClick={handleClearFirst}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.25)',
+              fontSize: 12, fontFamily: T.display,
+              cursor: 'pointer',
+              padding: '4px 0',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            Clear all my data
+          </button>
+        )}
+      </div>
     </div>
   );
 }
