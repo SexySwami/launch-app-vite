@@ -1,4 +1,3 @@
-import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import VIDEOS from '../data/workWithMeVideos.json';
@@ -103,7 +102,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
       let category = 'general';
       try {
         if (!canCallAPI) throw new Error('__skip_api__');
-        const res = await apiFetch('/api/classify-task', {
+        const res = await fetch('/api/classify-task', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
