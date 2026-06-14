@@ -282,7 +282,7 @@ export function Reward({ onNext }) {
           color: T.text, margin: '4px 0 0', textAlign: 'center', lineHeight: 1.0,
           textShadow: `0 0 30px ${hexToRgba(A, 0.32)}`,
         }}>
-          Mission complete.
+          Task complete.
         </h1>
         <p style={{
           fontFamily: T.display, fontSize: 16, fontWeight: 400, color: T.text2,
