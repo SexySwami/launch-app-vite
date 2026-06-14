@@ -47,6 +47,18 @@ const DEFAULT_FOLDER_ID = 'work';
 export default function App() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   useEffect(() => { registerTokenGetter(getToken); }, [getToken]);
+
+  // Dismiss the native HTML boot loader (visible before JS runs) once Clerk
+  // has resolved auth state. Fade it out so the transition is seamless.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const el = document.getElementById('app-boot-loader');
+    if (!el) return;
+    el.classList.add('hide');
+    const id = setTimeout(() => el.remove(), 280);
+    return () => clearTimeout(id);
+  }, [isLoaded]);
+
   if (!isLoaded) return null;
   if (!isSignedIn) return <SignIn />;
   return <AppInner />;

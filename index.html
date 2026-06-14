@@ -13,8 +13,36 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+
+<!-- Immediate dark background + loading dots — visible before any JS/CSS loads.
+     React removes #app-boot-loader once Clerk has fully initialized. -->
+<style>
+  html, body { margin: 0; padding: 0; background: #05070C; }
+  #app-boot-loader {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: #05070C;
+    transition: opacity 260ms ease;
+  }
+  #app-boot-loader.hide { opacity: 0; pointer-events: none; }
+  #app-boot-loader span {
+    display: block; width: 8px; height: 8px; border-radius: 50%;
+    background: #a876ff;
+    box-shadow: 0 0 10px #a876ff;
+    animation: bootPulse 1.2s ease-in-out infinite;
+  }
+  #app-boot-loader span:nth-child(2) { animation-delay: 0.18s; }
+  #app-boot-loader span:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes bootPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.45); opacity: 0.55; }
+  }
+</style>
 </head>
 <body>
+<div id="app-boot-loader" aria-hidden="true">
+  <span></span><span></span><span></span>
+</div>
 <div id="root"></div>
 <script type="module" src="/src/main.jsx"></script>
 </body>
