@@ -809,6 +809,42 @@ export default function App() {
       setScreen('smallChunker');
       return;
     }
+    // Good (fourStep) mode — fetch another batch of steps with identical
+    // generation style, fresh completion group, and return to the step screen.
+    if (selectedMode === 'fourStep') {
+      setStepIdx(0);
+      setMomentumGained(0);
+      setStepOverrides({});
+      setLoggedSteps(new Set());
+      setSteps([]);
+      setStepsLoading(true);
+      setStepsError(null);
+      setCompletionGroupId(typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `c_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      (async () => {
+        try {
+          if (!canCallAPI) throw new Error('__skip_api__');
+          const res = await fetch('/api/generate-steps', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ mission, ...(sourceDescription ? { description: sourceDescription } : {}) }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !Array.isArray(data.steps) || data.steps.length === 0) {
+            throw new Error(data.error || `Generator returned ${res.status}`);
+          }
+          setSteps(data.steps);
+        } catch (err) {
+          setSteps(generateSteps(mission));
+          if (err.message !== '__skip_api__') setStepsError(err.message || 'Could not generate steps');
+        } finally {
+          setStepsLoading(false);
+        }
+      })();
+      setScreen('step');
+      return;
+    }
     resetMissionState();
     const target = lastLaunchedFolderIdRef.current;
     if (target) openFolder(target);
