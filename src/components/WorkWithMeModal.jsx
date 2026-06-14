@@ -61,9 +61,11 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
   // Listen for YouTube IFrame API postMessage events (state 1 = playing, 2 = paused, etc.).
   // We only count seconds the video is literally playing — this avoids the "dead time before
   // the user taps play on iOS" problem that made the wall-clock approach wildly inaccurate.
+  // Filter by origin instead of event.source — cross-origin WindowProxy comparisons silently
+  // fail on many browsers, so source-checking caused all YouTube events to be dropped.
   useEffect(() => {
     const onMsg = (e) => {
-      if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
+      if (e.origin !== 'https://www.youtube.com') return;
       let d;
       try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
       if (d?.event !== 'onStateChange') return;
@@ -354,11 +356,20 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
                 key={video.video_id}
                 ref={iframeRef}
                 width="100%" height="100%"
-                src={`https://www.youtube.com/embed/${video.video_id}?rel=0&enablejsapi=1${startSec ? `&start=${startSec}` : ''}`}
+                src={`https://www.youtube.com/embed/${video.video_id}?rel=0&enablejsapi=1&autoplay=1${startSec ? `&start=${startSec}` : ''}`}
                 title={video.title}
                 frameBorder="0"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
+                onLoad={() => {
+                  // Tell YouTube to start emitting postMessage events. Without this
+                  // "listening" command, YouTube never sends onStateChange events
+                  // even with enablejsapi=1 in the URL.
+                  iframeRef.current?.contentWindow?.postMessage(
+                    JSON.stringify({ event: 'listening', id: 'wwm-player' }),
+                    'https://www.youtube.com'
+                  );
+                }}
                 style={{ position: 'absolute', inset: 0, border: 'none' }}
               />
             ) : (
