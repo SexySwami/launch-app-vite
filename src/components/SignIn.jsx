@@ -53,7 +53,7 @@ export function SignIn() {
           fontSize: 28, fontWeight: 700, color: T.text,
           letterSpacing: '-0.03em', margin: 0,
         }}>
-          Launch
+          Help Me Start
         </h1>
         <p style={{
           fontSize: 14, color: T.text2, margin: '8px 0 0',
