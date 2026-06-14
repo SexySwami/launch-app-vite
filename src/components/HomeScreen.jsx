@@ -649,8 +649,8 @@ export function HomeScreen({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const trimmed = mission.trim();
-  const reactorState = trimmed.length === 0 ? 'idle' : trimmed.length < 12 ? 'warming' : 'armed';
-  const intensity = Math.min(1, trimmed.length / 18);
+  const reactorState = trimmed.length === 0 ? 'idle' : 'armed';
+  const intensity = trimmed.length === 0 ? 0 : Math.max(0.7, Math.min(1, trimmed.length / 18));
   const gridAlpha = 0.03 + (0.25 + intensity * 0.75) * 0.2;
   const gridDur = reactorState === 'armed' ? 2.6 : reactorState === 'warming' ? 3.4 : 4.6;
 
