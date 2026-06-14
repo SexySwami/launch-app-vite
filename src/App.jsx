@@ -74,6 +74,7 @@ function AppInner() {
   const [stepOverrides, setStepOverrides] = useState({});
   const [steps, setSteps] = useState([]);
   const [completedFourSteps, setCompletedFourSteps] = useState([]); // accumulates across keep-going batches
+  const hasFinalizedRef = useRef(false); // prevents duplicate finalize calls across keep-going batches
   const [stepsLoading, setStepsLoading] = useState(false);
   const [stepsError, setStepsError] = useState(null);
   const [cascadeLoading, setCascadeLoading] = useState(false);
@@ -526,6 +527,8 @@ function AppInner() {
 
   const finalizeCompletion = async () => {
     if (!completionGroupId) return;
+    if (hasFinalizedRef.current) return; // already finalized for this mission — skip duplicates
+    hasFinalizedRef.current = true;
     if (canCallAPI) {
       try {
         let wasOnShortList = false;
@@ -638,6 +641,7 @@ function AppInner() {
     setStepOverrides({});
     setSteps([]);
     setCompletedFourSteps([]);
+    hasFinalizedRef.current = false;
     setStepsError(null);
     setStepsLoading(true);
     setCascadeLoading(false);
