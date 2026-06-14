@@ -299,7 +299,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
         }}>
           <div style={{
             position: 'relative', width: '100%', aspectRatio: '16 / 9',
-            borderRadius: 14, overflow: 'hidden',
+            borderRadius: 14,
             background: 'rgba(0,0,0,0.5)',
             border: `1px solid ${T.hairlineSoft}`,
             boxShadow: `0 12px 40px rgba(0,0,0,0.5)`,
@@ -353,7 +353,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
                     'https://www.youtube.com'
                   );
                 }}
-                style={{ position: 'absolute', inset: 0, border: 'none' }}
+                style={{ position: 'absolute', inset: 0, border: 'none', borderRadius: 14 }}
               />
             ) : (
               <div style={{
