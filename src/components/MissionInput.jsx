@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { Fragment, useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
@@ -248,7 +249,7 @@ export function MissionInput({
     await Promise.all(
       Array.from(byFolder.keys()).map(async (sfid) => {
         try {
-          const r = await fetch(`/api/queue?folder=${encodeURIComponent(sfid)}`, { cache: 'no-store' });
+          const r = await apiFetch(`/api/queue?folder=${encodeURIComponent(sfid)}`, { cache: 'no-store' });
           const d = await r.json().catch(() => ({}));
           for (const i of (Array.isArray(d.items) ? d.items : [])) {
             if (i.id) aliveIds.add(i.id);
@@ -262,7 +263,7 @@ export function MissionInput({
     const cleaned = loadedItems.filter(i => !i.sourceItemId || aliveIds.has(i.sourceItemId));
     if (cleaned.length < loadedItems.length) {
       try {
-        await fetch(queueUrl, {
+        await apiFetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: cleaned }),
@@ -276,7 +277,7 @@ export function MissionInput({
     setItemOptionsId(null);
     if (!canCallAPI) return;
     try {
-      const res = await fetch('/api/short-list', {
+      const res = await apiFetch('/api/short-list', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ itemId: item.id, sourceFolderId: folderId, text: item.text }),
@@ -300,7 +301,7 @@ export function MissionInput({
     }
     setItemsError(null);
     try {
-      const res = await fetch(queueUrl, { cache: 'no-store' });
+      const res = await apiFetch(queueUrl, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       let loaded = Array.isArray(data.items) ? data.items : [];
@@ -346,7 +347,7 @@ export function MissionInput({
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch('/api/queue?folder=short-list', { cache: 'no-store' });
+        const res = await apiFetch('/api/queue?folder=short-list', { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         const entries = Array.isArray(data.items) ? data.items : [];
@@ -422,7 +423,7 @@ export function MissionInput({
 
       // Multi-line OR long block → ask Claude to split + rewrite.
       if (trimmed.includes('\n') || trimmed.length > CHECKLIST_THRESHOLD) {
-        const parseRes = await fetch('/api/parse-tasks', {
+        const parseRes = await apiFetch('/api/parse-tasks', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ text: trimmed }),
@@ -438,7 +439,7 @@ export function MissionInput({
       if (texts.length > 1) {
         let folderName = 'New Tasks';
         try {
-          const nameRes = await fetch('/api/name-folder', {
+          const nameRes = await apiFetch('/api/name-folder', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ tasks: texts }),
@@ -468,7 +469,7 @@ export function MissionInput({
         setItems(updatedItems);
         highlightAddedItems([folder, ...children]);
 
-        const putRes = await fetch(queueUrl, {
+        const putRes = await apiFetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: updatedItems }),
@@ -480,7 +481,7 @@ export function MissionInput({
       }
 
       const url = append ? queueAppendUrl : queueUrl;
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text: texts[0] }),
@@ -527,7 +528,7 @@ export function MissionInput({
     setNewItemDraft('');
     if (canCallAPI) {
       try {
-        const res = await fetch(queueUrl, {
+        const res = await apiFetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: next }),
@@ -568,7 +569,7 @@ export function MissionInput({
       setItemOptionsId(null);
       showShortListToast('Removed from Short List');
       if (canCallAPI) {
-        try { await fetch(queueIdUrl(id), { method: 'DELETE' }); } catch {}
+        try { await apiFetch(queueIdUrl(id), { method: 'DELETE' }); } catch {}
       }
       return;
     }
@@ -616,12 +617,12 @@ export function MissionInput({
       // we PUT the whole items array (the child isn't visible to the by-id
       // delete on the server side).
       const res = parentFolderId
-        ? await fetch(queueUrl, {
+        ? await apiFetch(queueUrl, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ items: next }),
           })
-        : await fetch(queueIdUrl(id), { method: 'DELETE' });
+        : await apiFetch(queueIdUrl(id), { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       if (Array.isArray(data.items)) setItems(data.items);
@@ -630,7 +631,7 @@ export function MissionInput({
       if (shortListMap.has(id)) {
         const slEntryId = shortListMap.get(id);
         try {
-          await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slEntryId)}`, { method: 'DELETE' });
+          await apiFetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slEntryId)}`, { method: 'DELETE' });
           setShortListMap(prev => { const next = new Map(prev); next.delete(id); return next; });
         } catch {}
       }
@@ -668,7 +669,7 @@ export function MissionInput({
 
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: restored }),
@@ -849,7 +850,7 @@ export function MissionInput({
 
     if (!canCallAPI) { setSavingItem(false); return; }
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: updated }),
@@ -864,7 +865,7 @@ export function MissionInput({
         if (editedEntry?.sourceItemId && editedEntry?.sourceFolderId) {
           try {
             const srcUrl = `/api/queue?folder=${encodeURIComponent(editedEntry.sourceFolderId)}`;
-            const srcRes = await fetch(srcUrl, { cache: 'no-store' });
+            const srcRes = await apiFetch(srcUrl, { cache: 'no-store' });
             const srcData = await srcRes.json().catch(() => ({}));
             if (srcRes.ok && Array.isArray(srcData.items)) {
               const sid = editedEntry.sourceItemId;
@@ -876,7 +877,7 @@ export function MissionInput({
                 }
                 return i;
               });
-              await fetch(srcUrl, {
+              await apiFetch(srcUrl, {
                 method: 'PUT',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ items: updSrc }),
@@ -953,7 +954,7 @@ export function MissionInput({
     setItemsError(null);
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: newOrder }),
@@ -1098,7 +1099,7 @@ export function MissionInput({
       setItems(next);
       if (canCallAPI) {
         try {
-          const res = await fetch(queueUrl, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: next }) });
+          const res = await apiFetch(queueUrl, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: next }) });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
           if (Array.isArray(data.items)) setItems(data.items);
@@ -1148,7 +1149,7 @@ export function MissionInput({
 
     if (canCallAPI) {
       try {
-        const res = await fetch(queueUrl, {
+        const res = await apiFetch(queueUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: next }),
@@ -1172,7 +1173,7 @@ export function MissionInput({
     setNamingFolderId(null);
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: updated }),
@@ -1194,7 +1195,7 @@ export function MissionInput({
 
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1274,7 +1275,7 @@ export function MissionInput({
     // Finalize to the completed steps screen (no log-step → empty dropdown).
     const completionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     try {
-      await fetch('/api/completed?action=finalize', {
+      await apiFetch('/api/completed?action=finalize', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -1291,12 +1292,12 @@ export function MissionInput({
     // Remove from the queue.
     try {
       const res = parentFolderId
-        ? await fetch(queueUrl, {
+        ? await apiFetch(queueUrl, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ items: next }),
           })
-        : await fetch(queueIdUrl(id), { method: 'DELETE' });
+        : await apiFetch(queueIdUrl(id), { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.items)) setItems(data.items);
     } catch {}
@@ -1321,7 +1322,7 @@ export function MissionInput({
     if (!canCallAPI) return;
 
     // 1) Remove the reference from the Short List queue.
-    try { await fetch(queueIdUrl(entryId), { method: 'DELETE' }); } catch {}
+    try { await apiFetch(queueIdUrl(entryId), { method: 'DELETE' }); } catch {}
 
     // 2) Complete the source item in its origin folder.
     const { sourceItemId, sourceFolderId, text: cachedText, description: cachedDesc } = entry;
@@ -1334,7 +1335,7 @@ export function MissionInput({
       const completionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const idx = items.findIndex(i => i.id === entryId);
       try {
-        await fetch('/api/completed?action=finalize', {
+        await apiFetch('/api/completed?action=finalize', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -1351,7 +1352,7 @@ export function MissionInput({
     }
     const srcUrl = `/api/queue?folder=${encodeURIComponent(sourceFolderId)}`;
     try {
-      const res = await fetch(srcUrl, { cache: 'no-store' });
+      const res = await apiFetch(srcUrl, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       const srcItems = Array.isArray(data.items) ? data.items : [];
 
@@ -1371,7 +1372,7 @@ export function MissionInput({
       const completedText = sourceItem?.text ?? cachedText;
       const completedDesc = sourceItem?.description ?? cachedDesc;
       try {
-        await fetch('/api/completed?action=finalize', {
+        await apiFetch('/api/completed?action=finalize', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -1393,7 +1394,7 @@ export function MissionInput({
               ? { ...i, children: (i.children || []).filter(c => c.id !== sourceItemId) }
               : i)
           : srcItems.filter(i => i.id !== sourceItemId);
-        await fetch(srcUrl, {
+        await apiFetch(srcUrl, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ items: nextSrc }),
@@ -1412,7 +1413,7 @@ export function MissionInput({
     setItems(next);
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1462,7 +1463,7 @@ export function MissionInput({
     setItems(next);
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),
@@ -1634,7 +1635,7 @@ export function MissionInput({
 
     if (!canCallAPI) return;
     try {
-      const res = await fetch(queueUrl, {
+      const res = await apiFetch(queueUrl, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ items: next }),

@@ -1,5 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { T } from './tokens.js';
+import { SignIn } from './components/SignIn.jsx';
+import { registerTokenGetter } from './lib/authToken.js';
+import { apiFetch } from './lib/apiFetch.js';
 import { MissionInput } from './components/MissionInput.jsx';
 import { Countdown } from './components/Countdown.jsx';
 import { ExecutionStep } from './components/ExecutionStep.jsx';
@@ -38,7 +42,18 @@ const BASE_FOLDERS = [
 const CUSTOM_ACCENT_CYCLE = [T.blue, T.rose, T.teal, T.amber, T.cyan, T.purple];
 const DEFAULT_FOLDER_ID = 'work';
 
+// Thin auth wrapper — handles Clerk loading + sign-in gate, then renders
+// AppInner. Keeping it separate means AppInner's hooks are never called
+// conditionally, which satisfies React's Rules of Hooks.
 export default function App() {
+  const { isSignedIn, isLoaded, getToken } = useAuth();
+  useEffect(() => { registerTokenGetter(getToken); }, [getToken]);
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <SignIn />;
+  return <AppInner />;
+}
+
+function AppInner() {
   const [screen, setScreen] = useState('home');
   const [mission, setMission] = useState('');
   const [stepIdx, setStepIdx] = useState(0);
@@ -213,7 +228,7 @@ export default function App() {
     const doReset = async () => {
       try {
         const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-        const res = await fetch(`/api/dailies-reset?localDate=${encodeURIComponent(localDate)}`);
+        const res = await apiFetch(`/api/dailies-reset?localDate=${encodeURIComponent(localDate)}`);
         const data = await res.json().catch(() => ({}));
         if (data?.reset) setDailiesResetKey(k => k + 1);
       } catch {}
@@ -329,7 +344,7 @@ export default function App() {
     setCascadeFromIdx(stepIdx);
     setCascadeLoading(true);
     try {
-      const res = await fetch('/api/regenerate-remaining', {
+      const res = await apiFetch('/api/regenerate-remaining', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -373,7 +388,7 @@ export default function App() {
     setMicroCascadeFromBatchPos(batchPos);
     setMicroCascadeLoading(true);
     try {
-      const res = await fetch('/api/regenerate-remaining', {
+      const res = await apiFetch('/api/regenerate-remaining', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -412,7 +427,7 @@ export default function App() {
     setDeepCascadeFromBatchPos(batchPos);
     setDeepCascadeLoading(true);
     try {
-      const res = await fetch('/api/regenerate-remaining', {
+      const res = await apiFetch('/api/regenerate-remaining', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -470,7 +485,7 @@ export default function App() {
 
     if (!canCallAPI) return true;
     try {
-      await fetch('/api/completed?action=log-step', {
+      await apiFetch('/api/completed?action=log-step', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -507,7 +522,7 @@ export default function App() {
         // text match (covers items typed directly into the Short List).
         if (sourceFolderId !== 'short-list') {
           try {
-            const slRes = await fetch('/api/queue?folder=short-list', { cache: 'no-store' });
+            const slRes = await apiFetch('/api/queue?folder=short-list', { cache: 'no-store' });
             const slData = await slRes.json().catch(() => ({}));
             const slFlat = [];
             for (const item of Array.isArray(slData?.items) ? slData.items : []) {
@@ -524,7 +539,7 @@ export default function App() {
             );
             if (slMatch) {
               wasOnShortList = true;
-              await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slMatch.id)}`, { method: 'DELETE' });
+              await apiFetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slMatch.id)}`, { method: 'DELETE' });
             }
           } catch {}
         }
@@ -533,14 +548,14 @@ export default function App() {
         // time — delete the reference and flag wasOnShortList.
         if (shortListEntryId) {
           try {
-            await fetch(`/api/queue?folder=short-list&id=${encodeURIComponent(shortListEntryId)}`, { method: 'DELETE' });
+            await apiFetch(`/api/queue?folder=short-list&id=${encodeURIComponent(shortListEntryId)}`, { method: 'DELETE' });
             wasOnShortList = true;
           } catch {}
         }
 
         // NOTE: the API also performs server-authoritative Short List detection
         // on finalize, so restore works even if the client checks above miss.
-        await fetch('/api/completed?action=finalize', {
+        await apiFetch('/api/completed?action=finalize', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -558,7 +573,7 @@ export default function App() {
         // local items will catch up.
         if (sourceItemId) {
           const folderParam = encodeURIComponent(sourceFolderId || DEFAULT_FOLDER_ID);
-          await fetch(`/api/queue?folder=${folderParam}&id=${encodeURIComponent(sourceItemId)}`, { method: 'DELETE' });
+          await apiFetch(`/api/queue?folder=${folderParam}&id=${encodeURIComponent(sourceItemId)}`, { method: 'DELETE' });
         }
       } catch {}
     }
@@ -637,7 +652,7 @@ export default function App() {
 
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
-      const res = await fetch('/api/generate-steps', {
+      const res = await apiFetch('/api/generate-steps', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ mission: m, ...(description ? { description: description.toString().trim() } : {}) }),
@@ -688,7 +703,7 @@ export default function App() {
     setMicroLoading(true);
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
-      const res = await fetch('/api/generate-micro-steps', {
+      const res = await apiFetch('/api/generate-micro-steps', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -744,7 +759,7 @@ export default function App() {
     setDeepLoading(true);
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
-      const res = await fetch('/api/generate-deep-focus', {
+      const res = await apiFetch('/api/generate-deep-focus', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -825,7 +840,7 @@ export default function App() {
       (async () => {
         try {
           if (!canCallAPI) throw new Error('__skip_api__');
-          const res = await fetch('/api/generate-steps', {
+          const res = await apiFetch('/api/generate-steps', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ mission, ...(sourceDescription ? { description: sourceDescription } : {}) }),

@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { T } from '../tokens.js';
 
@@ -136,7 +137,7 @@ export function EditMicroStepModal({
       try {
         const fd = new FormData();
         fd.append('audio', blob, `audio.${ext}`);
-        const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
+        const res = await apiFetch('/api/transcribe', { method: 'POST', body: fd });
         const data = await res.json().catch(() => ({}));
         if (ref.cancelled) return;
         if (!res.ok) {
@@ -188,7 +189,7 @@ export function EditMicroStepModal({
 
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
-      const res = await fetch('/api/generate-micro-options', {
+      const res = await apiFetch('/api/generate-micro-options', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

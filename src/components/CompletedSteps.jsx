@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/apiFetch.js';
 import { useState, useEffect } from 'react';
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
@@ -22,7 +23,7 @@ export function CompletedSteps({ onBack }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/completed', { cache: 'no-store' });
+        const res = await apiFetch('/api/completed', { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
@@ -61,7 +62,7 @@ export function CompletedSteps({ onBack }) {
     const before = items;
     setItems(prev => prev.filter(i => i.id !== id));
     try {
-      const res = await fetch('/api/completed?action=restore', {
+      const res = await apiFetch('/api/completed?action=restore', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id }),
