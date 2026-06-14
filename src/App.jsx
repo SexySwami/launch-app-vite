@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { T } from './tokens.js';
 import { SignIn } from './components/SignIn.jsx';
+import { Onboarding, ONBOARDING_KEY } from './components/Onboarding.jsx';
 import { registerTokenGetter } from './lib/authToken.js';
 import { apiFetch } from './lib/apiFetch.js';
 import { MissionInput } from './components/MissionInput.jsx';
@@ -48,6 +49,11 @@ export default function App() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   useEffect(() => { registerTokenGetter(getToken); }, [getToken]);
 
+  // Show onboarding once to first-time visitors; skip for returning users.
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return !localStorage.getItem(ONBOARDING_KEY); } catch { return false; }
+  });
+
   // Dismiss the native HTML boot loader (visible before JS runs) once Clerk
   // has resolved auth state. Fade it out so the transition is seamless.
   useEffect(() => {
@@ -60,7 +66,10 @@ export default function App() {
   }, [isLoaded]);
 
   if (!isLoaded) return null;
-  if (!isSignedIn) return <SignIn />;
+  if (!isSignedIn) {
+    if (showOnboarding) return <Onboarding onDone={() => setShowOnboarding(false)} />;
+    return <SignIn />;
+  }
   return <AppInner />;
 }
 
