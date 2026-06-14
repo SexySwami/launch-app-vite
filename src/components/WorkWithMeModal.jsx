@@ -36,6 +36,7 @@ const COMPUTER_CATEGORIES = ['computer_work', 'studying'];
 function poolFor(category) {
   if (category === 'cleaning') return { key: 'cleaning', cats: ['cleaning'] };
   if (category === 'cooking') return { key: 'cooking', cats: ['cooking'] };
+  if (category === 'making_coffee') return { key: 'making_coffee', cats: ['making_coffee'] };
   if (category === 'general') return { key: 'general', cats: ['general'] };
   return { key: 'computer', cats: COMPUTER_CATEGORIES };
 }
