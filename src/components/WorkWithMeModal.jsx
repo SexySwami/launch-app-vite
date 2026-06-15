@@ -35,6 +35,7 @@ const COMPUTER_CATEGORIES = ['computer_work', 'studying', 'computer_use'];
 // pool, which is also the fallback for an unknown/failed classification.
 function poolFor(category) {
   if (category === 'cleaning') return { key: 'cleaning', cats: ['cleaning'] };
+  if (category === 'laundry') return { key: 'laundry', cats: ['laundry'] };
   if (category === 'cooking') return { key: 'cooking', cats: ['cooking'] };
   if (category === 'making_coffee') return { key: 'making_coffee', cats: ['making_coffee'] };
   if (category === 'general') return { key: 'general', cats: ['general'] };
