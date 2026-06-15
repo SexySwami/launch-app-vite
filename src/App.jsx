@@ -865,9 +865,10 @@ function AppInner() {
       setSteps([]);
       setStepsLoading(true);
       setStepsError(null);
-      setCompletionGroupId(typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `c_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      // Intentionally keep the same completionGroupId across keep-going batches.
+      // Creating a new UUID here meant the server saw an unknown id on the second
+      // finalize call and created a brand-new completed entry — duplicating the task.
+      // With the same id, the server just updates the existing entry's completedAt.
       (async () => {
         try {
           if (!canCallAPI) throw new Error('__skip_api__');
