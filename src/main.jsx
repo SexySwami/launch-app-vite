@@ -22,9 +22,14 @@ const isSSOCallback = window.location.pathname === '/sso-callback';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      afterSignInUrl="/"
+      afterSignUpUrl="/"
+      signInUrl="/"
+    >
       {isSSOCallback
-        ? <AuthenticateWithRedirectCallback />
+        ? <AuthenticateWithRedirectCallback afterSignInUrl="/" afterSignUpUrl="/" signInUrl="/" />
         : <App />
       }
     </ClerkProvider>
