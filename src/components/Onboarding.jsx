@@ -903,22 +903,27 @@ function SlideLaunch({ onGoogle, signingIn, isLoaded }) {
     <>
       <div style={{ paddingTop: 8 }}><Telemetry code="MC-00 / PREFLIGHT" state="STANDBY" color={T.teal} /></div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '0 28px', minHeight: 0, textAlign: 'center' }}>
+        justifyContent: 'center', padding: '0 clamp(16px, 5vw, 48px)', minHeight: 0, textAlign: 'center' }}>
         <div className="ob-s" style={{ '--d': '0s' }}><RocketMark uid="launch" /></div>
-        <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display, fontSize: 34, fontWeight: 700,
-          color: T.text, margin: '18px 0 0', letterSpacing: '-0.03em',
+        <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display,
+          fontSize: 'clamp(26px, 3.5vw, 34px)', fontWeight: 700,
+          color: T.text, margin: 'clamp(12px, 2.5vh, 18px) 0 0', letterSpacing: '-0.03em',
           textShadow: '0 0 36px rgba(0,229,255,0.22)' }}>
           Ready to stop procrastinating<span style={{ color: T.cyan, textShadow: '0 0 18px rgba(0,229,255,0.7)' }}>?</span>
         </h2>
-        <p className="ob-s" style={{ '--d': '0.15s', fontFamily: T.display, fontSize: 16.5, color: T.text2,
-          margin: '14px 0 0', lineHeight: 1.45, maxWidth: 300 }}>
+        <p className="ob-s" style={{ '--d': '0.15s', fontFamily: T.display,
+          fontSize: 'clamp(14px, 1.8vw, 16.5px)', color: T.text2,
+          margin: 'clamp(10px, 1.8vh, 14px) 0 0', lineHeight: 1.45, maxWidth: 300 }}>
           Beat your ADHD task paralysis with 'Help me start'.
         </p>
-        <div className="ob-s" style={{ '--d': '0.26s', width: '100%', marginTop: 32 }}>
+        {/* Button + lock line capped at 440px so it never stretches across a wide screen */}
+        <div className="ob-s" style={{ '--d': '0.26s',
+          width: '100%', maxWidth: 440,
+          marginTop: 'clamp(20px, 3.5vh, 32px)' }}>
           <GoogleButton onClick={onGoogle} busy={!isLoaded || signingIn} />
         </div>
         <div className="ob-s" style={{ '--d': '0.34s', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: 8, marginTop: 16,
+          justifyContent: 'center', gap: 8, marginTop: 'clamp(10px, 1.8vh, 16px)',
           fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.2em', color: T.text3, textTransform: 'uppercase' }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
             stroke={T.teal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
