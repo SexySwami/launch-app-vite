@@ -568,7 +568,7 @@ function MiniChecklist() {
             <span style={{ flex: 1, minWidth: 0, fontFamily: T.display, fontSize: 13.5,
               color: row.done ? T.text3 : T.text, letterSpacing: '-0.005em',
               textDecoration: row.done ? 'line-through' : 'none',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.t}</span>
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.t}</span>
           </div>
         ))}
       </div>
@@ -801,17 +801,24 @@ function SlideFocus() {
     <>
       <div style={{ paddingTop: 8 }}><Telemetry code="MC-03 / FOCUS" state="BODY DOUBLE" color={T.purple} /></div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
+        justifyContent: 'center', padding: '0 clamp(16px, 5vw, 48px)', minHeight: 0, gap: 0 }}>
         <div className="ob-s" style={{ '--d': '0s' }}><IconTile accent={T.purple}><FocusIcon c={T.purple} /></IconTile></div>
-        <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display, fontSize: 30, fontWeight: 700,
-          color: T.text, margin: '22px 0 0', letterSpacing: '-0.025em', textAlign: 'center' }}>
+        <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display,
+          fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
+          color: T.text, margin: 'clamp(12px, 2.5vh, 22px) 0 0', letterSpacing: '-0.025em', textAlign: 'center' }}>
           Work with a focus partner
         </h2>
-        <p className="ob-s" style={{ '--d': '0.15s', fontFamily: T.display, fontSize: 16, color: T.text2,
-          margin: '12px 0 0', lineHeight: 1.45, textAlign: 'center', maxWidth: 280 }}>
+        <p className="ob-s" style={{ '--d': '0.15s', fontFamily: T.display,
+          fontSize: 'clamp(14px, 1.8vw, 16px)', color: T.text2,
+          margin: 'clamp(8px, 1.5vh, 12px) 0 0', lineHeight: 1.45, textAlign: 'center', maxWidth: 320 }}>
           AI picks a "Work With Me" video matched to your task — virtual body doubling that actually helps you start tasks and keep going.
         </p>
-        <div className="ob-s" style={{ '--d': '0.26s', width: '100%', marginTop: 30 }}><VideoCard /></div>
+        {/* VideoCard: capped at 520px wide so it never gets taller than ~295px */}
+        <div className="ob-s" style={{ '--d': '0.26s',
+          width: '100%', maxWidth: 520,
+          marginTop: 'clamp(14px, 2.5vh, 28px)' }}>
+          <VideoCard />
+        </div>
       </div>
     </>
   );
@@ -844,14 +851,18 @@ function SlideChecklist() {
     <>
       <div style={{ paddingTop: 8 }}><Telemetry code="MC-04 / CHECKLISTS" state="ORGANIZED" color={T.cyan} /></div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '0 24px', minHeight: 0 }}>
+        justifyContent: 'center', padding: '0 clamp(16px, 5vw, 48px)', minHeight: 0 }}>
         <div className="ob-s" style={{ '--d': '0s' }}><IconTile accent={T.cyan}><ListIcon c={T.cyan} /></IconTile></div>
-        <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display, fontSize: 26, fontWeight: 700,
-          color: T.text, margin: '20px 0 0', letterSpacing: '-0.025em', textAlign: 'center',
+        <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display,
+          fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 700,
+          color: T.text, margin: 'clamp(14px, 2.5vh, 20px) 0 0', letterSpacing: '-0.025em', textAlign: 'center',
           lineHeight: 1.18, maxWidth: 300 }}>
           Store all your tasks in one place
         </h2>
-        <div className="ob-s" style={{ '--d': '0.2s', width: '100%', marginTop: 22, padding: '0 8px', boxSizing: 'border-box' }}>
+        {/* Checklist: max 480px so it reads as a card, not a full-width spreadsheet */}
+        <div className="ob-s" style={{ '--d': '0.2s',
+          width: '100%', maxWidth: 480,
+          marginTop: 'clamp(14px, 2.5vh, 22px)', boxSizing: 'border-box' }}>
           <MiniChecklist />
         </div>
       </div>
