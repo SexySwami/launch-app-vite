@@ -786,6 +786,7 @@ function AppInner() {
   };
 
   const handleMicroBatchComplete = () => {
+    track('step_completed', { mission, step_index: microInBatchIdx, mode: 'smallChunker', is_final_step: true });
     finalizeCompletion();
     setMomentum(m => m + 15);
     setLaunchesToday(n => n + 1);
@@ -842,6 +843,7 @@ function AppInner() {
   };
 
   const handleDeepBatchComplete = () => {
+    track('step_completed', { mission, step_index: deepInBatchIdx, mode: 'deepFocus', is_final_step: true });
     finalizeCompletion();
     setMomentum(m => m + 15);
     setLaunchesToday(n => n + 1);
