@@ -9,6 +9,9 @@ export function initAnalytics() {
     api_host: 'https://us.i.posthog.com',
     capture_pageview: false, // SPA — we'll track screens manually if needed
     persistence: 'localStorage',
+    // Always create person profiles so funnel queries include all events,
+    // even on the first render cycle before identify() is called.
+    person_profiles: 'always',
   });
 }
 
