@@ -2,6 +2,7 @@ import { useClerk, useUser } from '@clerk/clerk-react';
 import { useState } from 'react';
 import { T } from '../tokens.js';
 import { apiFetch } from '../lib/apiFetch.js';
+import { AppOverviewModal } from './AppOverviewModal.jsx';
 
 export function ProfileScreen() {
   const { signOut } = useClerk();
@@ -9,6 +10,7 @@ export function ProfileScreen() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [showOverview, setShowOverview] = useState(false);
 
   const name  = user?.fullName || user?.firstName || 'You';
   const email = user?.primaryEmailAddress?.emailAddress || '';
@@ -76,6 +78,26 @@ export function ProfileScreen() {
         )}
       </div>
 
+      {/* App Overview button */}
+      <button
+        onClick={() => setShowOverview(true)}
+        style={{
+          padding: '12px 32px',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 12,
+          color: T.text2,
+          fontSize: 14, fontWeight: 600, fontFamily: T.display,
+          cursor: 'pointer',
+          transition: 'all 150ms ease',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,229,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,229,255,0.3)'; e.currentTarget.style.color = T.cyan; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = T.text2; }}
+      >
+        App Overview
+      </button>
+
       {/* Sign out button */}
       <button
         onClick={handleSignOut}
@@ -95,6 +117,8 @@ export function ProfileScreen() {
       >
         Sign out
       </button>
+
+      {showOverview && <AppOverviewModal onClose={() => setShowOverview(false)} />}
 
       {/* Clear data — two-tap confirmation */}
       <div style={{ textAlign: 'center' }}>

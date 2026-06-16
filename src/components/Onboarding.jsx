@@ -5,13 +5,13 @@ import { T } from '../tokens.js';
 export const ONBOARDING_KEY = 'launch:onboarding-done';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
-const rgba = (hex, a) => {
+export const rgba = (hex, a) => {
   const m = hex.replace('#', '');
   return `rgba(${parseInt(m.slice(0,2),16)},${parseInt(m.slice(2,4),16)},${parseInt(m.slice(4,6),16)},${a})`;
 };
 
 // Fixed starfield so it doesn't re-randomise on every render
-const STARS = Array.from({ length: 46 }, () => ({
+export const STARS = Array.from({ length: 46 }, () => ({
   left: Math.random() * 100, top: Math.random() * 100,
   size: Math.random() * 1.5 + 0.6,
   dur: Math.random() * 3.2 + 2.6,
@@ -19,10 +19,10 @@ const STARS = Array.from({ length: 46 }, () => ({
   cyan: Math.random() > 0.74,
 }));
 
-const ACCENTS = [T.cyan, T.purple, T.cyan, T.purple, T.teal, T.cyan, T.blue, T.cyan];
+export const ACCENTS = [T.cyan, T.purple, T.cyan, T.purple, T.teal, T.cyan, T.blue, T.cyan];
 
 // ─── onboarding-specific CSS (injected on mount, removed on unmount) ──────────
-const OB_CSS = `
+export const OB_CSS = `
   @keyframes ob-riseIn {
     0%   { transform: translateY(16px); opacity: 0; filter: blur(7px) }
     100% { transform: translateY(0);    opacity: 1; filter: blur(0)   }
@@ -615,7 +615,7 @@ function GoogleButton({ onClick, busy }) {
 }
 
 // ─── Navigation components ────────────────────────────────────────────────────
-function Arrow({ dir, disabled, onClick }) {
+export function Arrow({ dir, disabled, onClick }) {
   const [h, setH] = useState(false);
   const side = dir === 'left' ? { left: 6 } : { right: 6 };
   return (
@@ -672,7 +672,7 @@ function SkipButton({ onClick }) {
   );
 }
 
-function Dots({ n, index, accent, onJump }) {
+export function Dots({ n, index, accent, onJump }) {
   return (
     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
       {Array.from({ length: n }).map((_, i) => {
@@ -949,7 +949,7 @@ function SlideLaunch({ onGoogle, signingIn, isLoaded }) {
 
 // ─── Slide registry ───────────────────────────────────────────────────────────
 // SlideLaunch is last — it receives auth props; all others are plain components
-const PLAIN_SLIDES = [SlideBrand, SlideBrandTwo, SlideSteps, SlideFocus, SlideBreak, SlideChecklist, SlideLastCall];
+export const PLAIN_SLIDES = [SlideBrand, SlideBrandTwo, SlideSteps, SlideFocus, SlideBreak, SlideChecklist, SlideLastCall];
 const N = PLAIN_SLIDES.length + 1; // +1 for SlideLaunch
 
 // ─── Main Onboarding component ────────────────────────────────────────────────
