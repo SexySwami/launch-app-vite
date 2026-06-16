@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { identifyUser, track } from './lib/analytics.js';
 import { T } from './tokens.js';
 import { SignIn } from './components/SignIn.jsx';
 import { Onboarding, ONBOARDING_KEY } from './components/Onboarding.jsx';
@@ -47,7 +48,9 @@ const DEFAULT_FOLDER_ID = 'work';
 // conditionally, which satisfies React's Rules of Hooks.
 export default function App() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user } = useUser();
   useEffect(() => { registerTokenGetter(getToken); }, [getToken]);
+  useEffect(() => { if (user?.id) identifyUser(user.id); }, [user?.id]);
 
   // Show onboarding once to first-time visitors; skip for returning users.
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -499,6 +502,14 @@ function AppInner() {
     const step = steps[stepIdx];
     if (!step) return false;
 
+    track('step_completed', {
+      mission,
+      step_index: stepIdx,
+      step_tag: step.tag || '',
+      step_title: stepOverrides[stepIdx]?.title || step.title || '',
+      is_final_step: stepIdx === steps.length - 1,
+    });
+
     setLoggedSteps(prev => {
       const next = new Set(prev);
       next.add(stepIdx);
@@ -538,6 +549,7 @@ function AppInner() {
     if (!completionGroupId) return;
     if (hasFinalizedRef.current) return; // already finalized for this mission — skip duplicates
     hasFinalizedRef.current = true;
+    track('session_completed', { mission, steps_completed: loggedSteps.size });
     if (canCallAPI) {
       try {
         let wasOnShortList = false;
@@ -630,6 +642,7 @@ function AppInner() {
   // user has already chosen a mode on ModeSelect, so we route straight to
   // the matching card flow.
   const startExecution = () => {
+    track('countdown_completed', { mission, mode: selectedMode || 'step' });
     setStepIdx(0);
     setMomentumGained(0);
     stepReturnScreenRef.current = 'modeSelect';
@@ -644,6 +657,7 @@ function AppInner() {
   const launchMission = async (missionText, source, description, skipToScreen = null) => {
     const m = (missionText || '').trim();
     if (!m) return;
+    track('mission_launched', { mission: m, source: source?.folderId || 'unknown' });
     setMission(m);
     setStepIdx(0);
     setMomentumGained(0);

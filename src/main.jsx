@@ -4,6 +4,9 @@ import { ClerkProvider, AuthenticateWithRedirectCallback } from '@clerk/clerk-re
 import App from './App.jsx';
 import './styles.css';
 import { initServiceWorker } from './lib/pushNotification.js';
+import { initAnalytics } from './lib/analytics.js';
+
+initAnalytics();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
