@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { identifyUser, track } from './lib/analytics.js';
+import { identifyUser, resetAnalytics, track } from './lib/analytics.js';
 import { T } from './tokens.js';
 import { SignIn } from './components/SignIn.jsx';
 import { Onboarding, ONBOARDING_KEY } from './components/Onboarding.jsx';
@@ -50,7 +50,24 @@ export default function App() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   useEffect(() => { registerTokenGetter(getToken); }, [getToken]);
-  useEffect(() => { if (user?.id) identifyUser(user.id); }, [user?.id]);
+
+  // Identify the signed-in user in PostHog. Reset first if the user ID
+  // changed (account switch) or went away (sign-out) so each account gets its
+  // own distinct PostHog person — without reset(), signing in as a different
+  // account on the same browser merges all identities into one profile.
+  const prevUserIdRef = useRef(null);
+  useEffect(() => {
+    if (user?.id) {
+      if (prevUserIdRef.current && prevUserIdRef.current !== user.id) {
+        resetAnalytics(); // account switched — fresh slate for new user
+      }
+      identifyUser(user.id);
+      prevUserIdRef.current = user.id;
+    } else if (prevUserIdRef.current) {
+      resetAnalytics(); // signed out
+      prevUserIdRef.current = null;
+    }
+  }, [user?.id]);
 
   // Show onboarding once to first-time visitors; skip for returning users.
   const [showOnboarding, setShowOnboarding] = useState(() => {

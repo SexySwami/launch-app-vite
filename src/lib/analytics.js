@@ -21,6 +21,15 @@ export function identifyUser(userId) {
   posthog.identify(userId);
 }
 
+// Reset PostHog on sign-out so the next account gets a fresh anonymous ID.
+// Without this, signing into a different account on the same browser merges
+// the new Clerk user ID into the previous person profile, collapsing all
+// test accounts into one PostHog person.
+export function resetAnalytics() {
+  if (!KEY) return;
+  posthog.reset();
+}
+
 // Fire a named event with optional properties.
 export function track(event, props = {}) {
   if (!KEY) return;
