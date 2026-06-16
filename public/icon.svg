@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <!-- Background wash gradients -->
+    <radialGradient id="w1" cx="50%" cy="4%" r="75%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.22"/>
+      <stop offset="65%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="w2" cx="92%" cy="95%" r="65%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#A876FF" stop-opacity="0.20"/>
+      <stop offset="58%" stop-color="#A876FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="w3" cx="5%" cy="95%" r="65%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#3D7FFF" stop-opacity="0.18"/>
+      <stop offset="58%" stop-color="#3D7FFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="w4" cx="50%" cy="52%" r="55%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#3D7FFF" stop-opacity="0.12"/>
+      <stop offset="55%" stop-color="#3D7FFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Grid -->
+    <pattern id="grid" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M 22 0 L 0 0 0 22" fill="none" stroke="rgba(140,200,255,0.05)" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="gridFade" cx="50%" cy="50%" r="50%">
+      <stop offset="10%" stop-color="white" stop-opacity="1"/>
+      <stop offset="72%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="gridMask">
+      <rect width="512" height="512" fill="url(#gridFade)"/>
+    </mask>
+    <!-- Rocket gradients — userSpaceOnUse coords are in the nested SVG's viewBox space -->
+    <linearGradient id="bd" x1="0" y1="-80" x2="0" y2="55" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#D8F4FF"/>
+      <stop offset="10%"  stop-color="#72D8FF"/>
+      <stop offset="30%"  stop-color="#3D7FFF"/>
+      <stop offset="58%"  stop-color="#1A38A0"/>
+      <stop offset="80%"  stop-color="#0C1C56"/>
+      <stop offset="100%" stop-color="#060E22"/>
+    </linearGradient>
+    <linearGradient id="bl" x1="0" y1="55" x2="0" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#0D1C58"/>
+      <stop offset="100%" stop-color="#030610"/>
+    </linearGradient>
+    <linearGradient id="fl" x1="-56" y1="2" x2="-26" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#4D9FFF"/>
+      <stop offset="50%"  stop-color="#7B30E8"/>
+      <stop offset="100%" stop-color="#040812"/>
+    </linearGradient>
+    <linearGradient id="fr" x1="56" y1="2" x2="26" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#4D9FFF"/>
+      <stop offset="50%"  stop-color="#7B30E8"/>
+      <stop offset="100%" stop-color="#040812"/>
+    </linearGradient>
+    <radialGradient id="wn" cx="0.38" cy="0.28" r="0.72" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="12%"  stop-color="#C0F6FF"/>
+      <stop offset="30%"  stop-color="#00E5FF" stop-opacity="0.92"/>
+      <stop offset="58%"  stop-color="#3D7FFF" stop-opacity="0.78"/>
+      <stop offset="82%"  stop-color="#081640" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#030610"/>
+    </radialGradient>
+    <linearGradient id="fm" x1="0" y1="68" x2="0" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#00E5FF"/>
+      <stop offset="30%"  stop-color="#3D7FFF" stop-opacity="0.85"/>
+      <stop offset="65%"  stop-color="#A876FF" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#A876FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fh" x1="0" y1="68" x2="0" y2="98" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="50%"  stop-color="#B0F6FF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fo" x1="0" y1="68" x2="0" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#3D7FFF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#A876FF" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Filters -->
+    <filter id="gb" x="-30%" y="-10%" width="160%" height="120%">
+      <feGaussianBlur stdDeviation="4.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="gw" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="gf" x="-70%" y="-15%" width="240%" height="130%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#05070C"/>
+  <!-- Colour washes -->
+  <rect width="512" height="512" fill="url(#w1)"/>
+  <rect width="512" height="512" fill="url(#w2)"/>
+  <rect width="512" height="512" fill="url(#w3)"/>
+  <rect width="512" height="512" fill="url(#w4)"/>
+  <!-- Grid -->
+  <rect width="512" height="512" fill="url(#grid)" mask="url(#gridMask)"/>
+
+  <!-- Corner brackets (scaled to 512: bracket arm = 36px, inset = 36px) -->
+  <path d="M36,72 L36,36 L72,36"   fill="none" stroke="rgba(0,229,255,0.38)" stroke-width="2.5" stroke-linecap="square"/>
+  <path d="M440,36 L476,36 L476,72" fill="none" stroke="rgba(0,229,255,0.38)" stroke-width="2.5" stroke-linecap="square"/>
+  <path d="M36,440 L36,476 L72,476" fill="none" stroke="rgba(0,229,255,0.38)" stroke-width="2.5" stroke-linecap="square"/>
+  <path d="M440,476 L476,476 L476,440" fill="none" stroke="rgba(0,229,255,0.38)" stroke-width="2.5" stroke-linecap="square"/>
+
+  <!--
+    Rocket — nested SVG keeps the rocket's native coordinate space so all
+    userSpaceOnUse gradients and filters are interpreted correctly.
+    Mirroring the design's proportions: 160×280 rocket in 320×320 icon,
+    scaled 1.6× → 256×448 in 512×512, x=128, y=10.
+    overflow="visible" lets the flame bleed past the viewport;
+    the outer SVG's default overflow="hidden" clips it at 512px.
+  -->
+  <svg x="128" y="10" width="256" height="448" viewBox="-60 -100 120 210" overflow="visible">
+    <g transform="translate(0,18)">
+      <!-- Side flames -->
+      <path d="M-15 68 C-26 88 -20 110 -8 118 C-5 100 -11 82 -15 68 Z" fill="url(#fo)" opacity="0.8"/>
+      <path d="M15 68 C26 88 20 110 8 118 C5 100 11 82 15 68 Z"   fill="url(#fo)" opacity="0.8"/>
+      <!-- Main centre flame -->
+      <path d="M0 68 C-14 88 -10 112 0 124 C10 112 14 88 0 68 Z" fill="url(#fm)" filter="url(#gf)"/>
+      <!-- White-hot core -->
+      <path d="M0 68 C-5 78 -3 92 0 99 C3 92 5 78 0 68 Z" fill="url(#fh)"/>
+      <!-- Fins -->
+      <path d="M-28 2 C-45 20 -57 48 -40 62 L-28 49 Z" fill="url(#fl)" stroke="rgba(0,229,255,0.7)"  stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M28 2 C45 20 57 48 40 62 L28 49 Z"   fill="url(#fr)" stroke="rgba(0,229,255,0.7)"  stroke-width="1.6" stroke-linejoin="round"/>
+      <!-- Body -->
+      <path d="M0,-80 C25,-70 30,-50 30,-32 L30,34 C30,47 22,54 12,55 L-12,55 C-22,54 -30,47 -30,34 L-30,-32 C-30,-50 -25,-70 0,-80 Z"
+            fill="url(#bd)" filter="url(#gb)" stroke="#00E5FF" stroke-width="2"/>
+      <!-- Top highlight streak -->
+      <path d="M0,-80 C18,-72 26,-56 26,-38" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="4" stroke-linecap="round"/>
+      <!-- Left edge light -->
+      <path d="M-30,-28 L-30,32 C-30,44 -24,52 -16,55" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2" stroke-linecap="round"/>
+      <!-- Engine bell -->
+      <path d="M-12 55 L-20 72 L20 72 L12 55 Z" fill="url(#bl)" stroke="rgba(0,229,255,0.6)" stroke-width="1.5" stroke-linejoin="round"/>
+      <!-- Engine exit glow -->
+      <line x1="-20" y1="72" x2="20" y2="72" stroke="#00E5FF" stroke-width="3" style="filter:drop-shadow(0 0 10px rgba(0,229,255,0.95)) drop-shadow(0 0 24px rgba(0,229,255,0.5))"/>
+      <!-- Body seam -->
+      <line x1="-29" y1="6" x2="29" y2="6" stroke="rgba(0,229,255,0.30)" stroke-width="1.2"/>
+      <!-- Porthole -->
+      <circle cx="0" cy="-26" r="21" fill="url(#wn)" filter="url(#gw)" stroke="#00E5FF" stroke-width="2.2"/>
+      <circle cx="0" cy="-26" r="14.5" fill="none" stroke="rgba(0,229,255,0.35)" stroke-width="1.4"/>
+      <circle cx="-6" cy="-33" r="7" fill="rgba(255,255,255,0.30)"/>
+    </g>
+  </svg>
+</svg>
