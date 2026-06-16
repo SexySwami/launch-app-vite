@@ -38,7 +38,7 @@ const BASE_FOLDERS = [
   { id: 'work',       name: 'Work',       accent: T.cyan,   iconKey: 'work',       code: 'RT-01', tagline: 'Mission Ops'   },
   { id: 'personal',   name: 'Personal',   accent: T.purple, iconKey: 'personal',   code: 'RT-02', tagline: 'Off-Duty'      },
   { id: 'health',     name: 'Health',     accent: T.teal,   iconKey: 'health',     code: 'RT-03', tagline: 'Vital Signs'   },
-  { id: 'dailies',    name: 'Dailies',    accent: T.amber,  iconKey: 'dailies',    code: 'RT-04', tagline: 'Daily Reset'   },
+  { id: 'dailies',    name: 'Dailies',    accent: T.amber,  iconKey: 'dailies',    code: 'RT-04', tagline: 'Recurring'     },
 ];
 const CUSTOM_ACCENT_CYCLE = [T.blue, T.rose, T.teal, T.amber, T.cyan, T.purple];
 const DEFAULT_FOLDER_ID = 'work';
@@ -239,41 +239,6 @@ function AppInner() {
 
   // Home-screen Generate/History navigation.
   const [currentItemIdx, setCurrentItemIdx] = useState(-1);
-
-  // Dailies midnight reset. Incremented each time a reset fires so the
-  // Dailies MissionInput and RootFolderScreen know to refetch queue data.
-  const [dailiesResetKey, setDailiesResetKey] = useState(0);
-  const midnightTimerRef = useRef(null);
-
-  useEffect(() => {
-    const canCall = typeof window !== 'undefined'
-      && /^https?:$/.test(window.location?.protocol || '');
-    if (!canCall) return;
-
-    const doReset = async () => {
-      try {
-        const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-        const res = await apiFetch(`/api/dailies-reset?localDate=${encodeURIComponent(localDate)}`);
-        const data = await res.json().catch(() => ({}));
-        if (data?.reset) setDailiesResetKey(k => k + 1);
-      } catch {}
-    };
-
-    const scheduleMidnight = () => {
-      const now = new Date();
-      const next = new Date(now);
-      next.setHours(24, 0, 0, 0); // next local midnight
-      midnightTimerRef.current = setTimeout(() => {
-        doReset();
-        scheduleMidnight(); // reschedule for the following night
-      }, next - now);
-    };
-
-    doReset(); // check on mount in case reset was missed while app was closed
-    scheduleMidnight();
-
-    return () => { if (midnightTimerRef.current) clearTimeout(midnightTimerRef.current); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // User-created custom root folders, persisted to localStorage.
   const [customFolders, setCustomFolders] = useState(() => {
@@ -947,7 +912,6 @@ function AppInner() {
           <RootFolderScreen
             folders={folders}
             onOpen={openFolder}
-            resetKey={dailiesResetKey}
             onSearchSelect={(item) => { setMission(item.text); setScreen('home'); }}
             onCreateFolder={handleCreateFolder}
             onDeleteFolder={handleDeleteFolder}
@@ -976,7 +940,6 @@ function AppInner() {
                 mission={mission}
                 setMission={setMission}
                 onBack={() => setOpenFolderId(null)}
-                refetchKey={fid === 'dailies' ? dailiesResetKey : 0}
               />
             </div>
           );
