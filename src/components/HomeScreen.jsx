@@ -38,6 +38,11 @@ function flattenQueue(items) {
 }
 
 function CategoryIcon({ iconKey, color }) {
+  if (iconKey === 'short-list') return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+      <polygon points="12,2.5 14.47,8.86 21.27,9.36 16.4,13.56 17.98,20.18 12,16.77 6.02,20.18 7.6,13.56 2.73,9.36 9.53,8.86" stroke={color} strokeWidth="1.6" strokeLinejoin="round" fill="none"/>
+    </svg>
+  );
   if (iconKey === 'work') return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
       <rect x="1.5" y="4.5" width="9" height="6" rx="1.2" stroke={color} strokeWidth="1.2"/>
@@ -587,8 +592,7 @@ export function HomeScreen({
   currentItemIdx, setCurrentItemIdx,
   folders, onProfile,
 }) {
-  // Exclude Short List from the cycling pill — it's a curated view, not a source queue.
-  const resolvedFolders = (folders?.length ? folders : DEFAULT_FOLDERS).filter(f => f.id !== 'short-list');
+  const resolvedFolders = folders?.length ? folders : DEFAULT_FOLDERS;
   const [inputFocused, setInputFocused] = useState(false);
   const [flatItems, setFlatItems] = useState([]);
   const [selectedCatIdx, setSelectedCatIdx] = useState(0);
