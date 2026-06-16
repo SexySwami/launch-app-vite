@@ -69,6 +69,28 @@ export default function App() {
     }
   }, [user?.id]);
 
+  // First-time sign-up detection. Fires `sign_up` exactly once per Clerk
+  // account per browser by combining two guards:
+  //   1. A per-account localStorage flag so it can never double-fire in the
+  //      same browser (even if the user returns later).
+  //   2. A 1-hour Clerk account-age check so returning users who log in on a
+  //      new device don't trigger a false sign-up event.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user?.id) return;
+    try {
+      const storageKey = `launch:signed_up:${user.id}`;
+      if (localStorage.getItem(storageKey)) return;     // already fired in this browser
+      localStorage.setItem(storageKey, '1');
+      const accountAgeMs = Date.now() - new Date(user.createdAt).getTime();
+      if (accountAgeMs < 60 * 60 * 1000) {             // account < 1 hour old → genuine new sign-up
+        track('sign_up', {
+          // 'oauth' = Google / social login; 'email' = email+password
+          method: user.externalAccounts?.length > 0 ? 'oauth' : 'email',
+        });
+      }
+    } catch {}
+  }, [isLoaded, isSignedIn, user?.id]);
+
   // Show onboarding once to first-time visitors; skip for returning users.
   const [showOnboarding, setShowOnboarding] = useState(() => {
     try { return !localStorage.getItem(ONBOARDING_KEY); } catch { return false; }
@@ -150,6 +172,46 @@ function AppInner() {
   useEffect(() => {
     try { localStorage.setItem('onBreak', onBreak); } catch {}
   }, [onBreak]);
+
+  // ── Analytics: app_opened ─────────────────────────────────────────────────
+  // Fires once per page load / app mount while the user is signed in.
+  // Distinct from mission_launched — lets us see users who open the app but
+  // don't start a mission (engagement gap), and is the basis for D1/D7
+  // retention cohorts (returning to the app, not just completing tasks).
+  useEffect(() => {
+    track('app_opened');
+  }, []); // empty deps = once per mount
+
+  // ── Analytics: mission_abandoned ──────────────────────────────────────────
+  // Fires when the user navigates away from the active mission flow without
+  // completing it. Tells us exactly where people drop off inside a session:
+  //   step_reached 0  = bailed before finishing step 1
+  //   step_reached 1  = finished step 1, quit before step 2
+  //   abandoned_from_screen = which screen they were on when they left
+  //   mode = which mode they had chosen (or 'not_selected' if they quit on modeSelect)
+  const prevScreenRef = useRef(null);
+  useEffect(() => {
+    const EXECUTION_SCREENS = new Set([
+      'modeSelect', 'countdown', 'step', 'reward', 'nextphase', 'smallChunker', 'deepFocus',
+    ]);
+    const prev = prevScreenRef.current;
+    prevScreenRef.current = screen;
+
+    if (
+      prev !== null &&
+      EXECUTION_SCREENS.has(prev) &&
+      !EXECUTION_SCREENS.has(screen) &&
+      mission &&
+      !hasFinalizedRef.current
+    ) {
+      track('mission_abandoned', {
+        mission,
+        mode: selectedMode || 'not_selected',
+        step_reached: stepIdx,
+        abandoned_from_screen: prev,
+      });
+    }
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Break Flow (tab-driven): the user picks a duration, the timer counts
   // down, an alarm fires at zero, then they get a tiny-commitment prompt
@@ -758,6 +820,9 @@ function AppInner() {
   };
 
   const startSmallChunker = () => {
+    // mode_selected: user picked Small Chunker on the mode screen.
+    // Compare breakdown by mode in PostHog to see which resonates with users.
+    track('mode_selected', { mode: 'smallChunker', mission });
     setSelectedMode('smallChunker');
     setMicroMode(true);
     setMicroSteps([]);
@@ -815,6 +880,8 @@ function AppInner() {
   };
 
   const startDeepFocus = () => {
+    // mode_selected: user picked Deep Focus on the mode screen.
+    track('mode_selected', { mode: 'deepFocus', mission });
     setSelectedMode('deepFocus');
     setDeepMode(true);
     setDeepSteps([]);
@@ -1035,7 +1102,7 @@ function AppInner() {
   else if (screen === 'modeSelect')
     body = (
       <ModeSelect
-        onSelectFourStep={() => { setSelectedMode('fourStep'); setScreen('countdown'); }}
+        onSelectFourStep={() => { track('mode_selected', { mode: 'fourStep', mission }); setSelectedMode('fourStep'); setScreen('countdown'); }}
         onSelectSmallChunker={startSmallChunker}
         onSelectDeepFocus={startDeepFocus}
         onBack={() => setScreen(modeSelectReturnScreenRef.current)}

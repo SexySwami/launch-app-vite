@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import VIDEOS from '../data/workWithMeVideos.json';
+import { track } from '../lib/analytics.js';
 
 const RESUME_KEY = 'launch:wwm-resume';
 
@@ -93,6 +94,11 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
       setOverrideVideo(null);
       return;
     }
+
+    // work_with_me_opened: user tapped the "Work With Me" button during a mission.
+    // The category resolves below after classification, but we fire the event now
+    // (with mission) so we know how often the feature is used and for what tasks.
+    track('work_with_me_opened', { mission: mission || '' });
 
     const reqId = ++reqIdRef.current;
     setLoading(true);

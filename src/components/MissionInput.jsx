@@ -1,4 +1,5 @@
 import { apiFetch } from '../lib/apiFetch.js';
+import { track } from '../lib/analytics.js';
 import { Fragment, useState, useEffect, useRef } from 'react';
 import { T } from '../tokens.js';
 import { Eyebrow } from './Eyebrow.jsx';
@@ -477,6 +478,9 @@ export function MissionInput({
         const putData = await putRes.json().catch(() => ({}));
         if (!putRes.ok) throw new Error(putData.error || `Failed (${putRes.status})`);
         if (Array.isArray(putData.items)) setItems(putData.items);
+        // task_added_to_queue: user pasted/typed a block that parsed into multiple tasks.
+        // task_count > 1 means they used the bulk-paste feature (paste a to-do list etc.)
+        track('task_added_to_queue', { task_count: children.length, folder: folderId });
         return [folder];
       }
 
@@ -489,6 +493,9 @@ export function MissionInput({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
       setItems(Array.isArray(data.items) ? data.items : []);
+      // task_added_to_queue: single task added to the checklist queue.
+      // task_count 1 = typed manually or pasted a short single-line task.
+      track('task_added_to_queue', { task_count: 1, folder: folderId });
       return Array.isArray(data.added) ? data.added : [];
     } catch (err) {
       setItemsError(err.message || 'Could not save');
