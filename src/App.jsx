@@ -1076,7 +1076,10 @@ function AppInner() {
         loading={microLoading}
         cascadeLoading={microCascadeLoading && microInBatchIdx > microCascadeFromBatchPos}
         allSteps={microSteps}
-        onAdvanceInBatch={() => setMicroInBatchIdx(i => i + 1)}
+        onAdvanceInBatch={() => {
+          track('step_completed', { mission, step_index: microInBatchIdx, mode: 'smallChunker', is_final_step: microInBatchIdx === 3 });
+          setMicroInBatchIdx(i => i + 1);
+        }}
         onGoBack={() => setMicroInBatchIdx(i => i - 1)}
         onBatchComplete={handleMicroBatchComplete}
         onFinish={handleMicroBatchComplete}
@@ -1100,7 +1103,10 @@ function AppInner() {
         loading={deepLoading}
         cascadeLoading={deepCascadeLoading && deepInBatchIdx > deepCascadeFromBatchPos}
         allSteps={deepSteps}
-        onAdvanceInBatch={() => setDeepInBatchIdx(i => i + 1)}
+        onAdvanceInBatch={() => {
+          track('step_completed', { mission, step_index: deepInBatchIdx, mode: 'deepFocus', is_final_step: deepInBatchIdx === 3 });
+          setDeepInBatchIdx(i => i + 1);
+        }}
         onGoBack={() => setDeepInBatchIdx(i => i - 1)}
         onBatchComplete={handleDeepBatchComplete}
         onFinish={handleDeepBatchComplete}
