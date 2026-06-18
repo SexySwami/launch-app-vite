@@ -17,8 +17,9 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
   const [regenLoading, setRegenLoading] = useState(false);
   const [regenSeen, setRegenSeen] = useState([]);
   const [regenHistory, setRegenHistory] = useState([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistory([]); }, [stepIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistory([]); setMenuOpen(false); }, [stepIdx]);
 
   useEffect(() => {
     setExiting(false);
@@ -149,64 +150,6 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
           {mission}
         </div>
       </div>
-
-      {step && !loading && !cascadeLoading && (
-        <div style={{ padding: '4px 24px 8px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-          <button
-            onClick={handleRegenBack}
-            disabled={regenHistory.length === 0}
-            aria-label="Undo last regeneration"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenHistory.length === 0 ? 'default' : 'pointer', opacity: regenHistory.length === 0 ? 0.28 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7h11a5 5 0 0 1 0 10H8"/><path d="M6 4l-3 3 3 3"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Back</span>
-          </button>
-
-          <button
-            onClick={() => setEditOpen(true)}
-            aria-label="Edit step"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 10 10" fill="none" stroke={T.teal} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Edit</span>
-          </button>
-
-          <button
-            onClick={() => setWorkWithMeOpen(true)}
-            aria-label="Work With Me videos"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 14 14" fill={T.teal}>
-                <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>With Me</span>
-          </button>
-
-          <button
-            onClick={handleRegen}
-            disabled={regenLoading}
-            aria-label="Regenerate step"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenLoading ? 'default' : 'pointer', opacity: regenLoading ? 0.55 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke={T.teal} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
-                <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Regen</span>
-          </button>
-        </div>
-      )}
 
       <div style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -416,6 +359,64 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             </>
           )}
         </div>
+
+        {/* FAB menu — only when card is loaded */}
+        {step && !loading && !cascadeLoading && (
+          <>
+            {menuOpen && (
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 9 }} />
+            )}
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', bottom: 72, right: 28, zIndex: 10,
+                background: 'rgba(8,16,24,0.96)',
+                border: `1px solid rgba(79,227,193,0.28)`,
+                borderRadius: 16, overflow: 'hidden', minWidth: 192,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset',
+                backdropFilter: 'blur(24px)',
+                animation: 'optionIn 160ms ease',
+              }}>
+                {[
+                  { label: 'Undo regen', disabled: regenHistory.length === 0, onClick: () => { handleRegenBack(); setMenuOpen(false); }, icon: <path d="M3 7h11a5 5 0 0 1 0 10H8"/>, icon2: <path d="M6 4l-3 3 3 3"/>, vb: '0 0 24 24' },
+                  { label: 'Edit', disabled: false, onClick: () => { setEditOpen(true); setMenuOpen(false); }, icon: <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z"/>, vb: '0 0 10 10', stroke: true },
+                  { label: 'Work With Me', disabled: false, onClick: () => { setWorkWithMeOpen(true); setMenuOpen(false); }, icon: <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>, vb: '0 0 14 14', fill: true },
+                  { label: regenLoading ? 'Regenerating…' : 'Regenerate', disabled: regenLoading, onClick: () => { handleRegen(); setMenuOpen(false); }, icon: <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>, vb: '0 0 12 12' },
+                ].map(({ label, disabled, onClick, icon, icon2, vb, fill, stroke }) => (
+                  <button key={label} onClick={onClick} disabled={disabled} style={{
+                    all: 'unset', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '11px 16px', width: '100%', boxSizing: 'border-box', cursor: disabled ? 'default' : 'pointer',
+                    opacity: disabled ? 0.3 : 1,
+                    borderBottom: `1px solid rgba(79,227,193,0.08)`,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}>
+                    <svg width="14" height="14" viewBox={vb} fill={fill ? T.teal : 'none'} stroke={fill ? 'none' : T.teal} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      {icon}{icon2}
+                    </svg>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: '0.14em', color: T.text, textTransform: 'uppercase' }}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Card options"
+              style={{
+                all: 'unset', cursor: 'pointer', zIndex: 10,
+                position: 'absolute', bottom: 28, right: 28,
+                width: 34, height: 34, borderRadius: 99,
+                background: menuOpen ? `rgba(79,227,193,0.2)` : `rgba(79,227,193,0.08)`,
+                border: `1px solid ${menuOpen ? 'rgba(79,227,193,0.55)' : 'rgba(79,227,193,0.28)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 180ms ease',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <svg width="3" height="13" viewBox="0 0 3 13" fill={T.teal}>
+                <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="6.5" r="1.5"/><circle cx="1.5" cy="11.5" r="1.5"/>
+              </svg>
+            </button>
+          </>
+        )}
       </div>
 
       <div style={{ margin: '2px 24px 6px', height: 1, background: 'rgba(255,255,255,0.05)' }} />
