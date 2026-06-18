@@ -6,6 +6,7 @@ import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditStepModal } from './EditStepModal.jsx';
 import { WorkWithMeModal } from './WorkWithMeModal.jsx';
+import { StepTimer } from './StepTimer.jsx';
 
 export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, loading, cascadeLoading }) {
   const [exiting, setExiting] = useState(false);
@@ -15,8 +16,9 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
   const [workWithMeOpen, setWorkWithMeOpen] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
   const [regenSeen, setRegenSeen] = useState([]);
+  const [regenHistory, setRegenHistory] = useState([]);
 
-  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); }, [stepIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistory([]); }, [stepIdx]);
 
   useEffect(() => {
     setExiting(false);
@@ -53,10 +55,18 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
       const data = await res.json().catch(() => ({}));
       if (res.ok && Array.isArray(data.options) && data.options.length > 0) {
         setRegenSeen(prev => Array.from(new Set([...prev, currentTitle, ...data.options.map(o => o.title)])));
+        setRegenHistory(prev => [...prev, { title: step.title, hint: step.hint }]);
         onEditStep(data.options[0]);
       }
     } catch {}
     finally { setRegenLoading(false); }
+  };
+
+  const handleRegenBack = () => {
+    if (regenHistory.length === 0) return;
+    const previous = regenHistory[regenHistory.length - 1];
+    setRegenHistory(prev => prev.slice(0, -1));
+    onEditStep(previous);
   };
 
   const handleComplete = () => {
@@ -76,66 +86,39 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
       />
 
       <div style={{ padding: '20px 24px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-            <button
-              onClick={onBack}
-              aria-label="Back to previous step"
-              style={{
-                all: 'unset', cursor: 'pointer', flexShrink: 0,
-                width: 36, height: 36, borderRadius: 99,
-                background: T.surface,
-                border: `1px solid ${T.hairlineSoft}`,
-                color: T.text2,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 150ms ease',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14">
-                <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
-                color: T.text3, textTransform: 'uppercase', marginBottom: 4,
-              }}>
-                ▸ Mission Execution
-              </div>
-              <div style={{
-                fontFamily: T.display, fontSize: 18, fontWeight: 600,
-                color: T.text, letterSpacing: '-0.01em', lineHeight: 1.1,
-              }}>
-                Step <span style={{ color: T.teal }}>{stepIdx + 1}</span> of {totalSteps}
-              </div>
-            </div>
-          </div>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
           <button
-            onClick={() => setWorkWithMeOpen(true)}
-            aria-label="Open Work With Me videos"
+            onClick={onBack}
+            aria-label="Back to previous step"
             style={{
               all: 'unset', cursor: 'pointer', flexShrink: 0,
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '8px 13px', borderRadius: 99,
-              background: 'rgba(79,227,193,0.10)',
-              border: `1px solid rgba(79,227,193,0.42)`,
-              boxShadow: `0 0 16px rgba(79,227,193,0.18)`,
-              transition: 'all 180ms ease',
+              width: 36, height: 36, borderRadius: 99,
+              background: T.surface,
+              border: `1px solid ${T.hairlineSoft}`,
+              color: T.text2,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 150ms ease',
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <svg width="13" height="13" viewBox="0 0 14 14" style={{ flexShrink: 0, color: T.teal }}>
-              <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z" fill="currentColor"/>
+            <svg width="14" height="14" viewBox="0 0 14 14">
+              <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span style={{
-              fontFamily: T.mono, fontSize: 11, letterSpacing: '0.14em',
-              fontWeight: 600, color: T.text, textTransform: 'uppercase',
-            }}>
-              Work With Me
-            </span>
           </button>
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
+              color: T.text3, textTransform: 'uppercase', marginBottom: 4,
+            }}>
+              ▸ Mission Execution
+            </div>
+            <div style={{
+              fontFamily: T.display, fontSize: 18, fontWeight: 600,
+              color: T.text, letterSpacing: '-0.01em', lineHeight: 1.1,
+            }}>
+              Step <span style={{ color: T.teal }}>{stepIdx + 1}</span> of {totalSteps}
+            </div>
+          </div>
         </div>
 
         <div style={{
@@ -369,75 +352,77 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 )}
               </div>
 
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.22em',
-                color: T.text3, textTransform: 'uppercase', position: 'relative', zIndex: 1,
-              }}>
-                <button onClick={() => setEditOpen(true)} style={{
-                  all: 'unset', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '6px 9px', borderRadius: 99,
-                  background: 'rgba(79,227,193,0.08)',
-                  border: `1px solid rgba(79,227,193,0.32)`,
-                  color: T.teal,
-                  fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
-                  textTransform: 'uppercase', fontWeight: 600,
-                  transition: 'all 200ms ease',
-                  WebkitTapHighlightColor: 'transparent',
-                }}>
-                  <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
-                    <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z" stroke="currentColor" strokeWidth="1" fill="none" strokeLinejoin="round"/>
-                  </svg>
-                  Edit
-                </button>
-
-                <button onClick={() => setWorkWithMeOpen(true)} style={{
-                  all: 'unset', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '6px 9px', borderRadius: 99,
-                  background: 'rgba(79,227,193,0.08)',
-                  border: `1px solid rgba(79,227,193,0.32)`,
-                  color: T.teal,
-                  fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
-                  textTransform: 'uppercase', fontWeight: 600,
-                  transition: 'all 200ms ease',
-                  WebkitTapHighlightColor: 'transparent',
-                }}>
-                  <svg width="10" height="10" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
-                    <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z" fill="currentColor"/>
-                  </svg>
-                  Work With Me
-                </button>
-
-                <button
-                  onClick={handleRegen}
-                  disabled={regenLoading}
-                  aria-label="Regenerate step"
-                  style={{
-                    all: 'unset', cursor: regenLoading ? 'default' : 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '6px 9px', borderRadius: 99,
-                    background: 'rgba(79,227,193,0.08)',
-                    border: `1px solid rgba(79,227,193,0.32)`,
-                    color: T.teal,
-                    fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
-                    textTransform: 'uppercase', fontWeight: 600,
-                    transition: 'all 200ms ease',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 12 12" style={{ flexShrink: 0, animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
-                    <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Regen
-                </button>
-
+              <div style={{ position: 'relative', zIndex: 1, paddingTop: 14, borderTop: `1px solid rgba(79,227,193,0.12)` }}>
+                <StepTimer key={stepIdx} durationSeconds={step.duration_seconds || 120} accent={T.teal} />
               </div>
             </>
           )}
         </div>
       </div>
+
+      {step && !loading && !cascadeLoading && (
+        <div style={{ padding: '8px 24px 4px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+          {/* Back through regen history */}
+          <button
+            onClick={handleRegenBack}
+            disabled={regenHistory.length === 0}
+            aria-label="Undo last regeneration"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenHistory.length === 0 ? 'default' : 'pointer', opacity: regenHistory.length === 0 ? 0.28 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7h11a5 5 0 0 1 0 10H8"/><path d="M6 4l-3 3 3 3"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Back</span>
+          </button>
+
+          {/* Edit */}
+          <button
+            onClick={() => setEditOpen(true)}
+            aria-label="Edit step"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 10 10" fill="none" stroke={T.teal} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Edit</span>
+          </button>
+
+          {/* Work With Me */}
+          <button
+            onClick={() => setWorkWithMeOpen(true)}
+            aria-label="Work With Me videos"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 14 14" fill={T.teal}>
+                <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>With Me</span>
+          </button>
+
+          {/* Regen */}
+          <button
+            onClick={handleRegen}
+            disabled={regenLoading}
+            aria-label="Regenerate step"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenLoading ? 'default' : 'pointer', opacity: regenLoading ? 0.55 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke={T.teal} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
+                <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Regen</span>
+          </button>
+        </div>
+      )}
+
+      <div style={{ margin: '2px 24px 6px', height: 1, background: 'rgba(255,255,255,0.05)' }} />
 
       <div style={{ padding: '0 24px' }}>
         <GlowButton onClick={handleComplete} disabled={loading || !step || cascadeLoading}>

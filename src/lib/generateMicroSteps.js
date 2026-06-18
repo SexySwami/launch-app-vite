@@ -10,28 +10,28 @@ export function generateMicroSteps(mission, batchNumber = 1, _previousSteps = []
 
   const BATCHES = [
     [
-      { title: 'Take one deep breath', description: 'Settle in before starting.' },
-      { title: 'Sit down somewhere comfortable', description: 'Pick any spot that works.' },
-      { title: 'Open the needed tool', description: 'Launch the app or doc.' },
-      { title: 'Say the task out loud', description: `Just say "${short}".` },
+      { title: 'Take one deep breath', description: 'Settle in before starting.', duration_seconds: 15 },
+      { title: 'Sit down somewhere comfortable', description: 'Pick any spot that works.', duration_seconds: 20 },
+      { title: 'Open the needed tool', description: 'Launch the app or doc.', duration_seconds: 30 },
+      { title: 'Say the task out loud', description: `Just say "${short}".`, duration_seconds: 15 },
     ],
     [
-      { title: 'Write one rough note', description: 'Any first thought counts.' },
-      { title: 'Pick the very first piece', description: 'Smallest part you can touch.' },
-      { title: 'Do that first piece', description: 'Just that one thing.' },
-      { title: 'Pause and notice progress', description: 'Acknowledge the tiny win.' },
+      { title: 'Write one rough note', description: 'Any first thought counts.', duration_seconds: 60 },
+      { title: 'Pick the very first piece', description: 'Smallest part you can touch.', duration_seconds: 30 },
+      { title: 'Do that first piece', description: 'Just that one thing.', duration_seconds: 120 },
+      { title: 'Pause and notice progress', description: 'Acknowledge the tiny win.', duration_seconds: 20 },
     ],
     [
-      { title: 'Choose the next tiny piece', description: 'One more small thing only.' },
-      { title: 'Do the next piece', description: 'Quick and focused, no perfection.' },
-      { title: 'Check what you have so far', description: 'Glance, no judgement allowed.' },
-      { title: 'Tidy one rough edge', description: 'Fix the smallest obvious issue.' },
+      { title: 'Choose the next tiny piece', description: 'One more small thing only.', duration_seconds: 30 },
+      { title: 'Do the next piece', description: 'Quick and focused, no perfection.', duration_seconds: 120 },
+      { title: 'Check what you have so far', description: 'Glance, no judgement allowed.', duration_seconds: 30 },
+      { title: 'Tidy one rough edge', description: 'Fix the smallest obvious issue.', duration_seconds: 60 },
     ],
     [
-      { title: 'Save or commit your work', description: 'Lock in what you just made.' },
-      { title: 'Add one finishing touch', description: 'Any small improvement counts.' },
-      { title: 'Skim the whole thing once', description: 'Quick read-through, nothing more.' },
-      { title: 'Mark this batch complete', description: 'You moved — that is the win.' },
+      { title: 'Save or commit your work', description: 'Lock in what you just made.', duration_seconds: 20 },
+      { title: 'Add one finishing touch', description: 'Any small improvement counts.', duration_seconds: 90 },
+      { title: 'Skim the whole thing once', description: 'Quick read-through, nothing more.', duration_seconds: 60 },
+      { title: 'Mark this batch complete', description: 'You moved — that is the win.', duration_seconds: 15 },
     ],
   ];
 
@@ -43,5 +43,6 @@ export function generateMicroSteps(mission, batchNumber = 1, _previousSteps = []
   return tail.map((s, i) => ({
     title: s.title,
     description: `Round ${batch}, beat ${i + 1}.`,
+    duration_seconds: s.duration_seconds,
   }));
 }
