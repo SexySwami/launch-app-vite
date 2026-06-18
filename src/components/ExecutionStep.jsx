@@ -150,6 +150,64 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         </div>
       </div>
 
+      {step && !loading && !cascadeLoading && (
+        <div style={{ padding: '4px 24px 8px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+          <button
+            onClick={handleRegenBack}
+            disabled={regenHistory.length === 0}
+            aria-label="Undo last regeneration"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenHistory.length === 0 ? 'default' : 'pointer', opacity: regenHistory.length === 0 ? 0.28 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7h11a5 5 0 0 1 0 10H8"/><path d="M6 4l-3 3 3 3"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Back</span>
+          </button>
+
+          <button
+            onClick={() => setEditOpen(true)}
+            aria-label="Edit step"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 10 10" fill="none" stroke={T.teal} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Edit</span>
+          </button>
+
+          <button
+            onClick={() => setWorkWithMeOpen(true)}
+            aria-label="Work With Me videos"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 14 14" fill={T.teal}>
+                <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>With Me</span>
+          </button>
+
+          <button
+            onClick={handleRegen}
+            disabled={regenLoading}
+            aria-label="Regenerate step"
+            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenLoading ? 'default' : 'pointer', opacity: regenLoading ? 0.55 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
+              <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke={T.teal} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
+                <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>
+              </svg>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Regen</span>
+          </button>
+        </div>
+      )}
+
       <div style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px 24px', position: 'relative', minHeight: 0,
@@ -359,68 +417,6 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
           )}
         </div>
       </div>
-
-      {step && !loading && !cascadeLoading && (
-        <div style={{ padding: '8px 24px 4px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-          {/* Back through regen history */}
-          <button
-            onClick={handleRegenBack}
-            disabled={regenHistory.length === 0}
-            aria-label="Undo last regeneration"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenHistory.length === 0 ? 'default' : 'pointer', opacity: regenHistory.length === 0 ? 0.28 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7h11a5 5 0 0 1 0 10H8"/><path d="M6 4l-3 3 3 3"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Back</span>
-          </button>
-
-          {/* Edit */}
-          <button
-            onClick={() => setEditOpen(true)}
-            aria-label="Edit step"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 10 10" fill="none" stroke={T.teal} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Edit</span>
-          </button>
-
-          {/* Work With Me */}
-          <button
-            onClick={() => setWorkWithMeOpen(true)}
-            aria-label="Work With Me videos"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 14 14" fill={T.teal}>
-                <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>With Me</span>
-          </button>
-
-          {/* Regen */}
-          <button
-            onClick={handleRegen}
-            disabled={regenLoading}
-            aria-label="Regenerate step"
-            style={{ all: 'unset', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: regenLoading ? 'default' : 'pointer', opacity: regenLoading ? 0.55 : 1, WebkitTapHighlightColor: 'transparent', minWidth: 56 }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(79,227,193,0.07)', border: `1px solid rgba(79,227,193,0.22)` }}>
-              <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke={T.teal} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ animation: regenLoading ? 'spin360 800ms linear infinite' : 'none' }}>
-                <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>
-              </svg>
-            </div>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.text3, textTransform: 'uppercase' }}>Regen</span>
-          </button>
-        </div>
-      )}
 
       <div style={{ margin: '2px 24px 6px', height: 1, background: 'rgba(255,255,255,0.05)' }} />
 
