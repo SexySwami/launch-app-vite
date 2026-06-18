@@ -446,7 +446,7 @@ export function SmallChunker({
                 )}
               </div>
 
-              <div style={{ position: 'relative', zIndex: 1, paddingTop: 14, paddingRight: 52, borderTop: `1px solid rgba(255,192,72,0.12)` }}>
+              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16, paddingRight: 52 }}>
                 <StepTimer key={`${batchNumber}-${inBatchIdx}`} durationSeconds={step.duration_seconds || 60} accent={T.amber} />
               </div>
             </>
