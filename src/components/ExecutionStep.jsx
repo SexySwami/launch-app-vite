@@ -125,17 +125,18 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             aria-label="Work With Me"
             style={{
               all: 'unset', cursor: 'pointer', flexShrink: 0, marginLeft: 'auto',
-              width: 36, height: 36, borderRadius: 99,
+              height: 36, borderRadius: 99, padding: '0 14px',
               background: 'rgba(79,227,193,0.08)',
               border: `1px solid rgba(79,227,193,0.32)`,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
               transition: 'all 150ms ease',
               WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 14 14" fill={T.teal}>
+            <svg width="10" height="10" viewBox="0 0 14 14" fill={T.teal}>
               <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>
             </svg>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: T.teal, textTransform: 'uppercase' }}>Work With Me</span>
           </button>
         </div>
 
