@@ -23,9 +23,9 @@ const INTERNAL_EMAILS = new Set([
 // Tie all future events to the signed-in user.
 export function identifyUser(userId, email) {
   if (!KEY) return;
-  const props = { $email: email };
+  const props = { $email: email, clerk_id: userId };
   if (email && INTERNAL_EMAILS.has(email)) props.$internal_or_test_user = true;
-  posthog.identify(userId, props);
+  posthog.identify(email || userId, props);
 }
 
 // Reset PostHog on sign-out so the next account gets a fresh anonymous ID.
