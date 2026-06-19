@@ -8,7 +8,7 @@ function fmt(secs) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOffset = 52 }) {
+export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance = 52 }) {
   const [remaining, setRemaining] = useState(durationSeconds);
   const [expired, setExpired] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -46,16 +46,15 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
     setPaused(false);
   }
 
-  const centerStyle = {
-    display: 'flex', justifyContent: 'center',
-    marginRight: -resetRightOffset,
-  };
-
   return (
     <div>
-      {/* ── Reset button (expired only) ── */}
+      {/* ── Reset button — truly centred in the card (no padding offset here) ── */}
       {expired && (
-        <div style={{ ...centerStyle, marginBottom: 10, animation: 'optionIn 220ms ease' }}>
+        <div style={{
+          display: 'flex', justifyContent: 'center',
+          marginBottom: 10,
+          animation: 'optionIn 220ms ease',
+        }}>
           <button
             onClick={reset}
             style={{
@@ -79,10 +78,11 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
         </div>
       )}
 
-      {/* ── Progress bar ── */}
+      {/* ── Progress bar — right side leaves room for the FAB ── */}
       <div style={{
         position: 'relative', height: 3, borderRadius: 99,
         background: `${accent}18`, overflow: 'visible',
+        marginRight: fabClearance,
       }}>
         {!expired && (
           <div style={{
@@ -129,14 +129,15 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
         )}
       </div>
 
-      {/* ── Pause / Play + time label row ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 }}>
+      {/* ── Pause / Play + time label row — right side clears the FAB ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginTop: 7, marginRight: fabClearance,
+      }}>
+        <div style={{ width: 20 }} />
 
-        {/* Spacer left (mirrors time label width) */}
-        <div style={{ width: 28 }} />
-
-        {/* Pause / Play — centered, hidden when expired */}
-        <div style={centerStyle}>
+        {/* Pause / Play centred in the bar's width */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           {!expired && (
             <button
               onClick={() => setPaused(p => !p)}
@@ -152,12 +153,10 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
               }}
             >
               {paused ? (
-                /* Play triangle */
                 <svg width="7" height="7" viewBox="0 0 8 8" fill={accent}>
                   <path d="M1.5 1.2v5.6L7 4z"/>
                 </svg>
               ) : (
-                /* Pause bars */
                 <svg width="7" height="7" viewBox="0 0 8 8" fill={`${accent}cc`}>
                   <rect x="1" y="1" width="2" height="6" rx="0.5"/>
                   <rect x="5" y="1" width="2" height="6" rx="0.5"/>
@@ -167,7 +166,7 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
           )}
         </div>
 
-        {/* Time label — right-aligned */}
+        {/* Time label */}
         <span style={{
           fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
           textTransform: 'uppercase',

@@ -5,6 +5,7 @@ import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditMicroStepModal } from './EditMicroStepModal.jsx';
+import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { WorkWithMeModal } from './WorkWithMeModal.jsx';
 import { StepTimer } from './StepTimer.jsx';
 
@@ -41,9 +42,10 @@ export function SmallChunker({
   const [regenHistories, setRegenHistories] = useState({});
   const [workWithMeOpen, setWorkWithMeOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Close the edit modal whenever the active card changes.
-  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistories({}); setMenuOpen(false); }, [inBatchIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistories({}); setMenuOpen(false); setPreviewOpen(false); }, [inBatchIdx]);
 
   // Re-trigger enter animation whenever the active card changes.
   useEffect(() => {
@@ -409,14 +411,22 @@ export function SmallChunker({
             </div>
           ) : (
             <>
-              <div style={{
-                display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
-                padding: '6px 12px 6px 8px', borderRadius: 99,
-                background: 'rgba(255,192,72,0.12)',
-                border: `1px solid rgba(255,192,72,0.4)`,
-                position: 'relative', zIndex: 1,
-                minWidth: 0,
-              }}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setPreviewOpen(true)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreviewOpen(true); } }}
+                style={{
+                  display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
+                  padding: '6px 12px 6px 8px', borderRadius: 99,
+                  background: 'rgba(255,192,72,0.12)',
+                  border: `1px solid rgba(255,192,72,0.4)`,
+                  position: 'relative', zIndex: 1,
+                  minWidth: 0,
+                  cursor: 'pointer',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
                 <span style={{
                   width: 22, height: 22, borderRadius: 99, flexShrink: 0,
                   background: `linear-gradient(180deg, ${T.amber}, ${T.blue})`,
@@ -464,7 +474,7 @@ export function SmallChunker({
                 )}
               </div>
 
-              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16, paddingRight: 52 }}>
+              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16 }}>
                 <StepTimer key={`${batchNumber}-${inBatchIdx}`} durationSeconds={step.duration_seconds || 60} accent={T.amber} />
               </div>
             </>
@@ -583,6 +593,16 @@ export function SmallChunker({
         description={description}
         onClose={() => setWorkWithMeOpen(false)}
       />
+
+      {previewOpen && (
+        <EditItemOverlay
+          item={{ id: `chunk-preview-${inBatchIdx}`, text: mission || '', description: description || '' }}
+          saving={false}
+          startMode="view"
+          onCancel={() => setPreviewOpen(false)}
+          onSave={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -5,10 +5,11 @@ import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditStepModal } from './EditStepModal.jsx';
+import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { WorkWithMeModal } from './WorkWithMeModal.jsx';
 import { StepTimer } from './StepTimer.jsx';
 
-export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, loading, cascadeLoading }) {
+export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, description, loading, cascadeLoading }) {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
   const [pulseMomentum, setPulseMomentum] = useState(false);
@@ -18,8 +19,9 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
   const [regenSeen, setRegenSeen] = useState([]);
   const [regenHistory, setRegenHistory] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistory([]); setMenuOpen(false); }, [stepIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistory([]); setMenuOpen(false); setPreviewOpen(false); }, [stepIdx]);
 
   useEffect(() => {
     setExiting(false);
@@ -316,14 +318,22 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
             </div>
           ) : (
             <>
-              <div style={{
-                display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
-                padding: '6px 12px 6px 8px', borderRadius: 99,
-                background: 'rgba(79,227,193,0.12)',
-                border: `1px solid rgba(79,227,193,0.4)`,
-                position: 'relative', zIndex: 1,
-                minWidth: 0,
-              }}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setPreviewOpen(true)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreviewOpen(true); } }}
+                style={{
+                  display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
+                  padding: '6px 12px 6px 8px', borderRadius: 99,
+                  background: 'rgba(79,227,193,0.12)',
+                  border: `1px solid rgba(79,227,193,0.4)`,
+                  position: 'relative', zIndex: 1,
+                  minWidth: 0,
+                  cursor: 'pointer',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
                 <span style={{
                   width: 22, height: 22, borderRadius: 99, flexShrink: 0,
                   background: `linear-gradient(180deg, ${T.teal}, ${T.blue})`,
@@ -371,7 +381,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 )}
               </div>
 
-              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16, paddingRight: 52 }}>
+              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16 }}>
                 <StepTimer key={stepIdx} durationSeconds={step.duration_seconds || 120} accent={T.teal} />
               </div>
             </>
@@ -484,6 +494,16 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         mission={mission}
         onClose={() => setWorkWithMeOpen(false)}
       />
+
+      {previewOpen && (
+        <EditItemOverlay
+          item={{ id: `step-preview-${stepIdx}`, text: mission || '', description: description || '' }}
+          saving={false}
+          startMode="view"
+          onCancel={() => setPreviewOpen(false)}
+          onSave={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
