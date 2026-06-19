@@ -23,15 +23,12 @@ const INTERNAL_EMAILS = new Set([
 // Tie all future events to the signed-in user.
 export function identifyUser(userId, email) {
   if (!KEY) return;
-  const distinctId = email || userId;
-  // If PostHog's stored distinct_id is anything other than the email (e.g. a
-  // leftover Clerk UUID from a prior session), reset before identifying so we
-  // get a clean email-based person profile instead of a messy merge.
-  const current = posthog.get_distinct_id?.();
-  if (current && current !== distinctId) posthog.reset();
-  const props = { $email: email, clerk_id: userId };
+  // Use email as distinct_id so PostHog shows email everywhere.
+  // Set both `email` (matched by PostHog display-name settings) and `$email`
+  // (PostHog's built-in reserved property) for maximum compatibility.
+  const props = { email, $email: email, clerk_id: userId };
   if (email && INTERNAL_EMAILS.has(email)) props.$internal_or_test_user = true;
-  posthog.identify(distinctId, props);
+  posthog.identify(email || userId, props);
 }
 
 // Reset PostHog on sign-out so the next account gets a fresh anonymous ID.
