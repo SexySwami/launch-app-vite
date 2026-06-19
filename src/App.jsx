@@ -1176,6 +1176,7 @@ function AppInner() {
         onLogStep={handleLogStep}
         stepLogged={loggedSteps.has(stepIdx)}
         mission={mission}
+        description={sourceDescription}
         loading={stepsLoading || !resolvedStep}
         cascadeLoading={cascadeLoading && stepIdx > cascadeFromIdx}
       />
