@@ -26,17 +26,6 @@ const rgba = (hex, a) => {
 // ─────────────────────────────────────────────────────────────
 const MOODS = [
   {
-    id: 'good', name: 'Good', mode: 'Four-step breakdown', accent: T.teal, handlerKey: 'fourStep',
-    icon: (c) => (
-      <g fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9.2" />
-        <path d="M8.4 10.6h.01" />
-        <path d="M15.6 10.6h.01" />
-        <path d="M7.8 14c1.1 1.5 2.6 2.3 4.2 2.3s3.1-.8 4.2-2.3" />
-      </g>
-    ),
-  },
-  {
     id: 'foggy', name: 'Foggy', mode: 'Deep focus', accent: T.purple, handlerKey: 'deepFocus',
     icon: (c) => (
       <g fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
