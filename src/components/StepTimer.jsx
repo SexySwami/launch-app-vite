@@ -11,53 +11,51 @@ function fmt(secs) {
 export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOffset = 52 }) {
   const [remaining, setRemaining] = useState(durationSeconds);
   const [expired, setExpired] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     setRemaining(durationSeconds);
     setExpired(false);
+    setPaused(false);
   }, [durationSeconds]);
 
   useEffect(() => {
-    if (expired) return;
+    if (expired || paused) return;
     if (remaining <= 0) { setExpired(true); return; }
     const id = setTimeout(() => setRemaining(r => r - 1), 1000);
     return () => clearTimeout(id);
-  }, [remaining, expired]);
+  }, [remaining, expired, paused]);
 
   const pct = expired ? 0 : remaining / durationSeconds;
 
-  // Accent → warm orange → red as time depletes
   const barColor = expired
     ? '#FF4560'
-    : pct < 0.15
-      ? '#FF4560'
-      : pct < 0.35
-        ? '#FF8C42'
-        : accent;
+    : pct < 0.15 ? '#FF4560'
+    : pct < 0.35 ? '#FF8C42'
+    : accent;
 
   const glow = expired
     ? 'rgba(255,69,96,0.65)'
-    : pct < 0.15
-      ? 'rgba(255,69,96,0.55)'
-      : pct < 0.35
-        ? 'rgba(255,140,66,0.55)'
-        : `${accent}88`;
+    : pct < 0.15 ? 'rgba(255,69,96,0.55)'
+    : pct < 0.35 ? 'rgba(255,140,66,0.55)'
+    : `${accent}88`;
 
   function reset() {
     setRemaining(durationSeconds);
     setExpired(false);
+    setPaused(false);
   }
+
+  const centerStyle = {
+    display: 'flex', justifyContent: 'center',
+    marginRight: -resetRightOffset,
+  };
 
   return (
     <div>
       {/* ── Reset button (expired only) ── */}
       {expired && (
-        <div style={{
-          display: 'flex', justifyContent: 'center',
-          marginRight: -resetRightOffset,
-          marginBottom: 10,
-          animation: 'optionIn 220ms ease',
-        }}>
+        <div style={{ ...centerStyle, marginBottom: 10, animation: 'optionIn 220ms ease' }}>
           <button
             onClick={reset}
             style={{
@@ -67,7 +65,6 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
               background: 'rgba(255,69,96,0.1)',
               border: '1px solid rgba(255,69,96,0.4)',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'background 160ms ease, border-color 160ms ease',
             }}
           >
             <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
@@ -84,14 +81,9 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
 
       {/* ── Progress bar ── */}
       <div style={{
-        position: 'relative',
-        height: 3,
-        borderRadius: 99,
-        background: `${accent}18`,
-        overflow: 'visible',
+        position: 'relative', height: 3, borderRadius: 99,
+        background: `${accent}18`, overflow: 'visible',
       }}>
-
-        {/* Filled drain */}
         {!expired && (
           <div style={{
             position: 'absolute', left: 0, top: 0, bottom: 0,
@@ -99,39 +91,37 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
             borderRadius: 99,
             background: `linear-gradient(to right, ${accent}44 0%, ${barColor} 100%)`,
             boxShadow: `0 0 10px 2px ${glow}`,
-            transition: 'width 1.05s linear, background 0.8s ease, box-shadow 0.8s ease',
+            transition: paused
+              ? 'background 0.8s ease, box-shadow 0.8s ease'
+              : 'width 1.05s linear, background 0.8s ease, box-shadow 0.8s ease',
             overflow: 'hidden',
           }}>
-            {/* inner shimmer sweep */}
             <div style={{
               position: 'absolute', inset: 0,
               background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)',
               backgroundSize: '200% 100%',
-              animation: 'shimmer 2.4s linear infinite',
+              animation: paused ? 'none' : 'shimmer 2.4s linear infinite',
             }} />
           </div>
         )}
 
-        {/* Leading-edge glow dot */}
         {!expired && pct > 0.02 && (
           <div style={{
-            position: 'absolute',
-            top: '50%',
+            position: 'absolute', top: '50%',
             left: `${pct * 100}%`,
             transform: 'translate(-50%, -50%)',
-            width: 7, height: 7,
-            borderRadius: '50%',
+            width: 7, height: 7, borderRadius: '50%',
             background: barColor,
             boxShadow: `0 0 10px 5px ${glow}, 0 0 3px 1px ${barColor}`,
-            transition: 'left 1.05s linear, background 0.8s ease, box-shadow 0.8s ease',
+            transition: paused
+              ? 'background 0.8s ease, box-shadow 0.8s ease'
+              : 'left 1.05s linear, background 0.8s ease, box-shadow 0.8s ease',
           }} />
         )}
 
-        {/* Expired — full red pulse */}
         {expired && (
           <div style={{
-            position: 'absolute', inset: 0,
-            borderRadius: 99,
+            position: 'absolute', inset: 0, borderRadius: 99,
             background: '#FF4560',
             boxShadow: '0 0 12px 3px rgba(255,69,96,0.7)',
             animation: 'pulse 1.1s ease-in-out infinite',
@@ -139,16 +129,53 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOf
         )}
       </div>
 
-      {/* ── Time label ── */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 7 }}>
+      {/* ── Pause / Play + time label row ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 }}>
+
+        {/* Spacer left (mirrors time label width) */}
+        <div style={{ width: 28 }} />
+
+        {/* Pause / Play — centered, hidden when expired */}
+        <div style={centerStyle}>
+          {!expired && (
+            <button
+              onClick={() => setPaused(p => !p)}
+              aria-label={paused ? 'Resume timer' : 'Pause timer'}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 20, height: 20, borderRadius: '50%',
+                background: paused ? `${accent}22` : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${paused ? `${accent}55` : 'rgba(255,255,255,0.1)'}`,
+                transition: 'background 200ms ease, border-color 200ms ease',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              {paused ? (
+                /* Play triangle */
+                <svg width="7" height="7" viewBox="0 0 8 8" fill={accent}>
+                  <path d="M1.5 1.2v5.6L7 4z"/>
+                </svg>
+              ) : (
+                /* Pause bars */
+                <svg width="7" height="7" viewBox="0 0 8 8" fill={`${accent}cc`}>
+                  <rect x="1" y="1" width="2" height="6" rx="0.5"/>
+                  <rect x="5" y="1" width="2" height="6" rx="0.5"/>
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Time label — right-aligned */}
         <span style={{
           fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
           textTransform: 'uppercase',
-          color: expired ? '#FF4560' : pct < 0.25 ? barColor : T.text3,
+          color: expired ? '#FF4560' : paused ? `${accent}99` : pct < 0.25 ? barColor : T.text3,
           transition: 'color 0.8s ease',
           animation: expired ? 'pulse 1.1s ease-in-out infinite' : 'none',
         }}>
-          {expired ? "time's up" : fmt(remaining)}
+          {expired ? "time's up" : paused ? `${fmt(remaining)} ·· paused` : fmt(remaining)}
         </span>
       </div>
     </div>
