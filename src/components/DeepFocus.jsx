@@ -5,6 +5,7 @@ import { Telemetry } from './Telemetry.jsx';
 import { GlowButton } from './GlowButton.jsx';
 import { MarqueeText } from './MarqueeText.jsx';
 import { EditMicroStepModal } from './EditMicroStepModal.jsx';
+import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { WorkWithMeModal } from './WorkWithMeModal.jsx';
 import { StepTimer } from './StepTimer.jsx';
 
@@ -41,8 +42,9 @@ export function DeepFocus({
   const [regenSeen, setRegenSeen] = useState([]);
   const [regenHistories, setRegenHistories] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistories({}); setMenuOpen(false); }, [inBatchIdx]);
+  useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistories({}); setMenuOpen(false); setPreviewOpen(false); }, [inBatchIdx]);
 
   useEffect(() => {
     setExiting(false);
@@ -406,14 +408,22 @@ export function DeepFocus({
             </div>
           ) : (
             <>
-              <div style={{
-                display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
-                padding: '6px 12px 6px 8px', borderRadius: 99,
-                background: 'rgba(168,118,255,0.12)',
-                border: `1px solid rgba(168,118,255,0.4)`,
-                position: 'relative', zIndex: 1,
-                minWidth: 0,
-              }}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setPreviewOpen(true)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreviewOpen(true); } }}
+                style={{
+                  display: 'flex', alignSelf: 'stretch', alignItems: 'center', gap: 10,
+                  padding: '6px 12px 6px 8px', borderRadius: 99,
+                  background: 'rgba(168,118,255,0.12)',
+                  border: `1px solid rgba(168,118,255,0.4)`,
+                  position: 'relative', zIndex: 1,
+                  minWidth: 0,
+                  cursor: 'pointer',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
                 <span style={{
                   width: 22, height: 22, borderRadius: 99, flexShrink: 0,
                   background: `linear-gradient(180deg, ${T.purple}, ${T.blue})`,
@@ -581,6 +591,16 @@ export function DeepFocus({
         description={description}
         onClose={() => setWorkWithMeOpen(false)}
       />
+
+      {previewOpen && (
+        <EditItemOverlay
+          item={{ id: `deep-preview-${inBatchIdx}`, text: mission || '', description: description || '' }}
+          saving={false}
+          startMode="view"
+          onCancel={() => setPreviewOpen(false)}
+          onSave={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
