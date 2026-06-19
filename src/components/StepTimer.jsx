@@ -8,7 +8,7 @@ function fmt(secs) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export function StepTimer({ durationSeconds = 120, accent = T.teal }) {
+export function StepTimer({ durationSeconds = 120, accent = T.teal, resetRightOffset = 52 }) {
   const [remaining, setRemaining] = useState(durationSeconds);
   const [expired, setExpired] = useState(false);
 
@@ -54,6 +54,7 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal }) {
       {expired && (
         <div style={{
           display: 'flex', justifyContent: 'center',
+          marginRight: -resetRightOffset,
           marginBottom: 10,
           animation: 'optionIn 220ms ease',
         }}>
