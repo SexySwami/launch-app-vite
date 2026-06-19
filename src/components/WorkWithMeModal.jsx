@@ -287,7 +287,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
               fontFamily: T.mono, fontSize: 10, letterSpacing: '0.24em',
               color: T.purple, textTransform: 'uppercase', fontWeight: 600,
               textShadow: `0 0 8px ${T.purple}66`,
-            }}>Work With Me</span>
+            }}>Body Double</span>
           </div>
           <button onClick={handleClose} aria-label="Close" style={{
             all: 'unset', cursor: 'pointer',

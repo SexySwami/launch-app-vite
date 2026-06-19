@@ -214,7 +214,7 @@ export function SmallChunker({
           </div>
           <button
             onClick={() => setWorkWithMeOpen(true)}
-            aria-label="Work With Me"
+            aria-label="Body Double"
             style={{
               all: 'unset', cursor: 'pointer', flexShrink: 0, marginLeft: 'auto',
               height: 36, borderRadius: 99, padding: '0 14px',
@@ -228,7 +228,7 @@ export function SmallChunker({
             <svg width="10" height="10" viewBox="0 0 14 14" fill={T.amber}>
               <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>
             </svg>
-            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: '#fff', fontWeight: 700, textTransform: 'uppercase' }}>Work With Me</span>
+            <span style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em', color: '#fff', fontWeight: 700, textTransform: 'uppercase' }}>Body Double</span>
           </button>
         </div>
 
@@ -498,7 +498,7 @@ export function SmallChunker({
               }}>
                 {[
                   { label: 'Edit', disabled: false, onClick: () => { setEditOpen(true); setMenuOpen(false); }, icon: <path d="M1 9l1.5-3.5L7 1l2 2-4.5 4.5L1 9z"/>, vb: '0 0 10 10', stroke: true },
-                  { label: 'Work With Me', disabled: false, onClick: () => { setWorkWithMeOpen(true); setMenuOpen(false); }, icon: <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>, vb: '0 0 14 14', fill: true },
+                  { label: 'Body Double', disabled: false, onClick: () => { setWorkWithMeOpen(true); setMenuOpen(false); }, icon: <path d="M2 2.4v9.2a.6.6 0 0 0 .92.5l7.3-4.6a.6.6 0 0 0 0-1L2.92 1.9A.6.6 0 0 0 2 2.4z"/>, vb: '0 0 14 14', fill: true },
                   { label: regenLoading ? 'Regenerating…' : 'Regenerate', disabled: regenLoading, onClick: () => { handleRegen(); setMenuOpen(false); }, icon: <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>, vb: '0 0 12 12' },
                   { label: 'Undo regen', disabled: (regenHistories[inBatchIdx] || []).length === 0, onClick: () => { handleRegenBack(); setMenuOpen(false); }, icon: <path d="M3 7h11a5 5 0 0 1 0 10H8"/>, icon2: <path d="M6 4l-3 3 3 3"/>, vb: '0 0 24 24' },
                 ].map(({ label, disabled, onClick, icon, icon2, vb, fill }) => (
