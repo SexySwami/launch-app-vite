@@ -135,41 +135,42 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
       </div>
 
       {/* ── Pause / play + time label ── */}
-      {/* position:relative so the pause button can be absolute-centred independently of the label */}
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 7, minHeight: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 }}>
 
-        {/* Pause / play — absolutely centred at 50% of wrapper width.
-            Out of flow so the time label expanding never shifts it. */}
-        {!expired && (
-          <button
-            onClick={() => setPaused(p => !p)}
-            aria-label={paused ? 'Resume timer' : 'Pause timer'}
-            style={{
-              all: 'unset', cursor: 'pointer',
-              position: 'absolute', left: '50%', top: '50%',
-              transform: 'translate(-50%, -50%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 20, height: 20, borderRadius: '50%',
-              background: paused ? `${accent}22` : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${paused ? `${accent}55` : 'rgba(255,255,255,0.1)'}`,
-              transition: 'background 200ms ease, border-color 200ms ease',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            {paused ? (
-              <svg width="7" height="7" viewBox="0 0 8 8" fill={accent}>
-                <path d="M1.5 1.2v5.6L7 4z"/>
-              </svg>
-            ) : (
-              <svg width="7" height="7" viewBox="0 0 8 8" fill={`${accent}cc`}>
-                <rect x="1" y="1" width="2" height="6" rx="0.5"/>
-                <rect x="5" y="1" width="2" height="6" rx="0.5"/>
-              </svg>
-            )}
-          </button>
-        )}
+        {/* Left spacer balances time label so pause button stays centred */}
+        <div style={{ width: 28 }} />
 
-        {/* Time label — right-aligned, wrapper paddingRight keeps it clear of FAB */}
+        {/* Pause / play — centred across full card width via negative margin */}
+        <div style={{ display: 'flex', justifyContent: 'center', ...centreStyle }}>
+          {!expired && (
+            <button
+              onClick={() => setPaused(p => !p)}
+              aria-label={paused ? 'Resume timer' : 'Pause timer'}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 20, height: 20, borderRadius: '50%',
+                background: paused ? `${accent}22` : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${paused ? `${accent}55` : 'rgba(255,255,255,0.1)'}`,
+                transition: 'background 200ms ease, border-color 200ms ease',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              {paused ? (
+                <svg width="7" height="7" viewBox="0 0 8 8" fill={accent}>
+                  <path d="M1.5 1.2v5.6L7 4z"/>
+                </svg>
+              ) : (
+                <svg width="7" height="7" viewBox="0 0 8 8" fill={`${accent}cc`}>
+                  <rect x="1" y="1" width="2" height="6" rx="0.5"/>
+                  <rect x="5" y="1" width="2" height="6" rx="0.5"/>
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Time label — sits at the right edge of the wrapper (FAB cleared by wrapper paddingRight) */}
         <span style={{
           fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
           textTransform: 'uppercase',
