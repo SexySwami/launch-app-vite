@@ -381,7 +381,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
                 )}
               </div>
 
-              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16 }}>
+              <div style={{ position: 'relative', zIndex: 1, paddingTop: 16, paddingRight: 52 }}>
                 <StepTimer key={stepIdx} durationSeconds={step.duration_seconds || 120} accent={T.teal} />
               </div>
             </>

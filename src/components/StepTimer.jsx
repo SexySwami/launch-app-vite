@@ -8,6 +8,8 @@ function fmt(secs) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// fabClearance must match the paddingRight on the wrapper div in the card component.
+// Both the reset button and pause button use -fabClearance to centre across the full card.
 export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance = 52 }) {
   const [remaining, setRemaining] = useState(durationSeconds);
   const [expired, setExpired] = useState(false);
@@ -46,11 +48,15 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
     setPaused(false);
   }
 
+  // Both centred elements break out of the wrapper's paddingRight with this margin.
+  const centreStyle = { marginRight: -fabClearance };
+
   return (
     <div>
-      {/* ── Reset button — truly centred in the card (no padding offset here) ── */}
+      {/* ── Reset button (expired only) — centred across full card width ── */}
       {expired && (
         <div style={{
+          ...centreStyle,
           textAlign: 'center',
           marginBottom: 10,
           animation: 'optionIn 220ms ease',
@@ -78,11 +84,10 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
         </div>
       )}
 
-      {/* ── Progress bar — right side leaves room for the FAB ── */}
+      {/* ── Progress bar (wrapper paddingRight keeps it clear of FAB) ── */}
       <div style={{
         position: 'relative', height: 3, borderRadius: 99,
         background: `${accent}18`, overflow: 'visible',
-        marginRight: fabClearance,
       }}>
         {!expired && (
           <div style={{
@@ -129,15 +134,14 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
         )}
       </div>
 
-      {/* ── Pause / Play + time label row — right side clears the FAB ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginTop: 7, marginRight: fabClearance,
-      }}>
-        <div style={{ width: 20 }} />
+      {/* ── Pause / play + time label ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 }}>
 
-        {/* Pause / Play centred in the bar's width */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        {/* Left spacer balances time label so pause button stays centred */}
+        <div style={{ width: 28 }} />
+
+        {/* Pause / play — centred across full card width via negative margin */}
+        <div style={{ display: 'flex', justifyContent: 'center', ...centreStyle }}>
           {!expired && (
             <button
               onClick={() => setPaused(p => !p)}
@@ -166,7 +170,7 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
           )}
         </div>
 
-        {/* Time label */}
+        {/* Time label — sits at the right edge of the wrapper (FAB cleared by wrapper paddingRight) */}
         <span style={{
           fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
           textTransform: 'uppercase',
