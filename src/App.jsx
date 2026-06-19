@@ -66,6 +66,7 @@ export default function App() {
     } else if (prevUserIdRef.current) {
       resetAnalytics(); // signed out
       prevUserIdRef.current = null;
+      setShowOnboarding(true);
     }
   }, [user?.id]);
 
@@ -91,10 +92,8 @@ export default function App() {
     } catch {}
   }, [isLoaded, isSignedIn, user?.id]);
 
-  // Show onboarding once to first-time visitors; skip for returning users.
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try { return !localStorage.getItem(ONBOARDING_KEY); } catch { return false; }
-  });
+  // Show onboarding whenever the user is not signed in — always.
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   // Dismiss the native HTML boot loader (visible before JS runs) once Clerk
   // has resolved auth state. Fade it out so the transition is seamless.
