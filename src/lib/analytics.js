@@ -23,7 +23,7 @@ const INTERNAL_EMAILS = new Set([
 // Tie all future events to the signed-in user.
 export function identifyUser(userId, email) {
   if (!KEY) return;
-  const props = { email };
+  const props = { $email: email };
   if (email && INTERNAL_EMAILS.has(email)) props.$internal_or_test_user = true;
   posthog.identify(userId, props);
 }
