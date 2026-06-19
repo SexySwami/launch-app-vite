@@ -145,7 +145,7 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
             aria-label={paused ? 'Resume timer' : 'Pause timer'}
             style={{
               all: 'unset', cursor: 'pointer',
-              position: 'absolute', left: '50%', top: '50%',
+              position: 'absolute', left: `calc(50% + ${fabClearance / 2}px)`, top: '50%',
               transform: 'translate(-50%, -50%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 20, height: 20, borderRadius: '50%',
