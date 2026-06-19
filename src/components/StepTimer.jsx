@@ -51,7 +51,7 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal, fabClearance
       {/* ── Reset button — truly centred in the card (no padding offset here) ── */}
       {expired && (
         <div style={{
-          display: 'flex', justifyContent: 'center',
+          textAlign: 'center',
           marginBottom: 10,
           animation: 'optionIn 220ms ease',
         }}>
