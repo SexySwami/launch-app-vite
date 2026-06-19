@@ -43,8 +43,44 @@ export function StepTimer({ durationSeconds = 120, accent = T.teal }) {
         ? 'rgba(255,140,66,0.55)'
         : `${accent}88`;
 
+  function reset() {
+    setRemaining(durationSeconds);
+    setExpired(false);
+  }
+
   return (
     <div>
+      {/* ── Reset button (expired only) ── */}
+      {expired && (
+        <div style={{
+          display: 'flex', justifyContent: 'center',
+          marginBottom: 10,
+          animation: 'optionIn 220ms ease',
+        }}>
+          <button
+            onClick={reset}
+            style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '5px 14px', borderRadius: 99,
+              background: 'rgba(255,69,96,0.1)',
+              border: '1px solid rgba(255,69,96,0.4)',
+              WebkitTapHighlightColor: 'transparent',
+              transition: 'background 160ms ease, border-color 160ms ease',
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
+              stroke="#FF4560" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.5V4H7.5"/>
+            </svg>
+            <span style={{
+              fontFamily: T.mono, fontSize: 9, letterSpacing: '0.18em',
+              textTransform: 'uppercase', color: '#FF4560',
+            }}>Reset timer</span>
+          </button>
+        </div>
+      )}
+
       {/* ── Progress bar ── */}
       <div style={{
         position: 'relative',
