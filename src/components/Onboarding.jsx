@@ -465,7 +465,7 @@ function VideoCard() {
           ))}
         </div>
         <span style={{ fontFamily: T.mono, fontSize: 10.5, letterSpacing: '0.24em',
-          color: rgba(T.purple,0.92), textTransform: 'uppercase' }}>Work With Me</span>
+          color: rgba(T.purple,0.92), textTransform: 'uppercase' }}>Body Double</span>
       </div>
     </div>
   );
@@ -806,12 +806,12 @@ function SlideFocus() {
         <h2 className="ob-s" style={{ '--d': '0.08s', fontFamily: T.display,
           fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
           color: T.text, margin: 'clamp(12px, 2.5vh, 22px) 0 0', letterSpacing: '-0.025em', textAlign: 'center' }}>
-          Work with a focus partner
+          Body double with a focus partner
         </h2>
         <p className="ob-s" style={{ '--d': '0.15s', fontFamily: T.display,
           fontSize: 'clamp(14px, 1.8vw, 16px)', color: T.text2,
           margin: 'clamp(8px, 1.5vh, 12px) 0 0', lineHeight: 1.45, textAlign: 'center', maxWidth: 320 }}>
-          AI picks a "Work With Me" video matched to your task — virtual body doubling that actually helps you start tasks and keep going.
+          AI picks a "Body Double" video matched to your task — virtual body doubling that actually helps you start tasks and keep going.
         </p>
         {/* VideoCard: capped at 520px wide so it never gets taller than ~295px */}
         <div className="ob-s" style={{ '--d': '0.26s',
