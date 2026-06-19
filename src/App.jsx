@@ -1181,7 +1181,11 @@ function AppInner() {
       />
     );
   else if (screen === 'reward')
-    body = <Reward onNext={() => setScreen('nextphase')} momentum={momentum - 15} />;
+    body = <Reward onNext={() => setScreen('nextphase')} momentum={momentum - 15} onBack={() => {
+      if (selectedMode === 'smallChunker') setScreen('smallChunker');
+      else if (selectedMode === 'deepFocus') setScreen('deepFocus');
+      else setScreen('step');
+    }} />;
   else if (screen === 'nextphase')
     body = (
       <NextPhase

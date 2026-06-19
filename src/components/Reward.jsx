@@ -210,11 +210,34 @@ function CelebrationCore() {
 }
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
-export function Reward({ onNext }) {
+export function Reward({ onNext, onBack }) {
   const [pressNext, setPressNext] = useState(false);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', minHeight: 0 }}>
+
+      {/* Back button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Back"
+          style={{
+            all: 'unset', cursor: 'pointer',
+            position: 'absolute', top: 14, left: 14, zIndex: 10,
+            width: 36, height: 36, borderRadius: 99,
+            background: T.surface,
+            border: `1px solid ${T.hairlineSoft}`,
+            color: T.text2,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 150ms ease',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14">
+            <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
 
       {/* Ambient triple wash */}
       <div style={{
