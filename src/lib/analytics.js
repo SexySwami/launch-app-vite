@@ -15,10 +15,17 @@ export function initAnalytics() {
   });
 }
 
+const INTERNAL_EMAILS = new Set([
+  'swami.kush@gmail.com',
+  'kushyegnaswami@gmail.com',
+]);
+
 // Tie all future events to the signed-in user.
-export function identifyUser(userId) {
+export function identifyUser(userId, email) {
   if (!KEY) return;
-  posthog.identify(userId);
+  const props = { email };
+  if (email && INTERNAL_EMAILS.has(email)) props.$internal_or_test_user = true;
+  posthog.identify(userId, props);
 }
 
 // Reset PostHog on sign-out so the next account gets a fresh anonymous ID.

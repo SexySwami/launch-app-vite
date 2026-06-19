@@ -61,7 +61,7 @@ export default function App() {
       if (prevUserIdRef.current && prevUserIdRef.current !== user.id) {
         resetAnalytics(); // account switched — fresh slate for new user
       }
-      identifyUser(user.id);
+      identifyUser(user.id, user.primaryEmailAddress?.emailAddress);
       prevUserIdRef.current = user.id;
     } else if (prevUserIdRef.current) {
       resetAnalytics(); // signed out
