@@ -475,7 +475,7 @@ export function DeepFocus({
             )}
             {menuOpen && (
               <div style={{
-                position: 'absolute', bottom: 88, right: 40, zIndex: 10,
+                position: 'absolute', bottom: 108, right: 40, zIndex: 10,
                 background: 'rgba(8,16,24,0.96)',
                 border: `1px solid rgba(168,118,255,0.28)`,
                 borderRadius: 16, overflow: 'hidden', minWidth: 192,
@@ -508,7 +508,7 @@ export function DeepFocus({
               aria-label="Card options"
               style={{
                 all: 'unset', cursor: 'pointer', zIndex: 10,
-                position: 'absolute', bottom: 44, right: 40,
+                position: 'absolute', bottom: 64, right: 40,
                 width: 34, height: 34, borderRadius: 99,
                 background: menuOpen ? `rgba(168,118,255,0.2)` : `rgba(168,118,255,0.08)`,
                 border: `1px solid ${menuOpen ? 'rgba(168,118,255,0.55)' : 'rgba(168,118,255,0.28)'}`,

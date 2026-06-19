@@ -478,7 +478,7 @@ export function SmallChunker({
             )}
             {menuOpen && (
               <div style={{
-                position: 'absolute', bottom: 88, right: 40, zIndex: 10,
+                position: 'absolute', bottom: 108, right: 40, zIndex: 10,
                 background: 'rgba(8,16,24,0.96)',
                 border: `1px solid rgba(255,192,72,0.28)`,
                 borderRadius: 16, overflow: 'hidden', minWidth: 192,
@@ -511,7 +511,7 @@ export function SmallChunker({
               aria-label="Card options"
               style={{
                 all: 'unset', cursor: 'pointer', zIndex: 10,
-                position: 'absolute', bottom: 44, right: 40,
+                position: 'absolute', bottom: 64, right: 40,
                 width: 34, height: 34, borderRadius: 99,
                 background: menuOpen ? `rgba(255,192,72,0.2)` : `rgba(255,192,72,0.08)`,
                 border: `1px solid ${menuOpen ? 'rgba(255,192,72,0.55)' : 'rgba(255,192,72,0.28)'}`,
