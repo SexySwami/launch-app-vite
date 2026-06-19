@@ -2673,16 +2673,38 @@ export function MissionInput({
       {itemOptionsId && (
         <div style={{ padding: '0 24px' }}>
           {isShortList ? (
-            /* ── Short List: Check Off (source + reference) / Remove ── */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            /* ── Short List: same 4-button grid as regular list ── */
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {/* Remove */}
+              <button
+                onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                style={{
+                  height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(255,179,71,0.14), rgba(255,179,71,0.04))',
+                  border: `1px solid rgba(255,179,71,0.4)`,
+                  color: T.warn,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,179,71,0.10)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13">
+                  <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                Remove
+              </button>
+              {/* Check Off */}
               <button
                 onClick={() => handleShortListCheckOff(itemOptionsId)}
                 style={{
-                  width: '100%', height: 60, borderRadius: 18,
+                  height: 60, borderRadius: 18,
                   background: 'linear-gradient(180deg, rgba(0,255,110,0.16), rgba(0,255,110,0.04))',
                   border: `1px solid rgba(0,255,110,0.45)`,
                   color: '#00e56e',
-                  fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
                   letterSpacing: '0.04em', textTransform: 'uppercase',
                   cursor: 'pointer',
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(0,255,110,0.12)',
@@ -2695,23 +2717,45 @@ export function MissionInput({
                 </svg>
                 Check Off
               </button>
+              {/* Edit */}
               <button
-                onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                onClick={() => handleStartEdit(itemOptionsId)}
                 style={{
-                  width: '100%', height: 60, borderRadius: 18,
-                  background: 'linear-gradient(180deg, rgba(255,107,157,0.14), rgba(255,107,157,0.04))',
-                  border: '1px solid rgba(255,107,157,0.45)',
-                  color: T.rose,
-                  fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                  height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(168,118,255,0.14), rgba(168,118,255,0.04))',
+                  border: `1px solid rgba(168,118,255,0.45)`,
+                  color: T.text,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
                   letterSpacing: '0.04em', textTransform: 'uppercase',
                   cursor: 'pointer',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 18px rgba(255,107,157,0.12)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(168,118,255,0.12)',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <svg width="13" height="13" viewBox="0 0 13 13">
-                  <path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  <path d="M1.5 11.5l1.5-3.5L8 2.5l2.5 2.5-5.5 5.5L1.5 11.5z" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinejoin="round"/>
+                </svg>
+                Edit
+              </button>
+              {/* Remove from Short List */}
+              <button
+                onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                style={{
+                  height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(255,107,157,0.12), rgba(255,107,157,0.04))',
+                  border: '1px solid rgba(255,107,157,0.42)',
+                  color: T.rose,
+                  fontFamily: T.display, fontSize: 11, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(255,107,157,0.10)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
                 </svg>
                 Remove from Short List
               </button>
