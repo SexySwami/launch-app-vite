@@ -4,6 +4,7 @@ import { T } from '../tokens.js';
 export function RefineModal({ open, mission, description, currentSteps, onClose, onConfirm }) {
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
+  const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState(null);
 
@@ -11,11 +12,11 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
     if (!open) {
       setLoading(true);
       setQuestions([]);
+      setCurrentQ(0);
       setAnswers({});
       setError(null);
       return;
     }
-
     const run = async () => {
       setLoading(true);
       setError(null);
@@ -48,14 +49,31 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
 
   if (!open) return null;
 
-  const toggle = (qi, chip) =>
-    setAnswers(prev => ({ ...prev, [qi]: prev[qi] === chip ? null : chip }));
+  const q = questions[currentQ];
+  const isLast = currentQ >= questions.length - 1;
+  const curAnswer = answers[currentQ] || { chip: null, text: '' };
 
-  const hasAnswers = Object.values(answers).some(Boolean);
+  const toggleChip = (chip) =>
+    setAnswers(prev => {
+      const cur = prev[currentQ] || { chip: null, text: '' };
+      return { ...prev, [currentQ]: { ...cur, chip: cur.chip === chip ? null : chip } };
+    });
 
-  const handleConfirm = () => {
+  const setText = (text) =>
+    setAnswers(prev => {
+      const cur = prev[currentQ] || { chip: null, text: '' };
+      return { ...prev, [currentQ]: { ...cur, text } };
+    });
+
+  const handleFinish = () => {
     const lines = questions
-      .map((q, i) => answers[i] ? `- ${q.text} → ${answers[i]}` : null)
+      .map((qt, i) => {
+        const a = answers[i];
+        if (!a) return null;
+        const parts = [a.chip, a.text?.trim()].filter(Boolean);
+        if (!parts.length) return null;
+        return `- ${qt.text} → ${parts.join('; ')}`;
+      })
       .filter(Boolean);
     onConfirm(lines.length ? `User clarifications:\n${lines.join('\n')}` : '');
   };
@@ -72,6 +90,7 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
         animation: 'backdropIn 220ms ease',
       }}
     >
+      <style>{`.refine-text::placeholder { color: rgba(255,255,255,0.22); font-family: inherit; }`}</style>
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -110,18 +129,26 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
               textShadow: `0 0 8px ${T.purple}66`,
             }}>Refine Steps</span>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{
-            all: 'unset', cursor: 'pointer',
-            width: 28, height: 28, borderRadius: 99,
-            background: 'rgba(255,255,255,0.05)',
-            border: `1px solid ${T.hairlineSoft}`,
-            color: T.text2,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="9" height="9" viewBox="0 0 10 10">
-              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {questions.length > 0 && !loading && (
+              <span style={{
+                fontFamily: T.mono, fontSize: 9, letterSpacing: '0.16em',
+                color: T.text3, textTransform: 'uppercase',
+              }}>{currentQ + 1} / {questions.length}</span>
+            )}
+            <button onClick={onClose} aria-label="Close" style={{
+              all: 'unset', cursor: 'pointer',
+              width: 28, height: 28, borderRadius: 99,
+              background: 'rgba(255,255,255,0.05)',
+              border: `1px solid ${T.hairlineSoft}`,
+              color: T.text2,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="9" height="9" viewBox="0 0 10 10">
+                <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -159,79 +186,105 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
           }}>
             {error}
           </div>
-        ) : (
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 22 }}>
-            {questions.map((q, qi) => (
-              <div key={qi}>
-                <div style={{
-                  fontFamily: T.display, fontSize: 15, fontWeight: 500,
-                  color: T.text, letterSpacing: '-0.01em', lineHeight: 1.38,
-                  marginBottom: 12,
-                }}>
-                  {q.text}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {q.chips.map(chip => {
-                    const selected = answers[qi] === chip;
-                    return (
-                      <button
-                        key={chip}
-                        onClick={() => toggle(qi, chip)}
-                        style={{
-                          all: 'unset', cursor: 'pointer',
-                          padding: '7px 14px', borderRadius: 99,
-                          fontFamily: T.mono, fontSize: 10, letterSpacing: '0.14em',
-                          textTransform: 'uppercase', fontWeight: selected ? 700 : 500,
-                          color: selected ? '#fff' : T.text2,
-                          background: selected
-                            ? `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`
-                            : 'rgba(255,255,255,0.06)',
-                          border: `1px solid ${selected ? 'rgba(168,118,255,0.7)' : 'rgba(140,200,255,0.18)'}`,
-                          boxShadow: selected ? '0 0 18px rgba(168,118,255,0.4)' : 'none',
-                          transition: 'all 160ms ease',
-                          WebkitTapHighlightColor: 'transparent',
-                        }}
-                      >
-                        {chip}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+        ) : q ? (
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{
+              fontFamily: T.display, fontSize: 16, fontWeight: 500,
+              color: T.text, letterSpacing: '-0.01em', lineHeight: 1.38,
+            }}>
+              {q.text}
+            </div>
 
-            <button
-              onClick={handleConfirm}
-              disabled={!hasAnswers}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {q.chips.map(chip => {
+                const selected = curAnswer.chip === chip;
+                return (
+                  <button
+                    key={chip}
+                    onClick={() => toggleChip(chip)}
+                    style={{
+                      all: 'unset', cursor: 'pointer',
+                      padding: '7px 14px', borderRadius: 99,
+                      fontFamily: T.mono, fontSize: 10, letterSpacing: '0.14em',
+                      textTransform: 'uppercase', fontWeight: selected ? 700 : 500,
+                      color: selected ? '#fff' : T.text2,
+                      background: selected
+                        ? `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`
+                        : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${selected ? 'rgba(168,118,255,0.7)' : 'rgba(140,200,255,0.18)'}`,
+                      boxShadow: selected ? '0 0 18px rgba(168,118,255,0.4)' : 'none',
+                      transition: 'all 160ms ease',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                  >
+                    {chip}
+                  </button>
+                );
+              })}
+            </div>
+
+            <textarea
+              className="refine-text"
+              value={curAnswer.text}
+              onChange={e => setText(e.target.value)}
+              placeholder="Or describe in your own words…"
+              rows={3}
               style={{
-                all: 'unset', cursor: hasAnswers ? 'pointer' : 'default',
-                marginTop: 4,
-                width: '100%', height: 52, borderRadius: 16,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                gap: 8, boxSizing: 'border-box',
-                background: hasAnswers
-                  ? `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`
-                  : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${hasAnswers ? 'rgba(168,118,255,0.6)' : 'rgba(140,200,255,0.12)'}`,
-                boxShadow: hasAnswers ? '0 0 28px rgba(168,118,255,0.35)' : 'none',
-                opacity: hasAnswers ? 1 : 0.4,
-                transition: 'all 200ms ease',
-                WebkitTapHighlightColor: 'transparent',
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${T.hairlineSoft}`,
+                borderRadius: 12,
+                padding: '10px 14px',
+                fontFamily: T.display,
+                fontSize: 14,
+                color: T.text,
+                lineHeight: 1.5,
+                resize: 'none',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+                caretColor: T.purple,
               }}
-            >
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
-                stroke={hasAnswers ? '#fff' : T.text3}
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 7h10M8 3l4 4-4 4"/>
-              </svg>
-              <span style={{
-                fontFamily: T.mono, fontSize: 10, letterSpacing: '0.2em',
-                fontWeight: 700, textTransform: 'uppercase',
-                color: hasAnswers ? '#fff' : T.text3,
-              }}>Regenerate Steps</span>
-            </button>
+            />
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              {!isLast && (
+                <button
+                  onClick={() => setCurrentQ(i => i + 1)}
+                  style={{
+                    all: 'unset', cursor: 'pointer',
+                    flex: 1, height: 48, borderRadius: 14,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: T.mono, fontSize: 10, letterSpacing: '0.16em',
+                    textTransform: 'uppercase', fontWeight: 600,
+                    color: T.text2,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${T.hairlineSoft}`,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  Next question
+                </button>
+              )}
+              <button
+                onClick={handleFinish}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  flex: isLast ? 1 : 1.4, height: 48, borderRadius: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: T.mono, fontSize: 10, letterSpacing: '0.16em',
+                  textTransform: 'uppercase', fontWeight: 700,
+                  color: '#fff',
+                  background: `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`,
+                  border: '1px solid rgba(168,118,255,0.6)',
+                  boxShadow: '0 0 28px rgba(168,118,255,0.35)',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                {isLast ? 'Finished. Generate the steps.' : 'Generate the steps.'}
+              </button>
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
