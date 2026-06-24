@@ -7,6 +7,7 @@ import { MarqueeText } from './MarqueeText.jsx';
 import { EditMicroStepModal } from './EditMicroStepModal.jsx';
 import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { WorkWithMeModal } from './WorkWithMeModal.jsx';
+import { RefineModal } from './RefineModal.jsx';
 import { StepTimer } from './StepTimer.jsx';
 
 const BATCH_SIZE = 4;
@@ -30,6 +31,7 @@ export function SmallChunker({
   onBatchComplete,
   onFinish,
   onStepEdited,
+  onRefineBatch,
   onBack,
 }) {
   const [exiting, setExiting] = useState(false);
@@ -43,6 +45,7 @@ export function SmallChunker({
   const [workWithMeOpen, setWorkWithMeOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [refineOpen, setRefineOpen] = useState(false);
 
   // Close the edit modal whenever the active card changes.
   useEffect(() => { setEditOpen(false); setRegenLoading(false); setRegenSeen([]); setRegenHistories({}); setMenuOpen(false); setPreviewOpen(false); }, [inBatchIdx]);
@@ -554,8 +557,23 @@ export function SmallChunker({
             </svg>
           )}
         </GlowButton>
+        {!loading && step && !cascadeLoading && (
+          <button
+            onClick={() => setRefineOpen(true)}
+            style={{
+              all: 'unset', cursor: 'pointer', textAlign: 'center',
+              fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em',
+              color: T.text3, textTransform: 'uppercase',
+              textDecoration: 'underline', textDecorationStyle: 'dotted',
+              textUnderlineOffset: 3,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            Steps feel off? Refine them
+          </button>
+        )}
         <div style={{
-          textAlign: 'center', marginTop: 4,
+          textAlign: 'center',
           fontFamily: T.mono, fontSize: 10, letterSpacing: '0.2em',
           color: T.text3, textTransform: 'uppercase',
         }}>
@@ -593,6 +611,18 @@ export function SmallChunker({
         mission={mission}
         description={description}
         onClose={() => setWorkWithMeOpen(false)}
+      />
+
+      <RefineModal
+        open={refineOpen}
+        mission={mission}
+        description={description}
+        currentSteps={batchSteps}
+        onClose={() => setRefineOpen(false)}
+        onConfirm={(context) => {
+          setRefineOpen(false);
+          onRefineBatch && onRefineBatch(context);
+        }}
       />
 
       {previewOpen && (

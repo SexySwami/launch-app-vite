@@ -782,7 +782,7 @@ function AppInner() {
   // missionOverride is used by the post-break direct-launch path so the
   // correct mission text reaches the API before the mission state update
   // from launchMission has been flushed through a React render.
-  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null) => {
+  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null) => {
     const batchMission = missionOverride ?? mission;
     setMicroLoading(true);
     try {
@@ -795,6 +795,7 @@ function AppInner() {
           ...(sourceDescription ? { description: sourceDescription } : {}),
           previousSteps: accumulatedSteps,
           batchNumber,
+          ...(refinementContext ? { refinementContext } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -842,7 +843,7 @@ function AppInner() {
   // Deep Focus batch fetcher — calls /api/generate-deep-focus with the same
   // batch context structure as the Small Chunker, but uses the Four Step
   // Breakdown's style prompt. Falls back to local generator if API is down.
-  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null) => {
+  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null) => {
     const batchMission = missionOverride ?? mission;
     setDeepLoading(true);
     try {
@@ -855,6 +856,7 @@ function AppInner() {
           ...(sourceDescription ? { description: sourceDescription } : {}),
           previousSteps: accumulatedSteps,
           batchNumber,
+          ...(refinementContext ? { refinementContext } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -890,12 +892,26 @@ function AppInner() {
     setScreen('countdown');
   };
 
+  const handleMicroRefine = (refinementContext) => {
+    const prevSteps = microSteps.slice(0, (microBatch - 1) * 4);
+    setMicroSteps(prevSteps);
+    setMicroInBatchIdx(0);
+    fetchMicroBatch(microBatch, prevSteps, null, refinementContext);
+  };
+
   const handleDeepBatchComplete = () => {
     track('step_completed', { mission, step_index: deepInBatchIdx, mode: 'deepFocus', is_final_step: true });
     finalizeCompletion();
     setMomentum(m => m + 15);
     setLaunchesToday(n => n + 1);
     setScreen('reward');
+  };
+
+  const handleDeepRefine = (refinementContext) => {
+    const prevSteps = deepSteps.slice(0, (deepBatch - 1) * 4);
+    setDeepSteps(prevSteps);
+    setDeepInBatchIdx(0);
+    fetchDeepBatch(deepBatch, prevSteps, null, refinementContext);
   };
 
   const handleKeepGoing = () => {
@@ -1132,6 +1148,7 @@ function AppInner() {
         onBatchComplete={handleMicroBatchComplete}
         onFinish={handleMicroBatchComplete}
         onStepEdited={handleMicroStepEdited}
+        onRefineBatch={handleMicroRefine}
         onBack={() => { resetMicroState(); setScreen('modeSelect'); }}
       />
     );
@@ -1159,6 +1176,7 @@ function AppInner() {
         onBatchComplete={handleDeepBatchComplete}
         onFinish={handleDeepBatchComplete}
         onStepEdited={handleDeepStepEdited}
+        onRefineBatch={handleDeepRefine}
         onBack={() => { resetDeepState(); setScreen('modeSelect'); }}
       />
     );
