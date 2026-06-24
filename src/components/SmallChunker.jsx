@@ -255,13 +255,29 @@ export function SmallChunker({
           </div>
         </div>
 
-        <div style={{
-          fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em',
-          color: T.text3, textTransform: 'uppercase', marginTop: 12,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {mission}
-        </div>
+        {!loading && step && !cascadeLoading ? (
+          <button
+            onClick={() => setRefineOpen(true)}
+            style={{
+              all: 'unset', cursor: 'pointer', marginTop: 12,
+              fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em',
+              color: T.text3, textTransform: 'uppercase',
+              textDecoration: 'underline', textDecorationStyle: 'dotted',
+              textUnderlineOffset: 3,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            Steps feel off? Refine them
+          </button>
+        ) : (
+          <div style={{
+            fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em',
+            color: T.text3, textTransform: 'uppercase', marginTop: 12,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {mission}
+          </div>
+        )}
       </div>
 
       <div style={{
@@ -557,21 +573,6 @@ export function SmallChunker({
             </svg>
           )}
         </GlowButton>
-        {!loading && step && !cascadeLoading && (
-          <button
-            onClick={() => setRefineOpen(true)}
-            style={{
-              all: 'unset', cursor: 'pointer', textAlign: 'center',
-              fontFamily: T.mono, fontSize: 10, letterSpacing: '0.18em',
-              color: T.text3, textTransform: 'uppercase',
-              textDecoration: 'underline', textDecorationStyle: 'dotted',
-              textUnderlineOffset: 3,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            Steps feel off? Refine them
-          </button>
-        )}
         <div style={{
           textAlign: 'center',
           fontFamily: T.mono, fontSize: 10, letterSpacing: '0.2em',
