@@ -782,7 +782,7 @@ function AppInner() {
   // missionOverride is used by the post-break direct-launch path so the
   // correct mission text reaches the API before the mission state update
   // from launchMission has been flushed through a React render.
-  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null) => {
+  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null, restoreOnFail = null) => {
     const batchMission = missionOverride ?? mission;
     setMicroLoading(true);
     try {
@@ -803,9 +803,14 @@ function AppInner() {
         throw new Error(data.error || `Generator returned ${res.status}`);
       }
       setMicroSteps([...accumulatedSteps, ...data.steps]);
-    } catch {
-      const fallback = generateMicroSteps(batchMission, batchNumber, accumulatedSteps);
-      setMicroSteps([...accumulatedSteps, ...fallback]);
+    } catch (err) {
+      console.error('[SmallChunker] batch fetch failed:', err.message);
+      if (restoreOnFail) {
+        restoreOnFail();
+      } else {
+        const fallback = generateMicroSteps(batchMission, batchNumber, accumulatedSteps);
+        setMicroSteps([...accumulatedSteps, ...fallback]);
+      }
     } finally {
       setMicroLoading(false);
     }
@@ -843,7 +848,7 @@ function AppInner() {
   // Deep Focus batch fetcher — calls /api/generate-deep-focus with the same
   // batch context structure as the Small Chunker, but uses the Four Step
   // Breakdown's style prompt. Falls back to local generator if API is down.
-  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null) => {
+  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null, restoreOnFail = null) => {
     const batchMission = missionOverride ?? mission;
     setDeepLoading(true);
     try {
@@ -864,9 +869,14 @@ function AppInner() {
         throw new Error(data.error || `Generator returned ${res.status}`);
       }
       setDeepSteps([...accumulatedSteps, ...data.steps]);
-    } catch {
-      const fallback = generateDeepFocusSteps(batchMission, batchNumber, accumulatedSteps);
-      setDeepSteps([...accumulatedSteps, ...fallback]);
+    } catch (err) {
+      console.error('[DeepFocus] batch fetch failed:', err.message);
+      if (restoreOnFail) {
+        restoreOnFail();
+      } else {
+        const fallback = generateDeepFocusSteps(batchMission, batchNumber, accumulatedSteps);
+        setDeepSteps([...accumulatedSteps, ...fallback]);
+      }
     } finally {
       setDeepLoading(false);
     }
@@ -893,10 +903,15 @@ function AppInner() {
   };
 
   const handleMicroRefine = (refinementContext) => {
+    const originalSteps = [...microSteps];
+    const originalIdx = microInBatchIdx;
     const prevSteps = microSteps.slice(0, (microBatch - 1) * 4);
     setMicroSteps(prevSteps);
     setMicroInBatchIdx(0);
-    fetchMicroBatch(microBatch, prevSteps, null, refinementContext);
+    fetchMicroBatch(microBatch, prevSteps, null, refinementContext, () => {
+      setMicroSteps(originalSteps);
+      setMicroInBatchIdx(originalIdx);
+    });
   };
 
   const handleDeepBatchComplete = () => {
@@ -908,10 +923,15 @@ function AppInner() {
   };
 
   const handleDeepRefine = (refinementContext) => {
+    const originalSteps = [...deepSteps];
+    const originalIdx = deepInBatchIdx;
     const prevSteps = deepSteps.slice(0, (deepBatch - 1) * 4);
     setDeepSteps(prevSteps);
     setDeepInBatchIdx(0);
-    fetchDeepBatch(deepBatch, prevSteps, null, refinementContext);
+    fetchDeepBatch(deepBatch, prevSteps, null, refinementContext, () => {
+      setDeepSteps(originalSteps);
+      setDeepInBatchIdx(originalIdx);
+    });
   };
 
   const handleKeepGoing = () => {
