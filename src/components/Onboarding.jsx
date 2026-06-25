@@ -811,7 +811,7 @@ function SlideFocus() {
         <p className="ob-s" style={{ '--d': '0.15s', fontFamily: T.display,
           fontSize: 'clamp(14px, 1.8vw, 16px)', color: T.text2,
           margin: 'clamp(8px, 1.5vh, 12px) 0 0', lineHeight: 1.45, textAlign: 'center', maxWidth: 320 }}>
-          AI picks a "Body Double" video matched to your task — virtual body doubling that actually helps you start tasks and keep going.
+          AI picks a "Motivation" video matched to your task — virtual body doubling that actually helps you start tasks and keep going.
         </p>
         {/* VideoCard: capped at 520px wide so it never gets taller than ~295px */}
         <div className="ob-s" style={{ '--d': '0.26s',
