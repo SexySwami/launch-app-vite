@@ -43,11 +43,12 @@ function poolFor(category) {
   return { key: 'computer', cats: COMPUTER_CATEGORIES };
 }
 
-export function WorkWithMeModal({ open, mission, description, onClose }) {
+export function WorkWithMeModal({ open, mission, description, onClose, steps, currentStepIdx }) {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState([]); // shuffled queue for the active pool
   const [pos, setPos] = useState(0);
   const [overrideVideo, setOverrideVideo] = useState(null); // { ...videoObj, startSec } for resume
+  const [stepViewIdx, setStepViewIdx] = useState(0);
   const reqIdRef = useRef(0);
   const poolRef = useRef(null); // pool `order` belongs to; persists across opens
   const iframeRef = useRef(null);    // ref to the YouTube iframe element
@@ -94,6 +95,7 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
       setOverrideVideo(null);
       return;
     }
+    setStepViewIdx(typeof currentStepIdx === 'number' ? currentStepIdx : 0);
 
     // work_with_me_opened: user tapped the "Work With Me" button during a mission.
     // The category resolves below after classification, but we fire the event now
@@ -391,6 +393,87 @@ export function WorkWithMeModal({ open, mission, description, onClose }) {
           </span>
           {!loading && multiple && arrowBtn('right', goNext)}
         </div>
+
+        {/* Step viewer */}
+        {Array.isArray(steps) && steps.length > 0 && (() => {
+          const viewedStep = steps[stepViewIdx] || steps[0];
+          const hasMultiple = steps.length > 1;
+          return (
+            <>
+              <div style={{
+                margin: '14px 0 12px',
+                height: 1,
+                background: 'rgba(255,255,255,0.07)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <button
+                  onClick={() => setStepViewIdx(i => Math.max(0, i - 1))}
+                  disabled={!hasMultiple || stepViewIdx === 0}
+                  aria-label="Previous step"
+                  style={{
+                    all: 'unset',
+                    cursor: (!hasMultiple || stepViewIdx === 0) ? 'default' : 'pointer',
+                    width: 26, height: 26, borderRadius: 99, flexShrink: 0, marginTop: 2,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: `1px solid rgba(255,255,255,0.10)`,
+                    color: (!hasMultiple || stepViewIdx === 0) ? 'rgba(255,255,255,0.2)' : T.text2,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'color 180ms ease',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 14 14">
+                    <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: T.mono, fontSize: 9, letterSpacing: '0.2em',
+                    color: T.text3, textTransform: 'uppercase', marginBottom: 5,
+                  }}>
+                    Step {stepViewIdx + 1} of {steps.length}
+                  </div>
+                  <div style={{
+                    fontFamily: T.display, fontSize: 14, fontWeight: 600,
+                    color: T.text, lineHeight: 1.35, letterSpacing: '-0.01em',
+                  }}>
+                    {viewedStep.title}
+                  </div>
+                  {viewedStep.description && (
+                    <div style={{
+                      fontFamily: T.display, fontSize: 12.5,
+                      color: T.text2, lineHeight: 1.4, marginTop: 4,
+                    }}>
+                      {viewedStep.description}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setStepViewIdx(i => Math.min(steps.length - 1, i + 1))}
+                  disabled={!hasMultiple || stepViewIdx === steps.length - 1}
+                  aria-label="Next step"
+                  style={{
+                    all: 'unset',
+                    cursor: (!hasMultiple || stepViewIdx === steps.length - 1) ? 'default' : 'pointer',
+                    width: 26, height: 26, borderRadius: 99, flexShrink: 0, marginTop: 2,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: `1px solid rgba(255,255,255,0.10)`,
+                    color: (!hasMultiple || stepViewIdx === steps.length - 1) ? 'rgba(255,255,255,0.2)' : T.text2,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'color 180ms ease',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 14 14">
+                    <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );

@@ -494,6 +494,8 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
         open={workWithMeOpen}
         mission={mission}
         onClose={() => setWorkWithMeOpen(false)}
+        steps={step ? [step] : []}
+        currentStepIdx={0}
       />
 
       {previewOpen && (

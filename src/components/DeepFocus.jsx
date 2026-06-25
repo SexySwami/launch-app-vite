@@ -609,6 +609,8 @@ export function DeepFocus({
         mission={mission}
         description={description}
         onClose={() => setWorkWithMeOpen(false)}
+        steps={batchSteps}
+        currentStepIdx={inBatchIdx}
       />
 
       <RefineModal
