@@ -1,6 +1,6 @@
 {
-  "name": "Launch",
-  "short_name": "Launch",
+  "name": "Help Me Start",
+  "short_name": "Help Me Start",
   "description": "Mission Control for Momentum",
   "start_url": "/",
   "display": "standalone",
