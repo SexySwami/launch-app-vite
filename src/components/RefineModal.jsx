@@ -252,13 +252,14 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
                   onClick={() => setCurrentQ(i => i + 1)}
                   style={{
                     all: 'unset', cursor: 'pointer',
-                    flex: 1, height: 48, borderRadius: 14,
+                    flex: 1.4, height: 48, borderRadius: 14,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: T.mono, fontSize: 10, letterSpacing: '0.16em',
-                    textTransform: 'uppercase', fontWeight: 600,
-                    color: T.text2,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${T.hairlineSoft}`,
+                    textTransform: 'uppercase', fontWeight: 700,
+                    color: '#fff',
+                    background: `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`,
+                    border: '1px solid rgba(168,118,255,0.6)',
+                    boxShadow: '0 0 28px rgba(168,118,255,0.35)',
                     WebkitTapHighlightColor: 'transparent',
                   }}
                 >
@@ -269,14 +270,16 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
                 onClick={handleFinish}
                 style={{
                   all: 'unset', cursor: 'pointer',
-                  flex: isLast ? 1 : 1.4, height: 48, borderRadius: 14,
+                  flex: 1, height: 48, borderRadius: 14,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: T.mono, fontSize: 10, letterSpacing: '0.16em',
-                  textTransform: 'uppercase', fontWeight: 700,
-                  color: '#fff',
-                  background: `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`,
-                  border: '1px solid rgba(168,118,255,0.6)',
-                  boxShadow: '0 0 28px rgba(168,118,255,0.35)',
+                  textTransform: 'uppercase', fontWeight: isLast ? 700 : 600,
+                  color: isLast ? '#fff' : T.text2,
+                  background: isLast
+                    ? `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`
+                    : 'rgba(255,255,255,0.05)',
+                  border: isLast ? '1px solid rgba(168,118,255,0.6)' : `1px solid ${T.hairlineSoft}`,
+                  boxShadow: isLast ? '0 0 28px rgba(168,118,255,0.35)' : 'none',
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
