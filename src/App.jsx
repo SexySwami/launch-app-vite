@@ -1054,6 +1054,7 @@ function AppInner() {
               <MissionInput
                 folderId={fid}
                 folder={folder}
+                folders={folders}
                 active={active}
                 onLaunch={launchMission}
                 mission={mission}

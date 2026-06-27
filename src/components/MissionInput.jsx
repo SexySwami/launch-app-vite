@@ -15,6 +15,7 @@ export function MissionInput({
   setMission,
   folderId = 'work',
   folder = null,
+  folders = [],
   onBack = null,
   refetchKey = 0,
   // True when this folder is the one currently shown. The component stays
@@ -101,6 +102,7 @@ export function MissionInput({
   const [editingItemId, setEditingItemId] = useState(null);
   const [overlayStartMode, setOverlayStartMode] = useState('edit');
   const [itemOptionsId, setItemOptionsId] = useState(null); // ⋯ button menu
+  const [movingItemId, setMovingItemId] = useState(null);  // folder picker open
   const [selectedItemId, setSelectedItemId] = useState(null); // tap-to-select before launch
 
   // Double-tap detection. We delay the single-tap action so a second tap
@@ -653,6 +655,57 @@ export function MissionInput({
     }
   };
 
+  const handleMoveItem = async (itemId, targetFolderId) => {
+    const found = findItemAnywhere(itemId);
+    if (!found) return;
+    const { item, parentFolderId } = found;
+    const before = items;
+
+    const next = isShortList
+      ? items.filter(i => i.id !== itemId)
+      : parentFolderId
+        ? items.map(i => i.id === parentFolderId
+            ? { ...i, children: (i.children || []).filter(c => c.id !== itemId) }
+            : i)
+        : items.filter(i => i.id !== itemId);
+
+    setItems(next);
+    setItemOptionsId(null);
+    setMovingItemId(null);
+
+    try {
+      if (isShortList || !parentFolderId) {
+        await apiFetch(queueIdUrl(itemId), { method: 'DELETE' });
+      } else {
+        await apiFetch(queueUrl, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: next }),
+        });
+      }
+
+      await apiFetch(`/api/queue?folder=${encodeURIComponent(targetFolderId)}&append=1`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          text: item.text,
+          ...(item.description ? { description: item.description } : {}),
+        }),
+      });
+
+      if (!isShortList && shortListMap.has(itemId)) {
+        const slEntryId = shortListMap.get(itemId);
+        try {
+          await apiFetch(`/api/queue?folder=short-list&id=${encodeURIComponent(slEntryId)}`, { method: 'DELETE' });
+          setShortListMap(prev => { const m = new Map(prev); m.delete(itemId); return m; });
+        } catch {}
+      }
+    } catch (err) {
+      setItems(before);
+      setItemsError(err.message || 'Could not move item');
+    }
+  };
+
   const handleUndoDelete = async () => {
     if (!pendingUndo) return;
     const { item, originalIndex } = pendingUndo;
@@ -921,6 +974,9 @@ export function MissionInput({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [itemOptionsId, editingItemId]);
+
+  // Reset move picker when the options menu closes or switches to a different item.
+  useEffect(() => { if (!itemOptionsId) setMovingItemId(null); }, [itemOptionsId]);
 
   const handleLazyLaunch = () => {
     if (drag) return;
@@ -2672,7 +2728,53 @@ export function MissionInput({
 
       {itemOptionsId && (
         <div style={{ padding: '0 24px' }}>
-          {isShortList ? (
+          {movingItemId ? (
+            /* ── Move: folder picker ── */
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <button
+                  onClick={() => setMovingItemId(null)}
+                  style={{
+                    all: 'unset', cursor: 'pointer',
+                    color: T.text3, display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontFamily: T.display, fontSize: 11, fontWeight: 600,
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M6 2L3 5l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Back
+                </button>
+                <span style={{ fontFamily: T.display, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.text3 }}>
+                  Move to
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {folders.filter(f => f.id !== folderId).map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => handleMoveItem(movingItemId, f.id)}
+                    style={{
+                      height: 60, borderRadius: 18,
+                      background: `${f.accent}1a`,
+                      border: `1px solid ${f.accent}55`,
+                      color: f.accent,
+                      fontFamily: T.display, fontSize: 12, fontWeight: 600,
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      overflow: 'hidden', whiteSpace: 'nowrap',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : isShortList ? (
             /* ── Short List: same 4-button grid as regular list ── */
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {/* Remove */}
@@ -2738,26 +2840,26 @@ export function MissionInput({
                 </svg>
                 Edit
               </button>
-              {/* Remove from Short List */}
+              {/* Move */}
               <button
-                onClick={() => { handleDeleteItem(itemOptionsId); setItemOptionsId(null); }}
+                onClick={() => setMovingItemId(itemOptionsId)}
                 style={{
                   height: 60, borderRadius: 18,
-                  background: 'linear-gradient(180deg, rgba(255,107,157,0.12), rgba(255,107,157,0.04))',
-                  border: '1px solid rgba(255,107,157,0.42)',
-                  color: T.rose,
-                  fontFamily: T.display, fontSize: 11, fontWeight: 600,
+                  background: 'linear-gradient(180deg, rgba(61,127,255,0.14), rgba(61,127,255,0.04))',
+                  border: '1px solid rgba(61,127,255,0.42)',
+                  color: T.blue,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
                   letterSpacing: '0.04em', textTransform: 'uppercase',
                   cursor: 'pointer',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(255,107,157,0.10)',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(61,127,255,0.10)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                  <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                  <path d="M1 6.5h10M8 3l3.5 3.5L8 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Remove from Short List
+                Move
               </button>
             </div>
           ) : (
@@ -2826,53 +2928,27 @@ export function MissionInput({
                 </svg>
                 Edit
               </button>
-              {/* Short List */}
-              {shortListMap.has(itemOptionsId) ? (
-                <button
-                  disabled
-                  style={{
-                    height: 60, borderRadius: 18,
-                    background: 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${T.hairlineSoft}`,
-                    color: T.text3,
-                    fontFamily: T.display, fontSize: 11, fontWeight: 600,
-                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                    cursor: 'default',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    opacity: 0.5,
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                    <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-                  </svg>
-                  In Short List
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    const found = findItemAnywhere(itemOptionsId);
-                    if (found) handleAddToShortList(found.item);
-                  }}
-                  style={{
-                    height: 60, borderRadius: 18,
-                    background: 'linear-gradient(180deg, rgba(255,107,157,0.12), rgba(255,107,157,0.04))',
-                    border: '1px solid rgba(255,107,157,0.42)',
-                    color: T.rose,
-                    fontFamily: T.display, fontSize: 11, fontWeight: 600,
-                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(255,107,157,0.10)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                    <polygon points="6.5,1 7.98,4.41 11.71,4.72 9.01,7.08 9.89,10.73 6.5,8.77 3.11,10.73 3.99,7.08 1.29,4.72 5.02,4.41" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-                  </svg>
-                  Short List
-                </button>
-              )}
+              {/* Move */}
+              <button
+                onClick={() => setMovingItemId(itemOptionsId)}
+                style={{
+                  height: 60, borderRadius: 18,
+                  background: 'linear-gradient(180deg, rgba(61,127,255,0.14), rgba(61,127,255,0.04))',
+                  border: '1px solid rgba(61,127,255,0.42)',
+                  color: T.blue,
+                  fontFamily: T.display, fontSize: 13, fontWeight: 600,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 0 14px rgba(61,127,255,0.10)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M1 6.5h10M8 3l3.5 3.5L8 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Move
+              </button>
             </div>
           )}
         </div>
