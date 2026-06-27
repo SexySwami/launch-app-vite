@@ -8,6 +8,7 @@ import { GlowButton } from './GlowButton.jsx';
 import { DropIndicator } from './DropIndicator.jsx';
 import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { FolderNamingOverlay } from './FolderNamingOverlay.jsx';
+import { RootFolderScreen } from './RootFolderScreen.jsx';
 
 export function MissionInput({
   onLaunch,
@@ -2728,53 +2729,7 @@ export function MissionInput({
 
       {itemOptionsId && (
         <div style={{ padding: '0 24px' }}>
-          {movingItemId ? (
-            /* ── Move: folder picker ── */
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <button
-                  onClick={() => setMovingItemId(null)}
-                  style={{
-                    all: 'unset', cursor: 'pointer',
-                    color: T.text3, display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontFamily: T.display, fontSize: 11, fontWeight: 600,
-                    letterSpacing: '0.06em', textTransform: 'uppercase',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M6 2L3 5l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Back
-                </button>
-                <span style={{ fontFamily: T.display, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.text3 }}>
-                  Move to
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {folders.filter(f => f.id !== folderId).map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => handleMoveItem(movingItemId, f.id)}
-                    style={{
-                      height: 60, borderRadius: 18,
-                      background: `${f.accent}1a`,
-                      border: `1px solid ${f.accent}55`,
-                      color: f.accent,
-                      fontFamily: T.display, fontSize: 12, fontWeight: 600,
-                      letterSpacing: '0.04em', textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      overflow: 'hidden', whiteSpace: 'nowrap',
-                      WebkitTapHighlightColor: 'transparent',
-                    }}
-                  >
-                    {f.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : isShortList ? (
+          {isShortList ? (
             /* ── Short List: same 4-button grid as regular list ── */
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {/* Remove */}
@@ -2984,6 +2939,49 @@ export function MissionInput({
           onSkip={() => setNamingFolderId(null)}
           onSave={(name) => handleSaveFolderName(namingFolderId, name)}
         />
+      )}
+
+      {movingItemId && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 200,
+          background: T.bg,
+          display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Header bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '16px 20px 8px',
+            flexShrink: 0,
+          }}>
+            <button
+              onClick={() => setMovingItemId(null)}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                width: 36, height: 36, borderRadius: 99, flexShrink: 0,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${T.hairlineSoft}`,
+                color: T.text2,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M6.5 1.5L2.5 5l4 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span style={{
+              fontFamily: T.display, fontSize: 17, fontWeight: 600,
+              letterSpacing: '-0.01em', color: T.text,
+            }}>
+              Move to
+            </span>
+          </div>
+          <RootFolderScreen
+            folders={folders.filter(f => f.id !== folderId)}
+            onOpen={(targetFolderId) => handleMoveItem(movingItemId, targetFolderId)}
+            pickerMode
+          />
+        </div>
       )}
 
       {folderDeleteConfirmId && (() => {
