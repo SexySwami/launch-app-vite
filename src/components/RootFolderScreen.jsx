@@ -77,7 +77,7 @@ const ICONS = {
   ),
 };
 
-function FolderTile({ folder, count, countKnown, animationDelay, onOpen, onDeleteRequest }) {
+function FolderTile({ folder, count, countKnown, animationDelay, onOpen, onDeleteRequest, pickerMode = false }) {
   const [pressed, setPressed] = useState(false);
   const accent = folder.accent;
   const isEmpty = countKnown && count === 0;
@@ -221,24 +221,26 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen, onDelet
                     : `${count} ${count === 1 ? 'item' : 'items'}`}
               </span>
             </div>
-            <button
-              aria-label={`Delete ${folder.name}`}
-              onClick={e => { e.stopPropagation(); onDeleteRequest(folder); }}
-              style={{
-                all: 'unset', cursor: 'pointer',
-                width: 22, height: 22, borderRadius: 6,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                color: toRGBA(accent, 0.38),
-                transition: 'color 160ms ease',
-                flexShrink: 0,
-              }}
-              onPointerEnter={e => { e.currentTarget.style.color = toRGBA(accent, 0.9); }}
-              onPointerLeave={e => { e.currentTarget.style.color = toRGBA(accent, 0.38); }}
-            >
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            {!pickerMode && (
+              <button
+                aria-label={`Delete ${folder.name}`}
+                onClick={e => { e.stopPropagation(); onDeleteRequest(folder); }}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  width: 22, height: 22, borderRadius: 6,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  color: toRGBA(accent, 0.38),
+                  transition: 'color 160ms ease',
+                  flexShrink: 0,
+                }}
+                onPointerEnter={e => { e.currentTarget.style.color = toRGBA(accent, 0.9); }}
+                onPointerLeave={e => { e.currentTarget.style.color = toRGBA(accent, 0.38); }}
+              >
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M5 3.5l.5 8M9 3.5l-.5 8M3.5 3.5l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -259,7 +261,7 @@ function FolderTile({ folder, count, countKnown, animationDelay, onOpen, onDelet
   );
 }
 
-export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect, onCreateFolder, onDeleteFolder }) {
+export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect, onCreateFolder, onDeleteFolder, pickerMode = false }) {
   const [counts, setCounts] = useState(() => ({}));
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -375,46 +377,50 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
       flex: 1, display: 'flex', flexDirection: 'column',
       padding: '0 0 24px', minHeight: 0,
     }}>
-      <div style={{ paddingTop: 8 }}>
-        <Telemetry time="04:32:11 UTC" code="MC-04 / ROOT" state="STANDBY" />
-      </div>
-
-      <div style={{ padding: '20px 20px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
-          <Eyebrow style={{ marginBottom: 12 }}>Workspace</Eyebrow>
-          <h1 style={{
-            fontFamily: T.display, fontWeight: 600, fontSize: 30, lineHeight: 1.05,
-            letterSpacing: '-0.02em', color: T.text, margin: 0, marginBottom: 6,
-          }}>
-            Pick a checklist to launch from.
-          </h1>
-          <p style={{
-            fontFamily: T.display, fontSize: 13, color: T.text2,
-            margin: 0, letterSpacing: '-0.005em',
-          }}>
-            Every root folder holds an independent queue. Switch contexts, keep momentum.
-          </p>
+      {!pickerMode && (
+        <div style={{ paddingTop: 8 }}>
+          <Telemetry time="04:32:11 UTC" code="MC-04 / ROOT" state="STANDBY" />
         </div>
-        <button
-          aria-label={searchOpen ? 'Close search' : 'Search checklists'}
-          onClick={searchOpen ? closeSearch : openSearch}
-          style={{
-            all: 'unset', cursor: 'pointer', flexShrink: 0, marginTop: 4,
-            width: 40, height: 40, borderRadius: 99,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: searchOpen ? 'rgba(255,192,72,0.12)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${searchOpen ? 'rgba(255,192,72,0.55)' : T.hairlineSoft}`,
-            color: searchOpen ? T.amber : T.text3,
-            boxShadow: searchOpen ? '0 0 16px rgba(255,192,72,0.22)' : 'none',
-            transition: 'all 200ms ease',
-          }}
-        >
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </button>
-      </div>
+      )}
+
+      {!pickerMode && (
+        <div style={{ padding: '20px 20px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+            <Eyebrow style={{ marginBottom: 12 }}>Workspace</Eyebrow>
+            <h1 style={{
+              fontFamily: T.display, fontWeight: 600, fontSize: 30, lineHeight: 1.05,
+              letterSpacing: '-0.02em', color: T.text, margin: 0, marginBottom: 6,
+            }}>
+              Pick a checklist to launch from.
+            </h1>
+            <p style={{
+              fontFamily: T.display, fontSize: 13, color: T.text2,
+              margin: 0, letterSpacing: '-0.005em',
+            }}>
+              Every root folder holds an independent queue. Switch contexts, keep momentum.
+            </p>
+          </div>
+          <button
+            aria-label={searchOpen ? 'Close search' : 'Search checklists'}
+            onClick={searchOpen ? closeSearch : openSearch}
+            style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0, marginTop: 4,
+              width: 40, height: 40, borderRadius: 99,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: searchOpen ? 'rgba(255,192,72,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${searchOpen ? 'rgba(255,192,72,0.55)' : T.hairlineSoft}`,
+              color: searchOpen ? T.amber : T.text3,
+              boxShadow: searchOpen ? '0 0 16px rgba(255,192,72,0.22)' : 'none',
+              transition: 'all 200ms ease',
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+              <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       {searchOpen && (
         <>
@@ -530,10 +536,11 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
             animationDelay={i * 70}
             onOpen={() => onOpen(f.id)}
             onDeleteRequest={setDeleteConfirmFolder}
+            pickerMode={pickerMode}
           />
         ))}
 
-        {creating ? (
+        {!pickerMode && creating ? (
           <div style={{
             borderRadius: 22,
             padding: '14px 16px 14px 20px',
@@ -589,7 +596,7 @@ export function RootFolderScreen({ folders, onOpen, resetKey = 0, onSearchSelect
               </svg>
             </button>
           </div>
-        ) : (
+        ) : pickerMode ? null : (
           <button
             onClick={() => setCreating(true)}
             style={{

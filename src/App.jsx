@@ -782,8 +782,9 @@ function AppInner() {
   // missionOverride is used by the post-break direct-launch path so the
   // correct mission text reaches the API before the mission state update
   // from launchMission has been flushed through a React render.
-  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null, restoreOnFail = null) => {
+  const fetchMicroBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null, restoreOnFail = null, descriptionOverride = null) => {
     const batchMission = missionOverride ?? mission;
+    const batchDescription = descriptionOverride !== null ? descriptionOverride : sourceDescription;
     setMicroLoading(true);
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
@@ -792,7 +793,7 @@ function AppInner() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           mission: batchMission,
-          ...(sourceDescription ? { description: sourceDescription } : {}),
+          ...(batchDescription ? { description: batchDescription } : {}),
           previousSteps: accumulatedSteps,
           batchNumber,
           ...(refinementContext ? { refinementContext } : {}),
@@ -848,8 +849,9 @@ function AppInner() {
   // Deep Focus batch fetcher — calls /api/generate-deep-focus with the same
   // batch context structure as the Small Chunker, but uses the Four Step
   // Breakdown's style prompt. Falls back to local generator if API is down.
-  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null, restoreOnFail = null) => {
+  const fetchDeepBatch = async (batchNumber, accumulatedSteps, missionOverride = null, refinementContext = null, restoreOnFail = null, descriptionOverride = null) => {
     const batchMission = missionOverride ?? mission;
+    const batchDescription = descriptionOverride !== null ? descriptionOverride : sourceDescription;
     setDeepLoading(true);
     try {
       if (!canCallAPI) throw new Error('__skip_api__');
@@ -858,7 +860,7 @@ function AppInner() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           mission: batchMission,
-          ...(sourceDescription ? { description: sourceDescription } : {}),
+          ...(batchDescription ? { description: batchDescription } : {}),
           previousSteps: accumulatedSteps,
           batchNumber,
           ...(refinementContext ? { refinementContext } : {}),
@@ -1019,6 +1021,58 @@ function AppInner() {
     setScreen('input');
   };
 
+  const handleFourStepMissionEdit = (newText, newDesc) => {
+    const t = newText.trim();
+    const d = newDesc?.trim() || null;
+    setMission(t);
+    setSourceDescription(d);
+    setStepIdx(0);
+    setStepOverrides({});
+    setStepsLoading(true);
+    setSteps([]);
+    setStepsError(null);
+    (async () => {
+      try {
+        if (!canCallAPI) throw new Error('__skip_api__');
+        const res = await apiFetch('/api/generate-steps', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ mission: t, ...(d ? { description: d } : {}) }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !Array.isArray(data.steps) || data.steps.length === 0) throw new Error(data.error || `Generator returned ${res.status}`);
+        setSteps(data.steps);
+      } catch (err) {
+        setSteps(generateSteps(t));
+        if (err.message !== '__skip_api__') setStepsError(err.message || 'Could not generate steps');
+      } finally {
+        setStepsLoading(false);
+      }
+    })();
+  };
+
+  const handleMicroMissionEdit = (newText, newDesc) => {
+    const t = newText.trim();
+    const d = newDesc?.trim() || null;
+    setMission(t);
+    setSourceDescription(d);
+    const prevSteps = microSteps.slice(0, (microBatch - 1) * 4);
+    setMicroSteps(prevSteps);
+    setMicroInBatchIdx(0);
+    fetchMicroBatch(microBatch, prevSteps, t, null, null, d);
+  };
+
+  const handleDeepMissionEdit = (newText, newDesc) => {
+    const t = newText.trim();
+    const d = newDesc?.trim() || null;
+    setMission(t);
+    setSourceDescription(d);
+    const prevSteps = deepSteps.slice(0, (deepBatch - 1) * 4);
+    setDeepSteps(prevSteps);
+    setDeepInBatchIdx(0);
+    fetchDeepBatch(deepBatch, prevSteps, t, null, null, d);
+  };
+
   // Render the Checklists tab as a layered stack: the root folder selection
   // takes layout, and each lazily-mounted folder MissionInput overlays it
   // (absolutely positioned). Switching folders hides via visibility:hidden
@@ -1054,6 +1108,7 @@ function AppInner() {
               <MissionInput
                 folderId={fid}
                 folder={folder}
+                folders={folders}
                 active={active}
                 onLaunch={launchMission}
                 mission={mission}
@@ -1170,6 +1225,7 @@ function AppInner() {
         onStepEdited={handleMicroStepEdited}
         onRefineBatch={handleMicroRefine}
         onBack={() => { resetMicroState(); setScreen('modeSelect'); }}
+        onMissionEdit={handleMicroMissionEdit}
       />
     );
   else if (screen === 'deepFocus')
@@ -1198,6 +1254,7 @@ function AppInner() {
         onStepEdited={handleDeepStepEdited}
         onRefineBatch={handleDeepRefine}
         onBack={() => { resetDeepState(); setScreen('modeSelect'); }}
+        onMissionEdit={handleDeepMissionEdit}
       />
     );
   else if (screen === 'step')
@@ -1216,6 +1273,7 @@ function AppInner() {
         description={sourceDescription}
         loading={stepsLoading || !resolvedStep}
         cascadeLoading={cascadeLoading && stepIdx > cascadeFromIdx}
+        onMissionEdit={handleFourStepMissionEdit}
       />
     );
   else if (screen === 'reward')
