@@ -252,7 +252,7 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
                   onClick={() => setCurrentQ(i => i + 1)}
                   style={{
                     all: 'unset', cursor: 'pointer',
-                    flex: 1.4, height: 48, borderRadius: 14,
+                    flex: 1, height: 48, borderRadius: 14,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: T.mono, fontSize: 10, letterSpacing: '0.16em',
                     textTransform: 'uppercase', fontWeight: 700,
@@ -274,6 +274,7 @@ export function RefineModal({ open, mission, description, currentSteps, onClose,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: T.mono, fontSize: 10, letterSpacing: '0.16em',
                   textTransform: 'uppercase', fontWeight: isLast ? 700 : 600,
+                  whiteSpace: 'nowrap',
                   color: isLast ? '#fff' : T.text2,
                   background: isLast
                     ? `linear-gradient(135deg, ${T.purple}, rgba(61,127,255,0.9))`
