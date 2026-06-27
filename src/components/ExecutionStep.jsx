@@ -9,7 +9,7 @@ import { EditItemOverlay } from './EditItemOverlay.jsx';
 import { WorkWithMeModal } from './WorkWithMeModal.jsx';
 import { StepTimer } from './StepTimer.jsx';
 
-export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, description, loading, cascadeLoading }) {
+export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onComplete, onEditStep, onBack, onLogStep, stepLogged, mission, description, loading, cascadeLoading, onMissionEdit }) {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
   const [pulseMomentum, setPulseMomentum] = useState(false);
@@ -504,7 +504,7 @@ export function ExecutionStep({ step, stepIdx, totalSteps, momentumGained, onCom
           saving={false}
           startMode="view"
           onCancel={() => setPreviewOpen(false)}
-          onSave={() => setPreviewOpen(false)}
+          onSave={(newText, newDesc) => { onMissionEdit?.(newText, newDesc); setPreviewOpen(false); }}
         />
       )}
     </div>

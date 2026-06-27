@@ -1171,6 +1171,7 @@ function AppInner() {
         onStepEdited={handleMicroStepEdited}
         onRefineBatch={handleMicroRefine}
         onBack={() => { resetMicroState(); setScreen('modeSelect'); }}
+        onMissionEdit={(newText, newDesc) => { setMission(newText.trim()); setSourceDescription(newDesc?.trim() || null); }}
       />
     );
   else if (screen === 'deepFocus')
@@ -1199,6 +1200,7 @@ function AppInner() {
         onStepEdited={handleDeepStepEdited}
         onRefineBatch={handleDeepRefine}
         onBack={() => { resetDeepState(); setScreen('modeSelect'); }}
+        onMissionEdit={(newText, newDesc) => { setMission(newText.trim()); setSourceDescription(newDesc?.trim() || null); }}
       />
     );
   else if (screen === 'step')
@@ -1217,6 +1219,7 @@ function AppInner() {
         description={sourceDescription}
         loading={stepsLoading || !resolvedStep}
         cascadeLoading={cascadeLoading && stepIdx > cascadeFromIdx}
+        onMissionEdit={(newText, newDesc) => { setMission(newText.trim()); setSourceDescription(newDesc?.trim() || null); }}
       />
     );
   else if (screen === 'reward')

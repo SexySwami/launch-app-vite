@@ -33,6 +33,7 @@ export function SmallChunker({
   onStepEdited,
   onRefineBatch,
   onBack,
+  onMissionEdit,
 }) {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(true);
@@ -634,7 +635,7 @@ export function SmallChunker({
           saving={false}
           startMode="view"
           onCancel={() => setPreviewOpen(false)}
-          onSave={() => setPreviewOpen(false)}
+          onSave={(newText, newDesc) => { onMissionEdit?.(newText, newDesc); setPreviewOpen(false); }}
         />
       )}
     </div>
